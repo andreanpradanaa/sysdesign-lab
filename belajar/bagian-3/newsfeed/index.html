@@ -1,0 +1,215 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Timeline yang terasa instan untuk ratusan juta user: fan-out on write vs on read, masalah selebriti, pendekatan hybrid, dan cache timeline sebagai inti sistem."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Twitter / newsfeed · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 3 · Studi Kasus · Studi kasus</span><h1>Twitter / newsfeed</h1><div class="lesson-meta"><span class="badge">⏱ ±60 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/distributed-cache">Distributed cache</a>, <a href="/sysdesign-lab/belajar/bagian-2/message-queue">Message queue</a>, <a href="/sysdesign-lab/belajar/bagian-2/pub-sub">Pub-sub</a>, <a href="/sysdesign-lab/belajar/bagian-2/database">Database: replication, partitioning, SQL vs NoSQL</a></span></div><p class="lesson-summary">Timeline yang terasa instan untuk ratusan juta user: fan-out on write vs on read, masalah selebriti, pendekatan hybrid, dan cache timeline sebagai inti sistem.</p><div class="prose"><h2 id="1-requirements">1. Requirements</h2>
+<p>Klarifikasi: timeline kronologis atau berperingkat? Berapa DAU? Rasio post vs baca? Apakah ada akun dengan puluhan juta follower? Media (gambar/video) disertakan?</p>
+<h3 id="functional">Functional</h3>
+<ul>
+<li>User memposting teks (≤ 280 karakter) opsional dengan media.</li>
+<li>User mengikuti user lain.</li>
+<li>Home timeline: post dari akun yang diikuti, terbaru di atas (kronologis; ranking disebut sebagai ekstensi).</li>
+<li>User timeline: post milik satu user.</li>
+<li>Out of scope: pencarian, notifikasi, DM, iklan, ranking ML.</li>
+</ul>
+<h3 id="non-functional">Non-functional</h3>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Target</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Latency timeline</td>
+<td>p99 &lt; 200 ms</td>
+<td>Dibuka berkali-kali sehari</td>
+</tr>
+<tr>
+<td>Availability</td>
+<td>99.99% baca</td>
+<td>Produk utama</td>
+</tr>
+<tr>
+<td>Konsistensi</td>
+<td>Eventual: post boleh muncul di timeline follower dalam beberapa detik</td>
+<td>Tidak ada yang menyadari jeda 2 detik</td>
+</tr>
+<tr>
+<td>Skala</td>
+<td>300 juta DAU, baca ≫ tulis</td>
+<td>Konsumer global</td>
+</tr>
+<tr>
+<td>Durability</td>
+<td>Post tidak hilang</td>
+<td>Sumber kebenaran</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-estimasi-kapasitas">2. Estimasi kapasitas</h2>
+<p>Asumsi: 300 juta DAU; tiap user membuka timeline 10x/hari dan memposting 0.2x/hari; rata-rata mengikuti 200 akun; post 300 B teks + metadata.</p>
+<ul>
+<li>Baca timeline: 300M × 10 / 10^5 ≈ <strong>30.000 QPS</strong>, puncak 100.000.</li>
+<li>Tulis post: 300M × 0.2 / 10^5 ≈ <strong>600 post/detik</strong>, puncak 2.000.</li>
+<li>Fan-out on write: 600 post/s × 200 follower rata-rata = <strong>120.000 tulisan cache/detik</strong> (median); dengan akun besar, puncak jauh lebih tinggi; itulah masalahnya.</li>
+<li>Storage post: 60M post/hari × 300 B ≈ 18 GB/hari → 5 tahun ≈ 33 TB (teks saja); media ke blob store, PB.</li>
+<li>Timeline cache: 300M user × 800 ID × 8 B ≈ 2 TB bila semua user di-cache; hanya user aktif (mis. 30 hari) → ratusan GB, muat di cluster Redis.</li>
+</ul>
+<p>Keputusan: baca dilayani dari cache yang sudah dihitung (pre-computed), tulis jarang tetapi fan-out mahal, media di blob store + CDN.</p>
+<h2 id="3-api-design">3. API design</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>POST /api/v1/posts                      { &quot;text&quot;: &quot;...&quot;, &quot;mediaIds&quot;: [...] }  → 201 { postId }</span></span>
+<span class="line"><span>  Idempotency-Key header wajib</span></span>
+<span class="line"><span>GET  /api/v1/timeline/home?cursor=&amp;limit=20 → { posts: [...], nextCursor }</span></span>
+<span class="line"><span>GET  /api/v1/users/{id}/posts?cursor=&amp;limit=20</span></span>
+<span class="line"><span>POST /api/v1/users/{id}/follow  · DELETE /api/v1/users/{id}/follow</span></span></code></pre>
+<p>Cursor = post ID terakhir (terurut waktu), bukan offset: stabil saat ada post baru dan murah di cache.</p>
+<h2 id="4-skema-data">4. Skema data</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">users(id PK, handle </span><span style="color:#D73A49;--shiki-dark:#F97583">UNIQUE</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, </span><span style="color:#D73A49;--shiki-dark:#F97583">name</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, ..., follower_count, is_celebrity)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">posts(id PK </span><span style="color:#6A737D;--shiki-dark:#6A737D">/* Snowflake */</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, author_id, </span><span style="color:#D73A49;--shiki-dark:#F97583">text</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, media_keys[], created_at)   </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- shard by author_id atau post_id</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">follows(follower_id, followee_id, created_at)  PK(follower_id, followee_id)  </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- shard by follower_id</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">   +</span><span style="color:#D73A49;--shiki-dark:#F97583"> index</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> terbalik (followee_id → followers) untuk fan</span><span style="color:#D73A49;--shiki-dark:#F97583">-out</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, shard </span><span style="color:#D73A49;--shiki-dark:#F97583">by</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> followee_id (tabel</span><span style="color:#D73A49;--shiki-dark:#F97583">/</span><span style="color:#24292E;--shiki-dark:#E1E4E8">materialized kedua)</span></span></code></pre>
+<ul>
+<li><code>posts</code> di-shard by <code>post_id</code> (merata, terurut waktu) atau by <code>author_id</code> (user timeline satu shard). Pilih <code>author_id</code> agar user timeline murah; post ID Snowflake tetap memberi urutan.</li>
+<li>Graf <code>follows</code> disimpan dua arah karena dua pola akses: “siapa yang saya ikuti” (membangun timeline) dan “siapa yang mengikuti saya” (fan-out). Di skala Facebook ini adalah TAO; di skala kita, dua tabel/KV terpartisi.</li>
+<li>Cache (Redis): <code>timeline:{user_id}</code> → list post_id (maks 800); <code>post:{id}</code> → objek post; <code>user:{id}</code> → profil ringkas.</li>
+</ul>
+<h2 id="5-high-level-design">5. High-level design</h2>
+<pre><code class="language-mermaid">flowchart LR
+  C[Client] --&gt; LB[LB / API gateway]
+  LB --&gt; PS[Post service]
+  LB --&gt; TS[Timeline service]
+  PS --&gt; PDB[(Posts DB\nshard by author)]
+  PS --&gt; MQ[[Queue: post-created]]
+  MQ --&gt; FO[Fan-out workers]
+  FO --&gt; GR[(Graph store\nfollowers of X)]
+  FO --&gt; TC[(Timeline cache\nRedis cluster)]
+  TS --&gt; TC
+  TS --&gt; PC[(Post/user cache)]
+  TS --&gt; CEL[(Celebrity post cache)]
+  PC -. miss .-&gt; PDB
+  PS --&gt; BLOB[(Media: blob + CDN)]
+</code></pre>
+<p><strong>Alur tulis</strong>: client → post service memvalidasi, menulis post ke DB (satu tulisan), mengunggah media ke blob store via presigned URL (sudah terjadi sebelumnya), mempublikasikan <code>post-created</code> → fan-out worker mengambil daftar follower penulis dari graph store, dan untuk tiap follower <strong>aktif</strong> menambahkan <code>post_id</code> ke <code>timeline:{follower}</code> (LPUSH + LTRIM 800). Bila penulis selebriti, lewati fan-out dan tulis ke <code>celebrity_posts:{author}</code>.</p>
+<p><strong>Alur baca</strong>: timeline service mengambil <code>timeline:{user}</code> (ID), mengambil daftar selebriti yang diikuti user (cache), mengambil post terbaru mereka, menggabung dan mengurutkan by ID, memotong 20, lalu hydrate <code>post:{id}</code> dan <code>user:{id}</code> dari cache objek (multi-get); miss diisi dari DB.</p>
+<h2 id="6-detailed-design">6. Detailed design</h2>
+<h3 id="61-fan-out-write-vs-read-vs-hybrid">6.1 Fan-out: write vs read vs hybrid</h3>
+<table>
+<thead>
+<tr>
+<th>Pendekatan</th>
+<th>Tulis</th>
+<th>Baca</th>
+<th>Masalah</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fan-out on write (push)</td>
+<td>1 post → N tulisan cache</td>
+<td>O(1): baca satu list</td>
+<td>Selebriti: jutaan tulisan per post; tulisan ke user tidak aktif sia-sia</td>
+</tr>
+<tr>
+<td>Fan-out on read (pull)</td>
+<td>1 tulisan</td>
+<td>Gabung post dari K akun yang diikuti setiap baca</td>
+<td>Latency baca tinggi, beban DB saat 30.000 QPS</td>
+</tr>
+<tr>
+<td><strong>Hybrid</strong></td>
+<td>Push untuk akun biasa; pull untuk selebriti (follower &gt; ambang, mis. 100 ribu)</td>
+<td>Satu list + merge sedikit sumber</td>
+<td>Ambang dan transisi akun yang tumbuh</td>
+</tr>
+</tbody>
+</table>
+<p>Pilihan: hybrid. Tambahan: lewati push untuk user tidak aktif &gt; 30 hari (rekonstruksi saat login), dan prioritaskan fan-out ke follower yang sedang online.</p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant W as Fan-out worker
+  participant G as Graph store
+  participant R as Timeline cache
+  W-&gt;&gt;G: followers(author), batch 10k, hanya aktif
+  loop tiap batch
+    W-&gt;&gt;R: pipeline LPUSH timeline:{f} post_id, LTRIM 0 799
+  end
+  Note over W: 1 juta follower ≈ 100 batch, paralel di banyak worker,&lt;br/&gt;selesai dalam detik, selebriti dilewati
+</code></pre>
+<h3 id="62-timeline-cache">6.2 Timeline cache</h3>
+<ul>
+<li>Redis cluster, key <code>timeline:{user_id}</code> → list ID, maks 800; TTL untuk user tidak aktif.</li>
+<li>Memori: ~10 KB per user aktif; 100 juta user aktif ≈ 1 TB → cluster puluhan node dengan replica.</li>
+<li>Rekonstruksi saat miss: ambil akun yang diikuti, ambil N post terbaru masing-masing dari DB/cache penulis, gabung, isi cache. Mahal tetapi jarang.</li>
+<li>Hapus post: hapus dari <code>post:{id}</code> (timeline yang masih merujuk akan melewati ID yang tidak ada saat hydrate), dan secara async hapus dari timeline follower.</li>
+</ul>
+<h3 id="63-penyimpanan-post-dan-id">6.3 Penyimpanan post dan ID</h3>
+<ul>
+<li>Post ID Snowflake (terurut waktu) membuat merge dan cursor sederhana.</li>
+<li>Shard by author: user timeline = satu shard, range scan by ID. Hot author (selebriti) tidak menjadi hot shard untuk tulis (mereka jarang memposting), tetapi menjadi hot untuk baca; itu diserap cache selebriti.</li>
+<li>Replika baca + cache objek <code>post:{id}</code> dengan TTL panjang (post immutable kecuali hapus).</li>
+</ul>
+<h3 id="64-graf-sosial">6.4 Graf sosial</h3>
+<ul>
+<li>Dua indeks (following, followers) terpartisi; followers list untuk akun besar dipaginasi dan dibaca batch.</li>
+<li>Follow/unfollow memengaruhi timeline: unfollow → hapus post followee dari timeline user (async, atau filter saat baca); follow → suntik beberapa post terbaru followee.</li>
+</ul>
+<h3 id="65-media">6.5 Media</h3>
+<p>Upload via presigned URL ke blob store, pemrosesan async (resize/transcode), URL CDN di post. Timeline service tidak menyentuh byte media.</p>
+<h3 id="66-ranking-ekstensi">6.6 Ranking (ekstensi)</h3>
+<p>Timeline kronologis cukup untuk kasus ini. Ranking: kandidat dari list yang sama (beberapa ratus), skor oleh model (engagement prediction) di timeline service, dengan cache hasil per user beberapa menit. Arsitektur dasarnya tidak berubah: kandidat dari cache, skor di jalur baca.</p>
+<h2 id="7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Dipenuhi oleh</th>
+<th>Risiko tersisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Latency p99 &lt; 200 ms</td>
+<td>Baca = 1 list + merge kecil + multi-get cache; semua di memori</td>
+<td>Cache miss (user tidak aktif): rekonstruksi lebih lambat; terima</td>
+</tr>
+<tr>
+<td>Availability 99.99% baca</td>
+<td>Cache cluster dengan replica; DB hanya untuk miss; degradasi: tampilkan cache basi bila fan-out tertunda</td>
+<td>Kehilangan cluster cache = rekonstruksi massal; warm-up bertahap, rate limit ke DB</td>
+</tr>
+<tr>
+<td>Eventual (detik)</td>
+<td>Fan-out async via queue; lag dipantau</td>
+<td>Selebriti: pull saat baca, jadi instan</td>
+</tr>
+<tr>
+<td>Skala 30.000 QPS baca</td>
+<td>Cache terpartisi, stateless timeline service</td>
+<td>Hot user key (akun yang dibuka jutaan kali): replikasi key</td>
+</tr>
+<tr>
+<td>Durability</td>
+<td>Post di DB terreplikasi; cache hanya turunan</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Bottleneck pertama saat 10x: memori timeline cache dan throughput fan-out; keduanya horizontal (lebih banyak node, lebih banyak worker). SPOF: queue; gunakan cluster terreplikasi.</p>
+<h2 id="8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</h2>
+<ul>
+<li>“Ambang selebriti berapa, dan bagaimana akun yang melewatinya?” → Mis. 100 ribu follower; saat melewati, tandai flag, hentikan push, post lama tetap di timeline; sebaliknya saat turun.</li>
+<li>“Bagaimana notifikasi ‘ada post baru’ real-time?” → Pub-sub ke koneksi WebSocket per user online; timeline tetap pull saat user menekan refresh.</li>
+<li>“Bagaimana mencegah post yang sama muncul dua kali?” → ID unik; dedup saat merge; fan-out idempotent (LPUSH bisa duplikat saat retry → cek keberadaan atau pakai sorted set by ID).</li>
+<li>“Edit post?” → Objek <code>post:{id}</code> diperbarui; timeline merujuk ID sehingga otomatis.</li>
+<li>“Multi-region?” → Cache per region, fan-out ke region follower, DB dengan replikasi lintas region; tulis ke region asal.</li>
+<li>“Bagaimana mengukur bahwa sistem sehat?” → Lag fan-out, hit ratio cache timeline, p99 baca, rasio rekonstruksi.</li>
+</ul></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/twitter/README.md" target="_blank" rel="noopener noreferrer">System Design Primer — Design the Twitter timeline and search</a></li><li><a href="https://www.infoq.com/presentations/Twitter-Timeline-Scalability/" target="_blank" rel="noopener noreferrer">Raffi Krikorian — Timelines at Scale (InfoQ, 2013, video gratis)</a></li><li><a href="https://www.usenix.org/conference/atc13/technical-sessions/presentation/bronson" target="_blank" rel="noopener noreferrer">TAO: Facebook’s Distributed Data Store for the Social Graph (ATC 2013, akses terbuka)</a></li><li><a href="https://instagram-engineering.com/sharding-ids-at-instagram-1cf5a71e5a5c" target="_blank" rel="noopener noreferrer">Instagram Engineering — Sharding &amp; IDs at Instagram</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-3/newsfeed" data-quiz="[{&quot;q&quot;:&quot;Dengan fan-out on write murni, apa yang terjadi saat akun dengan 50 juta follower memposting?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Tidak ada masalah; satu tulisan ke DB&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Fan-out on write menulis ke timeline cache tiap follower: 50 juta tulisan untuk satu post.&quot;},{&quot;text&quot;:&quot;50 juta tulisan ke timeline cache dipicu oleh satu post; worker fan-out sibuk berjam-jam dan follower melihat post dengan jeda besar; ini \&quot;masalah selebriti\&quot;&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Biaya fan-out sebanding jumlah follower. Solusi hybrid: untuk akun dengan follower di atas ambang, jangan fan-out; gabungkan post mereka saat baca.&quot;},{&quot;text&quot;:&quot;Post ditolak&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Sistem tidak menolak; ia kewalahan.&quot;},{&quot;text&quot;:&quot;DB utama crash&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Beban jatuh ke worker fan-out dan cache, bukan DB utama (post hanya ditulis sekali).&quot;}]},{&quot;q&quot;:&quot;Kenapa timeline cache di Redis disimpan sebagai daftar ID post (bukan isi post) dengan panjang dibatasi (mis. 800)?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena Redis tidak bisa menyimpan teks&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Bisa; ini keputusan desain.&quot;},{&quot;text&quot;:&quot;Supaya tiap entri kecil (8 byte), memori total terkendali (800 × 8 B × ratusan juta user ≈ ratusan GB), isi post di-cache terpisah (dibagi antar timeline), dan edit/hapus post cukup di satu tempat&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Normalisasi di cache: timeline = daftar ID, post = objek yang dirujuk. Batas panjang karena hampir tidak ada yang scroll melewati ratusan post; sisanya dibangun dari DB bila perlu.&quot;},{&quot;text&quot;:&quot;Supaya post diurutkan otomatis&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Urutan datang dari ID yang terurut waktu (Snowflake), bukan dari penyimpanan ID vs isi.&quot;},{&quot;text&quot;:&quot;Karena isi post sering berubah&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Post jarang diedit; alasan utamanya memori dan dedup.&quot;}]},{&quot;q&quot;:&quot;User A membuka timeline; sistem memakai pendekatan hybrid. Urutan operasi yang benar?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Baca semua post dari semua yang diikuti A langsung dari DB, urutkan&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Itu fan-out on read murni; mahal untuk user yang mengikuti ribuan akun.&quot;},{&quot;text&quot;:&quot;Ambil daftar ID dari timeline cache A (hasil fan-out on write dari akun biasa), ambil post terbaru akun selebriti yang diikuti A dari cache mereka, gabung dan urutkan by ID, lalu hydrate isi post dan user dari cache objek&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Hybrid: pre-computed untuk mayoritas, merge-on-read untuk sedikit akun besar. Merge murah karena jumlah selebriti yang diikuti satu user kecil.&quot;},{&quot;text&quot;:&quot;Tunggu worker fan-out selesai, lalu baca cache&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Baca tidak boleh menunggu fan-out; cache dibaca apa adanya.&quot;},{&quot;text&quot;:&quot;Hanya baca cache tanpa merge&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Post selebriti akan hilang dari timeline.&quot;}]},{&quot;q&quot;:&quot;User tidak aktif selama 6 bulan lalu login. Timeline cache-nya sudah dievict. Apa yang terjadi?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Timeline kosong selamanya&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Sistem harus bisa membangun ulang.&quot;},{&quot;text&quot;:&quot;Sistem membangun timeline dari DB (post terbaru dari akun yang diikuti, fan-out on read sekali), mengisi cache, lalu kembali ke jalur normal; fan-out on write juga dilewati untuk user tidak aktif agar hemat&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Cache adalah optimasi; jalur rekonstruksi dari sumber kebenaran harus ada. Melewati fan-out untuk user tidak aktif menghemat mayoritas tulisan.&quot;},{&quot;text&quot;:&quot;User diminta mengikuti ulang akun&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Graf sosial ada di DB; tidak hilang.&quot;},{&quot;text&quot;:&quot;Sistem menolak login&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak ada alasan untuk itu.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Dengan fan-out on write murni, apa yang terjadi saat akun dengan 50 juta follower memposting?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Tidak ada masalah; satu tulisan ke DB</span></label><div class="why">Fan-out on write menulis ke timeline cache tiap follower: 50 juta tulisan untuk satu post.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>50 juta tulisan ke timeline cache dipicu oleh satu post; worker fan-out sibuk berjam-jam dan follower melihat post dengan jeda besar; ini &quot;masalah selebriti&quot;</span></label><div class="why">Biaya fan-out sebanding jumlah follower. Solusi hybrid: untuk akun dengan follower di atas ambang, jangan fan-out; gabungkan post mereka saat baca.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Post ditolak</span></label><div class="why">Sistem tidak menolak; ia kewalahan.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>DB utama crash</span></label><div class="why">Beban jatuh ke worker fan-out dan cache, bukan DB utama (post hanya ditulis sekali).</div></div></fieldset><fieldset><legend>2. Kenapa timeline cache di Redis disimpan sebagai daftar ID post (bukan isi post) dengan panjang dibatasi (mis. 800)?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Karena Redis tidak bisa menyimpan teks</span></label><div class="why">Bisa; ini keputusan desain.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Supaya tiap entri kecil (8 byte), memori total terkendali (800 × 8 B × ratusan juta user ≈ ratusan GB), isi post di-cache terpisah (dibagi antar timeline), dan edit/hapus post cukup di satu tempat</span></label><div class="why">Normalisasi di cache: timeline = daftar ID, post = objek yang dirujuk. Batas panjang karena hampir tidak ada yang scroll melewati ratusan post; sisanya dibangun dari DB bila perlu.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Supaya post diurutkan otomatis</span></label><div class="why">Urutan datang dari ID yang terurut waktu (Snowflake), bukan dari penyimpanan ID vs isi.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Karena isi post sering berubah</span></label><div class="why">Post jarang diedit; alasan utamanya memori dan dedup.</div></div></fieldset><fieldset><legend>3. User A membuka timeline; sistem memakai pendekatan hybrid. Urutan operasi yang benar?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>Baca semua post dari semua yang diikuti A langsung dari DB, urutkan</span></label><div class="why">Itu fan-out on read murni; mahal untuk user yang mengikuti ribuan akun.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>Ambil daftar ID dari timeline cache A (hasil fan-out on write dari akun biasa), ambil post terbaru akun selebriti yang diikuti A dari cache mereka, gabung dan urutkan by ID, lalu hydrate isi post dan user dari cache objek</span></label><div class="why">Hybrid: pre-computed untuk mayoritas, merge-on-read untuk sedikit akun besar. Merge murah karena jumlah selebriti yang diikuti satu user kecil.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Tunggu worker fan-out selesai, lalu baca cache</span></label><div class="why">Baca tidak boleh menunggu fan-out; cache dibaca apa adanya.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Hanya baca cache tanpa merge</span></label><div class="why">Post selebriti akan hilang dari timeline.</div></div></fieldset><fieldset><legend>4. User tidak aktif selama 6 bulan lalu login. Timeline cache-nya sudah dievict. Apa yang terjadi?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Timeline kosong selamanya</span></label><div class="why">Sistem harus bisa membangun ulang.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Sistem membangun timeline dari DB (post terbaru dari akun yang diikuti, fan-out on read sekali), mengisi cache, lalu kembali ke jalur normal; fan-out on write juga dilewati untuk user tidak aktif agar hemat</span></label><div class="why">Cache adalah optimasi; jalur rekonstruksi dari sumber kebenaran harus ada. Melewati fan-out untuk user tidak aktif menghemat mayoritas tulisan.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>User diminta mengikuti ulang akun</span></label><div class="why">Graf sosial ada di DB; tidak hilang.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Sistem menolak login</span></label><div class="why">Tidak ada alasan untuk itu.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-3/newsfeed"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="lbl">← Sebelumnya</span><span>Web crawler</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="lbl">Berikutnya →</span><span>Instagram</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#1-requirements">1. Requirements</a></li><li class="depth-3"><a href="#functional">Functional</a></li><li class="depth-3"><a href="#non-functional">Non-functional</a></li><li class="depth-2"><a href="#2-estimasi-kapasitas">2. Estimasi kapasitas</a></li><li class="depth-2"><a href="#3-api-design">3. API design</a></li><li class="depth-2"><a href="#4-skema-data">4. Skema data</a></li><li class="depth-2"><a href="#5-high-level-design">5. High-level design</a></li><li class="depth-2"><a href="#6-detailed-design">6. Detailed design</a></li><li class="depth-3"><a href="#61-fan-out-write-vs-read-vs-hybrid">6.1 Fan-out: write vs read vs hybrid</a></li><li class="depth-3"><a href="#62-timeline-cache">6.2 Timeline cache</a></li><li class="depth-3"><a href="#63-penyimpanan-post-dan-id">6.3 Penyimpanan post dan ID</a></li><li class="depth-3"><a href="#64-graf-sosial">6.4 Graf sosial</a></li><li class="depth-3"><a href="#65-media">6.5 Media</a></li><li class="depth-3"><a href="#66-ranking-ekstensi">6.6 Ranking (ekstensi)</a></li><li class="depth-2"><a href="#7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</a></li><li class="depth-2"><a href="#8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

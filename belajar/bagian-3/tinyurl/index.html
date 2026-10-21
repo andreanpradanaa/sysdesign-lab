@@ -1,0 +1,276 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Studi kasus pertama: sistem yang kelihatan sepele tapi memaksa kita membahas ID generation, read-heavy caching, dan konsistensi."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>TinyURL: layanan pemendek URL · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 3 · Studi Kasus · Studi kasus</span><h1>TinyURL: layanan pemendek URL</h1><div class="lesson-meta"><span class="badge">⏱ ±60 menit</span><span class="badge">✎ 5 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas">Back-of-the-envelope estimation</a>, <a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator">Unique ID generator</a>, <a href="/sysdesign-lab/belajar/bagian-2/distributed-cache">Distributed cache</a></span></div><p class="lesson-summary">Studi kasus pertama: sistem yang kelihatan sepele tapi memaksa kita membahas ID generation, read-heavy caching, dan konsistensi.</p><div class="prose"><h2 id="1-requirements">1. Requirements</h2>
+<p>Mulai dengan klarifikasi. Pertanyaan yang pantas diajukan ke interviewer: “Apakah user boleh memilih alias sendiri?”, “Perlu analytics klik?”, “Berapa lama URL hidup?”, “Skala: berapa URL baru per bulan?”.</p>
+<h3 id="functional">Functional</h3>
+<ul>
+<li><code>POST</code> URL panjang → dapat URL pendek.</li>
+<li><code>GET</code> URL pendek → redirect ke URL panjang.</li>
+<li>Opsional: alias kustom, masa berlaku (expiry), hapus URL.</li>
+<li>Out of scope (sebutkan!): analytics detail, akun user, dashboard.</li>
+</ul>
+<h3 id="non-functional">Non-functional</h3>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Target</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Availability</td>
+<td>99.99%</td>
+<td>Link tersebar di tempat yang tidak kita kontrol (email, cetak); link mati = reputasi mati</td>
+</tr>
+<tr>
+<td>Latency redirect</td>
+<td>p99 &lt; 50 ms di luar network</td>
+<td>Redirect ada di jalur kritis user</td>
+</tr>
+<tr>
+<td>Konsistensi</td>
+<td>Eventual untuk baca, kuat untuk unik-nya key</td>
+<td>Dua URL berbeda tidak boleh berbagi key; URL baru boleh telat beberapa detik tampil di replica</td>
+</tr>
+<tr>
+<td>Durability</td>
+<td>Tidak boleh kehilangan mapping</td>
+<td>Mapping adalah satu-satunya data</td>
+</tr>
+<tr>
+<td>Prediktabilitas key</td>
+<td>Tidak mudah ditebak berurutan</td>
+<td>Mencegah enumerasi massal</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-estimasi-kapasitas">2. Estimasi kapasitas</h2>
+<p>Asumsi: <strong>100 juta URL baru/bulan</strong>, rasio baca:tulis <strong>100:1</strong>, URL panjang rata-rata 100 byte, data disimpan 5 tahun.</p>
+<p><strong>QPS</strong></p>
+<ul>
+<li>Tulis: 100M / (30 × 86.400 s ≈ 2.6M s) ≈ <strong>40 QPS</strong>; peak ~100 QPS.</li>
+<li>Baca: 40 × 100 = <strong>4.000 QPS</strong>; peak ~10.000 QPS.</li>
+</ul>
+<p><strong>Storage (5 tahun)</strong></p>
+<ul>
+<li>Jumlah URL: 100M × 12 × 5 = <strong>6 miliar</strong>.</li>
+<li>Per baris: short key 7 B + URL 100 B + metadata (timestamp, expiry, user id) ~20 B ≈ 130 B, bulatkan <strong>150 B</strong>.</li>
+<li>Total: 6 × 10^9 × 150 B ≈ <strong>900 GB</strong>. Muat di satu database besar, tapi partisi tetap disiapkan untuk pertumbuhan dan availability.</li>
+</ul>
+<p><strong>Bandwidth</strong></p>
+<ul>
+<li>Baca: 4.000 QPS × ~500 B (header redirect) ≈ 2 MB/s. Kecil.</li>
+</ul>
+<p><strong>Cache</strong></p>
+<ul>
+<li>Aturan 80/20: 20% URL yang dibaca hari ini ≈ 20% × (4.000 × 86.400 ≈ 350M request, tapi unik jauh lebih sedikit). Asumsikan 20% dari 6B × 150 B terlalu besar; realistis kita cache <strong>~10 juta entri terpanas ≈ 1.5 GB</strong>. Muat di satu node Redis.</li>
+</ul>
+<p>Keputusan dari angka: write 40 QPS → satu primary cukup; read 4.000 QPS → <strong>cache wajib</strong>, DB hanya menerima cache miss; storage ~1 TB → SQL atau KV keduanya bisa, pilih berdasarkan pola akses (by key saja).</p>
+<h2 id="3-api-design">3. API design</h2>
+<p>REST sederhana. Semua endpoint di belakang API gateway yang menerapkan rate limit per API key / IP.</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>POST /api/v1/urls</span></span>
+<span class="line"><span>  body : { &quot;longUrl&quot;: &quot;https://…&quot;, &quot;customAlias&quot;: &quot;promo&quot; (opsional), &quot;expiresAt&quot;: ISO8601 (opsional) }</span></span>
+<span class="line"><span>  resp : 201 { &quot;shortUrl&quot;: &quot;https://sho.rt/Ab3dE9f&quot;, &quot;key&quot;: &quot;Ab3dE9f&quot;, &quot;expiresAt&quot;: … }</span></span>
+<span class="line"><span>  error: 400 URL tidak valid · 409 alias sudah dipakai · 429 rate limit</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>GET /{key}</span></span>
+<span class="line"><span>  resp : 302 Location: &lt;longUrl&gt;   (atau 301, lihat trade-off di bawah)</span></span>
+<span class="line"><span>  error: 404 tidak ditemukan · 410 kedaluwarsa</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>DELETE /api/v1/urls/{key}      (butuh auth pemilik)</span></span>
+<span class="line"><span>  resp : 204</span></span></code></pre>
+<p>Catatan desain:</p>
+<ul>
+<li><strong>Idempotency</strong>: <code>POST</code> dengan <code>Idempotency-Key</code> header supaya retry client tidak membuat dua key untuk URL yang sama.</li>
+<li><strong>Validasi</strong>: tolak URL yang menunjuk ke domain kita sendiri (loop redirect) dan skema selain <code>http(s)</code>.</li>
+<li><strong>Versi</strong>: <code>/api/v1</code> untuk endpoint manajemen; <code>GET /{key}</code> tanpa versi karena dicetak di luar.</li>
+</ul>
+<h2 id="4-skema-data">4. Skema data</h2>
+<p>Pola akses hanya dua: tulis satu baris, baca satu baris <strong>by key</strong>. Tidak ada join. Ini kandidat sempurna untuk key-value store, tapi SQL dengan satu tabel juga cukup di skala ini. Kita mulai dengan <strong>PostgreSQL</strong> (familiar, unique constraint gratis), dan siapkan jalur migrasi ke KV terpartisi.</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">CREATE</span><span style="color:#D73A49;--shiki-dark:#F97583"> TABLE</span><span style="color:#6F42C1;--shiki-dark:#B392F0"> urls</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> (</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">  short_key   </span><span style="color:#D73A49;--shiki-dark:#F97583">CHAR</span><span style="color:#24292E;--shiki-dark:#E1E4E8">(</span><span style="color:#005CC5;--shiki-dark:#79B8FF">7</span><span style="color:#24292E;--shiki-dark:#E1E4E8">)      </span><span style="color:#D73A49;--shiki-dark:#F97583">PRIMARY KEY</span><span style="color:#24292E;--shiki-dark:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">  long_url    </span><span style="color:#D73A49;--shiki-dark:#F97583">TEXT</span><span style="color:#D73A49;--shiki-dark:#F97583">         NOT NULL</span><span style="color:#24292E;--shiki-dark:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">  created_at  </span><span style="color:#D73A49;--shiki-dark:#F97583">TIMESTAMPTZ</span><span style="color:#D73A49;--shiki-dark:#F97583">  NOT NULL</span><span style="color:#D73A49;--shiki-dark:#F97583"> DEFAULT</span><span style="color:#D73A49;--shiki-dark:#F97583"> now</span><span style="color:#24292E;--shiki-dark:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">  expires_at  </span><span style="color:#D73A49;--shiki-dark:#F97583">TIMESTAMPTZ</span><span style="color:#D73A49;--shiki-dark:#F97583">  NULL</span><span style="color:#24292E;--shiki-dark:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">  owner_id    </span><span style="color:#D73A49;--shiki-dark:#F97583">BIGINT</span><span style="color:#D73A49;--shiki-dark:#F97583">       NULL</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F97583">CREATE</span><span style="color:#D73A49;--shiki-dark:#F97583"> INDEX</span><span style="color:#6F42C1;--shiki-dark:#B392F0"> urls_expires_idx</span><span style="color:#D73A49;--shiki-dark:#F97583"> ON</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> urls (expires_at) </span><span style="color:#D73A49;--shiki-dark:#F97583">WHERE</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> expires_at </span><span style="color:#D73A49;--shiki-dark:#F97583">IS NOT NULL</span><span style="color:#24292E;--shiki-dark:#E1E4E8">;</span></span></code></pre>
+<ul>
+<li><code>short_key</code> sebagai primary key memberi <strong>unique constraint</strong> sekaligus index untuk lookup.</li>
+<li>Partial index pada <code>expires_at</code> untuk job pembersih (lihat detailed design).</li>
+<li>Bila pindah ke KV: key = <code>short_key</code>, value = JSON kecil; partisi dengan consistent hashing.</li>
+</ul>
+<h2 id="5-high-level-design">5. High-level design</h2>
+<pre><code class="language-mermaid">flowchart LR
+  U[Client / Browser] --&gt; LB[Load balancer]
+  LB --&gt; GW[API gateway\nrate limit, auth]
+  GW --&gt; W[Write service]
+  GW --&gt; R[Redirect service]
+  W --&gt; KG[Key generation service]
+  W --&gt; DB[(Primary DB)]
+  DB --&gt; RR[(Read replicas)]
+  R --&gt; C[(Cache\nRedis)]
+  C -. miss .-&gt; RR
+  R -. 302 .-&gt; U
+  CL[Cleanup worker] --&gt; DB
+</code></pre>
+<p>Dua alur yang harus bisa dijelaskan end-to-end:</p>
+<p><strong>Alur tulis (POST)</strong>: gateway memvalidasi dan rate-limit → write service minta key dari <em>key generation service</em> (atau memakai alias kustom) → <code>INSERT</code> ke primary → kembalikan 201. Cache <strong>tidak</strong> diisi di sini (write-around); biarkan request baca pertama yang mengisinya, karena mayoritas URL baru tidak pernah populer.</p>
+<p><strong>Alur baca (GET)</strong>: redirect service cek cache → hit: kirim 302 → miss: baca replica → bila ada, isi cache (cache-aside) lalu 302; bila tidak ada, 404 dan simpan <em>negative cache</em> singkat (30 detik) untuk menahan serangan tebak key.</p>
+<h2 id="6-detailed-design">6. Detailed design</h2>
+<h3 id="61-key-generation">6.1 Key generation</h3>
+<p>Tiga pendekatan yang biasa dibandingkan:</p>
+<table>
+<thead>
+<tr>
+<th>Pendekatan</th>
+<th>Cara kerja</th>
+<th>Kelebihan</th>
+<th>Kekurangan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hash URL (MD5/SHA) dipotong 7 karakter</td>
+<td>hash(longUrl) → ambil 7 char pertama</td>
+<td>Stateless, URL sama → key sama</td>
+<td>Collision setelah dipotong; harus cek DB dan re-hash dengan salt</td>
+</tr>
+<tr>
+<td>Auto-increment ID → base62</td>
+<td>DB memberi ID 1, 2, 3… → encode</td>
+<td>Tidak ada collision, sederhana</td>
+<td>Key berurutan mudah ditebak; auto-increment sulit di-shard</td>
+</tr>
+<tr>
+<td><strong>Key Generation Service (KGS) pre-generate</strong></td>
+<td>Service terpisah membuat key acak unik di muka, dibagikan dalam batch ke write service</td>
+<td>Tidak ada collision, tidak tertebak, write path tidak menunggu DB</td>
+<td>Komponen tambahan; batch yang sudah dibagikan tapi tidak terpakai (saat crash) hilang, dan itu tidak apa-apa</td>
+</tr>
+</tbody>
+</table>
+<p>Pilihan: <strong>KGS pre-generate</strong> dengan dua tabel (<code>unused_keys</code>, <code>used_keys</code>), tiap write service mengambil batch 1.000 key ke memori. Alternatif yang sama bagusnya: ID ala <strong>Snowflake</strong> (timestamp + machine id + sequence) di-encode base62, dengan bit-shuffle supaya tidak monoton.</p>
+<p>Kenapa 7 karakter base62: 62^7 ≈ 3.5 × 10^12 kombinasi; pada 1.2 miliar URL/tahun cukup untuk ribuan tahun.</p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant WS as Write service
+  participant KGS as Key gen service
+  participant DB as Primary DB
+  WS-&gt;&gt;KGS: minta batch 1000 key
+  KGS-&gt;&gt;KGS: pindahkan 1000 key unused → used (transaksi)
+  KGS--&gt;&gt;WS: [k1..k1000] (disimpan di memori)
+  WS-&gt;&gt;DB: INSERT (k1, longUrl)
+  DB--&gt;&gt;WS: ok (unique constraint menjaga)
+</code></pre>
+<h3 id="62-redirect-301-atau-302">6.2 Redirect: 301 atau 302?</h3>
+<table>
+<thead>
+<tr>
+<th>Kode</th>
+<th>Browser</th>
+<th>Beban server</th>
+<th>Analytics</th>
+<th>Pakai bila</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>301 Moved Permanently</td>
+<td>Di-cache; klik berikutnya langsung ke tujuan</td>
+<td>Turun drastis</td>
+<td>Hilang setelah klik pertama</td>
+<td>Tidak butuh analytics, ingin hemat</td>
+</tr>
+<tr>
+<td>302 Found</td>
+<td>Tidak di-cache; selalu lewat server</td>
+<td>Penuh</td>
+<td>Setiap klik tercatat</td>
+<td>Produk mengandalkan analytics (hampir semua layanan komersial)</td>
+</tr>
+</tbody>
+</table>
+<p>Kita pilih <strong>302</strong> karena analytics biasanya menjadi alasan bisnis layanan ini ada, dan beban baca sudah ditangani cache.</p>
+<h3 id="63-cache">6.3 Cache</h3>
+<ul>
+<li><strong>Cache-aside</strong> dengan Redis; key = <code>short_key</code>, value = <code>long_url</code> (+ <code>expires_at</code>).</li>
+<li>Eviction <strong>LRU</strong> (atau LFU) karena distribusi klik sangat <em>long-tail</em>: sedikit URL viral menghasilkan mayoritas trafik.</li>
+<li>TTL entri = min(24 jam, sisa <code>expires_at</code>).</li>
+<li><strong>Negative cache</strong> untuk key yang tidak ada (TTL 30-60 s) supaya tebakan massal tidak menembus ke DB.</li>
+<li>Skala: 10 juta entri × ~150 B ≈ 1.5 GB; satu node + replica cukup, cluster bila trafik naik 10x.</li>
+</ul>
+<h3 id="64-database-partisi-dan-replikasi">6.4 Database: partisi dan replikasi</h3>
+<ul>
+<li>Saat ini 900 GB / 5 tahun muat di satu primary + 2 read replica (baca 4.000 QPS pun sebagian besar diserap cache).</li>
+<li>Jalur scale: <strong>hash partitioning</strong> pada <code>short_key</code> (bukan range, agar tidak hot). Karena key acak, distribusi otomatis merata.</li>
+<li>Replikasi async; baca dari replica boleh <em>stale</em> beberapa detik; tulis + baca-sendiri (read-your-write) ditangani dengan membaca primary selama ~5 detik setelah membuat URL, atau cukup kembalikan URL dari respons POST tanpa membaca lagi.</li>
+</ul>
+<h3 id="65-expiry-dan-pembersihan">6.5 Expiry dan pembersihan</h3>
+<ul>
+<li>Jangan hapus sinkron. <strong>Lazy expiry</strong>: saat <code>GET</code>, bila <code>expires_at</code> lewat → 410 dan hapus dari cache.</li>
+<li><strong>Cleanup worker</strong> periodik (tiap jam, off-peak) menghapus baris kedaluwarsa dalam batch kecil dan mengembalikan key ke <code>unused_keys</code> (opsional; kebanyakan layanan tidak mendaur ulang key agar link lama tidak “berubah arti”).</li>
+</ul>
+<h3 id="66-rate-limiting-dan-abuse">6.6 Rate limiting dan abuse</h3>
+<ul>
+<li>Token bucket per API key dan per IP di gateway (state di Redis).</li>
+<li>Validasi URL: tolak skema berbahaya, daftar hitam domain phishing (integrasi Safe Browsing, out of scope).</li>
+<li>Alias kustom: hanya <code>[a-zA-Z0-9_-]</code>, panjang 4-32, dan tidak boleh bertabrakan dengan ruang key 7 karakter (cukup larang alias tepat 7 karakter, atau beri prefix).</li>
+</ul>
+<h2 id="7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Bagaimana dipenuhi</th>
+<th>Risiko tersisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Availability 99.99%</td>
+<td>LB + beberapa instance stateless; DB primary dengan failover otomatis; cache replica; KGS punya key batch di memori service jadi KGS boleh down sebentar</td>
+<td>Failover DB masih ada jeda detik; mitigasi: redirect service terus melayani dari cache saat DB down (read-only mode)</td>
+</tr>
+<tr>
+<td>Latency p99 &lt; 50 ms</td>
+<td>Cache hit ~1 ms; miss → replica ~5 ms; semuanya satu datacenter</td>
+<td>User jauh dari datacenter: tambahkan edge/PoP yang meng-cache redirect</td>
+</tr>
+<tr>
+<td>Keunikan key</td>
+<td>Unique constraint + KGS memastikan tidak ada dua URL satu key</td>
+<td>Alias kustom dan key acak bertabrakan: dipisah oleh aturan panjang</td>
+</tr>
+<tr>
+<td>Durability</td>
+<td>Replikasi sinkron ke minimal satu replica, backup harian</td>
+<td>Kehilangan batch key KGS saat crash hanya memboroskan key, bukan data</td>
+</tr>
+<tr>
+<td>Tidak tertebak</td>
+<td>Key acak dari KGS</td>
+<td>Enumerasi tetap mungkin dengan 3.5T kombinasi, tapi hit rate ~0: negative cache + rate limit</td>
+</tr>
+</tbody>
+</table>
+<p>Bottleneck pertama bila trafik naik 10x: <strong>cache</strong> (hit ratio dan memori) lalu <strong>primary</strong> untuk tulis. Keduanya punya jalur scale yang sudah disebut (cluster Redis, hash partitioning).</p>
+<h2 id="8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</h2>
+<ul>
+<li>“Bagaimana kalau user yang sama mengirim URL panjang yang sama dua kali? Haruskah dapat key yang sama?” → Produk yang memutuskan. Bila ya, simpan index <code>hash(long_url, owner_id)</code> dan kembalikan key lama; bila tidak, key baru lebih murah dan mendukung analytics per kampanye.</li>
+<li>“Bagaimana menambahkan analytics klik tanpa memperlambat redirect?” → Redirect service menerbitkan event ke message queue (Kafka) secara <em>fire-and-forget</em>; consumer mengagregasi ke column store. Redirect tidak menunggu.</li>
+<li>“KGS adalah single point of failure?” → Jalankan dua instance dengan range key berbeda (ganjil/genap atau partisi tabel <code>unused_keys</code>), dan write service menyimpan batch di memori sehingga toleran KGS down beberapa menit.</li>
+<li>“Kenapa tidak Cassandra dari awal?” → Pola akses cocok, tapi di skala 40 write/s dan ~1 TB, kompleksitas operasional belum terbayar. Sebutkan titik pindah: saat write melewati kapasitas satu primary atau butuh multi-region aktif-aktif.</li>
+<li>“Bagaimana multi-region?” → Redirect: cache di tiap region + replica lokal. Tulis: satu region primary (latency tulis tidak kritis), atau partisi key per region (prefix) agar tiap region punya primary sendiri tanpa konflik.</li>
+<li>“Bagaimana mencegah link phishing?” → Validasi saat buat (daftar hitam, Safe Browsing API), pemindaian asinkron setelahnya, dan kemampuan menonaktifkan key (ubah menjadi halaman peringatan) tanpa menghapus.</li>
+</ul></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/pastebin/README.md" target="_blank" rel="noopener noreferrer">System Design Primer — Design Pastebin (kasus serupa, gratis)</a></li><li><a href="https://blog.bytebytego.com/p/design-a-url-shortener" target="_blank" rel="noopener noreferrer">ByteByteGo — Design a URL shortener (artikel gratis)</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc9110.html#name-redirection-3xx" target="_blank" rel="noopener noreferrer">RFC 9110 — HTTP Semantics (status 301 vs 302, 307, 308)</a></li><li><a href="https://blog.x.com/engineering/en_us/a/2010/announcing-snowflake" target="_blank" rel="noopener noreferrer">Twitter Snowflake (arsip blog engineering)</a></li><li><a href="https://en.wikipedia.org/wiki/Bloom_filter" target="_blank" rel="noopener noreferrer">Bloom filter — Wikipedia</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-3/tinyurl" data-quiz="[{&quot;q&quot;:&quot;Layanan menerima 100 juta URL baru per bulan dengan rasio baca:tulis 100:1. Mana estimasi QPS yang paling masuk akal?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Tulis ~40 QPS, baca ~4.000 QPS&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;100M / (30 × 86.400 ≈ 2.6M detik) ≈ 38 tulis/s ≈ 40. Baca 100x = 4.000 QPS. Angka inilah yang memaksa cache masuk ke desain.&quot;},{&quot;text&quot;:&quot;Tulis ~4.000 QPS, baca ~40 QPS&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Terbalik. Pemendek URL hampir selalu read-heavy: satu link dibuat sekali, diklik ribuan kali.&quot;},{&quot;text&quot;:&quot;Tulis ~400 QPS, baca ~40.000 QPS&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Kelebihan satu orde; 400 tulis/s × 2.6M detik ≈ 1 miliar URL/bulan.&quot;},{&quot;text&quot;:&quot;Tidak bisa dihitung tanpa tahu panjang URL&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Panjang URL memengaruhi storage dan bandwidth, bukan QPS.&quot;}]},{&quot;q&quot;:&quot;Kenapa short key 7 karakter base62 dianggap cukup untuk layanan ini?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena 62^7 ≈ 3.5 triliun kombinasi, cukup untuk ~3.000 tahun pada 100 juta URL/bulan&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;62^7 ≈ 3.5 × 10^12. Pada 1.2 miliar URL/tahun, habis dalam ~2.900 tahun. 6 karakter (56 miliar) hanya ~47 tahun, masih oke tapi marginnya tipis.&quot;},{&quot;text&quot;:&quot;Karena browser membatasi panjang URL 7 karakter&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak ada batasan seperti itu; browser modern menerima URL ribuan karakter.&quot;},{&quot;text&quot;:&quot;Karena hash MD5 menghasilkan tepat 7 karakter&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;MD5 menghasilkan 128 bit (32 hex). Kalau dipotong 7 karakter, justru rawan collision dan perlu penanganan ekstra.&quot;},{&quot;text&quot;:&quot;Karena 7 adalah panjang minimum supaya tidak bisa ditebak&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Keamanan dari tebakan bukan alasan utamanya; URL pendek memang publik. Ruang key yang cukup adalah alasannya.&quot;}]},{&quot;q&quot;:&quot;Mana pernyataan yang BENAR tentang redirect 301 vs 302 untuk layanan pemendek URL?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;301 mengurangi beban server karena browser meng-cache redirect, tapi klik berikutnya tidak tercatat di analytics&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;301 = permanent; browser menyimpan dan langsung ke tujuan tanpa menyentuh server lagi. Bagus untuk beban, buruk untuk analytics. 302 kebalikannya.&quot;},{&quot;text&quot;:&quot;302 lebih cepat untuk user karena tidak lewat server&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Terbalik: 302 (temporary) membuat browser selalu menghubungi server pemendek, jadi justru lebih lambat tapi setiap klik tercatat.&quot;},{&quot;text&quot;:&quot;301 dan 302 identik dari sisi caching browser&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Perbedaan caching adalah inti dari keduanya; lihat RFC 9110 bagian 3xx.&quot;},{&quot;text&quot;:&quot;302 wajib dipakai karena 301 sudah deprecated&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;301 tidak deprecated. 308/307 adalah varian yang mempertahankan method, bukan pengganti.&quot;}]},{&quot;q&quot;:&quot;Dua request menulis short key yang sama secara bersamaan ke database. Mekanisme apa yang paling sederhana untuk mencegah dua URL berbeda memakai key yang sama?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Unique constraint pada kolom short_key, lalu retry dengan key baru bila insert gagal&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Constraint di DB adalah satu-satunya tempat yang melihat semua penulis. Ini murah, atomik, dan retry jarang terjadi bila key dihasilkan dari range/ID unik.&quot;},{&quot;text&quot;:&quot;Cek dulu dengan SELECT, baru INSERT bila belum ada&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Check-then-act punya race condition: dua request bisa sama-sama melihat \&quot;belum ada\&quot; lalu sama-sama INSERT.&quot;},{&quot;text&quot;:&quot;Simpan semua key di Bloom filter dan tolak bila filter bilang ada&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Bloom filter bisa false positive dan tidak atomik antar node; berguna sebagai pra-saring, bukan sebagai sumber kebenaran.&quot;},{&quot;text&quot;:&quot;Kunci tabel seluruhnya (table lock) selama insert&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Berhasil tapi membunuh throughput tulis; unique constraint memberikan jaminan yang sama tanpa serialisasi global.&quot;}]},{&quot;q&quot;:&quot;Cache hit ratio untuk redirect turun drastis setelah tim mengganti kebijakan eviction. Hipotesis mana yang paling masuk akal?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Kebijakan baru tidak mempertahankan URL populer (hot key) yang mengikuti distribusi 80/20&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Trafik pemendek URL sangat condong (long-tail). LRU/LFU menjaga hot key tetap di cache; kebijakan seperti FIFO atau random membuang hot key dan menghancurkan hit ratio.&quot;},{&quot;text&quot;:&quot;Cache terlalu besar sehingga lookup lambat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Ukuran cache tidak menurunkan hit ratio; lookup hash tetap O(1).&quot;},{&quot;text&quot;:&quot;Database read replica terlalu sedikit&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Itu memengaruhi latency saat cache miss, bukan rasio hit itu sendiri.&quot;},{&quot;text&quot;:&quot;Short key terlalu panjang untuk disimpan di cache&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;7 karakter + URL ~100 B per entri; puluhan juta entri masih muat di RAM satu node.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Layanan menerima 100 juta URL baru per bulan dengan rasio baca:tulis 100:1. Mana estimasi QPS yang paling masuk akal?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Tulis ~40 QPS, baca ~4.000 QPS</span></label><div class="why">100M / (30 × 86.400 ≈ 2.6M detik) ≈ 38 tulis/s ≈ 40. Baca 100x = 4.000 QPS. Angka inilah yang memaksa cache masuk ke desain.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>Tulis ~4.000 QPS, baca ~40 QPS</span></label><div class="why">Terbalik. Pemendek URL hampir selalu read-heavy: satu link dibuat sekali, diklik ribuan kali.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Tulis ~400 QPS, baca ~40.000 QPS</span></label><div class="why">Kelebihan satu orde; 400 tulis/s × 2.6M detik ≈ 1 miliar URL/bulan.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Tidak bisa dihitung tanpa tahu panjang URL</span></label><div class="why">Panjang URL memengaruhi storage dan bandwidth, bukan QPS.</div></div></fieldset><fieldset><legend>2. Kenapa short key 7 karakter base62 dianggap cukup untuk layanan ini?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Karena 62^7 ≈ 3.5 triliun kombinasi, cukup untuk ~3.000 tahun pada 100 juta URL/bulan</span></label><div class="why">62^7 ≈ 3.5 × 10^12. Pada 1.2 miliar URL/tahun, habis dalam ~2.900 tahun. 6 karakter (56 miliar) hanya ~47 tahun, masih oke tapi marginnya tipis.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Karena browser membatasi panjang URL 7 karakter</span></label><div class="why">Tidak ada batasan seperti itu; browser modern menerima URL ribuan karakter.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Karena hash MD5 menghasilkan tepat 7 karakter</span></label><div class="why">MD5 menghasilkan 128 bit (32 hex). Kalau dipotong 7 karakter, justru rawan collision dan perlu penanganan ekstra.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Karena 7 adalah panjang minimum supaya tidak bisa ditebak</span></label><div class="why">Keamanan dari tebakan bukan alasan utamanya; URL pendek memang publik. Ruang key yang cukup adalah alasannya.</div></div></fieldset><fieldset><legend>3. Mana pernyataan yang BENAR tentang redirect 301 vs 302 untuk layanan pemendek URL?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>301 mengurangi beban server karena browser meng-cache redirect, tapi klik berikutnya tidak tercatat di analytics</span></label><div class="why">301 = permanent; browser menyimpan dan langsung ke tujuan tanpa menyentuh server lagi. Bagus untuk beban, buruk untuk analytics. 302 kebalikannya.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>302 lebih cepat untuk user karena tidak lewat server</span></label><div class="why">Terbalik: 302 (temporary) membuat browser selalu menghubungi server pemendek, jadi justru lebih lambat tapi setiap klik tercatat.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>301 dan 302 identik dari sisi caching browser</span></label><div class="why">Perbedaan caching adalah inti dari keduanya; lihat RFC 9110 bagian 3xx.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>302 wajib dipakai karena 301 sudah deprecated</span></label><div class="why">301 tidak deprecated. 308/307 adalah varian yang mempertahankan method, bukan pengganti.</div></div></fieldset><fieldset><legend>4. Dua request menulis short key yang sama secara bersamaan ke database. Mekanisme apa yang paling sederhana untuk mencegah dua URL berbeda memakai key yang sama?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Unique constraint pada kolom short_key, lalu retry dengan key baru bila insert gagal</span></label><div class="why">Constraint di DB adalah satu-satunya tempat yang melihat semua penulis. Ini murah, atomik, dan retry jarang terjadi bila key dihasilkan dari range/ID unik.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Cek dulu dengan SELECT, baru INSERT bila belum ada</span></label><div class="why">Check-then-act punya race condition: dua request bisa sama-sama melihat &quot;belum ada&quot; lalu sama-sama INSERT.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>Simpan semua key di Bloom filter dan tolak bila filter bilang ada</span></label><div class="why">Bloom filter bisa false positive dan tidak atomik antar node; berguna sebagai pra-saring, bukan sebagai sumber kebenaran.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Kunci tabel seluruhnya (table lock) selama insert</span></label><div class="why">Berhasil tapi membunuh throughput tulis; unique constraint memberikan jaminan yang sama tanpa serialisasi global.</div></div></fieldset><fieldset><legend>5. Cache hit ratio untuk redirect turun drastis setelah tim mengganti kebijakan eviction. Hipotesis mana yang paling masuk akal?</legend><div class="opt" data-q="4" data-o="0"><label><input type="radio" name="q4" value="0"><span>Kebijakan baru tidak mempertahankan URL populer (hot key) yang mengikuti distribusi 80/20</span></label><div class="why">Trafik pemendek URL sangat condong (long-tail). LRU/LFU menjaga hot key tetap di cache; kebijakan seperti FIFO atau random membuang hot key dan menghancurkan hit ratio.</div></div><div class="opt" data-q="4" data-o="1"><label><input type="radio" name="q4" value="1"><span>Cache terlalu besar sehingga lookup lambat</span></label><div class="why">Ukuran cache tidak menurunkan hit ratio; lookup hash tetap O(1).</div></div><div class="opt" data-q="4" data-o="2"><label><input type="radio" name="q4" value="2"><span>Database read replica terlalu sedikit</span></label><div class="why">Itu memengaruhi latency saat cache miss, bukan rasio hit itu sendiri.</div></div><div class="opt" data-q="4" data-o="3"><label><input type="radio" name="q4" value="3"><span>Short key terlalu panjang untuk disimpan di cache</span></label><div class="why">7 karakter + URL ~100 B per entri; puluhan juta entri masih muat di RAM satu node.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-3/tinyurl"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="lbl">← Sebelumnya</span><span>Framework menjawab soal dalam 45 menit</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="lbl">Berikutnya →</span><span>Web crawler</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#1-requirements">1. Requirements</a></li><li class="depth-3"><a href="#functional">Functional</a></li><li class="depth-3"><a href="#non-functional">Non-functional</a></li><li class="depth-2"><a href="#2-estimasi-kapasitas">2. Estimasi kapasitas</a></li><li class="depth-2"><a href="#3-api-design">3. API design</a></li><li class="depth-2"><a href="#4-skema-data">4. Skema data</a></li><li class="depth-2"><a href="#5-high-level-design">5. High-level design</a></li><li class="depth-2"><a href="#6-detailed-design">6. Detailed design</a></li><li class="depth-3"><a href="#61-key-generation">6.1 Key generation</a></li><li class="depth-3"><a href="#62-redirect-301-atau-302">6.2 Redirect: 301 atau 302?</a></li><li class="depth-3"><a href="#63-cache">6.3 Cache</a></li><li class="depth-3"><a href="#64-database-partisi-dan-replikasi">6.4 Database: partisi dan replikasi</a></li><li class="depth-3"><a href="#65-expiry-dan-pembersihan">6.5 Expiry dan pembersihan</a></li><li class="depth-3"><a href="#66-rate-limiting-dan-abuse">6.6 Rate limiting dan abuse</a></li><li class="depth-2"><a href="#7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</a></li><li class="depth-2"><a href="#8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

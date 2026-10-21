@@ -1,0 +1,213 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Saran pencarian dalam puluhan milidetik tiap ketukan: trie dengan top-k terprakomputasi per prefix, pipeline agregasi popularitas offline, snapshot yang di-swap tanpa downtime, dan cache berlapis sampai ke client."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Typeahead / autocomplete · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 3 · Studi Kasus · Studi kasus</span><h1>Typeahead / autocomplete</h1><div class="lesson-meta"><span class="badge">⏱ ±50 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/distributed-search">Distributed search</a>, <a href="/sysdesign-lab/belajar/bagian-2/distributed-cache">Distributed cache</a>, <a href="/sysdesign-lab/belajar/bagian-2/sharded-counter">Sharded counter</a></span></div><p class="lesson-summary">Saran pencarian dalam puluhan milidetik tiap ketukan: trie dengan top-k terprakomputasi per prefix, pipeline agregasi popularitas offline, snapshot yang di-swap tanpa downtime, dan cache berlapis sampai ke client.</p><div class="prose"><h2 id="1-requirements">1. Requirements</h2>
+<p>Klarifikasi: saran berdasarkan query populer global atau juga personal? Berapa k saran? Bahasa/alfabet? Seberapa segar (tren)? Apakah prefix harus di awal kata atau boleh di tengah?</p>
+<h3 id="functional">Functional</h3>
+<ul>
+<li>Saat user mengetik, tampilkan k = 10 saran yang diawali prefix yang diketik, diurutkan by popularitas.</li>
+<li>Popularitas dihitung dari log pencarian (frekuensi) dengan peluruhan waktu.</li>
+<li>Filter konten tidak pantas; alat operator untuk menghapus/menambah saran.</li>
+<li>Out of scope: personalisasi penuh, koreksi ejaan (disebut sebagai ekstensi), pencarian hasilnya sendiri.</li>
+</ul>
+<h3 id="non-functional">Non-functional</h3>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Target</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Latency</td>
+<td>p99 &lt; 50 ms server; terasa instan di client</td>
+<td>Setiap ketukan</td>
+</tr>
+<tr>
+<td>Throughput</td>
+<td>100.000 QPS puncak</td>
+<td>Setiap ketukan adalah request</td>
+</tr>
+<tr>
+<td>Availability</td>
+<td>99.99%</td>
+<td>Fitur selalu terlihat; kegagalan terlihat jelas</td>
+</tr>
+<tr>
+<td>Kesegaran</td>
+<td>Popularitas umum: jam; tren: menit</td>
+<td>Toleransi tinggi</td>
+</tr>
+<tr>
+<td>Memori</td>
+<td>Trie muat di memori tiap node</td>
+<td>Latency</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-estimasi-kapasitas">2. Estimasi kapasitas</h2>
+<p>Asumsi: 10 juta query unik yang layak disarankan (setelah filter frekuensi minimum), rata-rata 20 karakter; 100.000 QPS puncak; 1 miliar pencarian/hari untuk log.</p>
+<ul>
+<li>Trie: 10M query × 20 karakter ≈ 200M karakter; dengan berbagi prefix dan kompresi (radix/FST) ≈ puluhan hingga ratusan MB. Top-10 per simpul menambah: simpul bermakna ~50M × 10 × 8 B (id) ≈ 4 GB bila disimpan di semua simpul; simpan hanya di simpul dengan kedalaman ≤ N atau yang dilalui query populer → ≈ 1–2 GB. <strong>Muat di memori</strong> satu node; replikasi untuk throughput.</li>
+<li>Query: 100.000 QPS × ~0.1 ms CPU (lookup prefix + baca daftar) = 10 core; ratusan node untuk latency geografis dan redundansi, bukan CPU.</li>
+<li>Log: 10^9 pencarian/hari × 50 B = 50 GB/hari; agregasi batch per jam/hari.</li>
+<li>Cache per prefix: prefix 1–3 karakter ≈ 50.000 kombinasi populer × 1 KB respons ≈ 50 MB di edge; hit ratio sangat tinggi.</li>
+</ul>
+<p>Keputusan: snapshot trie di memori setiap node (replika penuh, bukan shard, selama muat), pipeline batch untuk popularitas, cache edge per prefix, client-side filtering.</p>
+<h2 id="3-api-design">3. API design</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>GET /v1/suggest?q=sush&amp;limit=10&amp;lang=id&amp;region=ID</span></span>
+<span class="line"><span>    → { suggestions: [{ text: &quot;sushi tei&quot;, score: 0.93 }, ...], ttl: 3600 }</span></span>
+<span class="line"><span>    header Cache-Control: public, max-age=3600 (per prefix; TTL lebih pendek untuk prefix tren)</span></span>
+<span class="line"><span>POST /v1/ops/block { pattern }       (operator; memuat ulang blocklist runtime)</span></span></code></pre>
+<p>Client: debounce 50–100 ms, batalkan request lama, dan <strong>filter lokal</strong>: hasil untuk “sus” dipakai untuk “sush” bila daftar sebelumnya punya ≥ k entri yang masih cocok; request baru hanya bila tidak cukup.</p>
+<h2 id="4-skema-data">4. Skema data</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>-- Log pencarian (stream → object storage per jam): {query_norm, ts, lang, region}</span></span>
+<span class="line"><span>-- Agregat popularitas (batch, per hari/jam): query_norm → score (frekuensi dengan peluruhan eksponensial)</span></span>
+<span class="line"><span>-- Snapshot trie (file biner per versi, per lang/region):</span></span>
+<span class="line"><span>   node: children (radix edges), top_k: [(suggestion_id, score)]  -- hanya simpul yang perlu</span></span>
+<span class="line"><span>   suggestions: id → text</span></span>
+<span class="line"><span>-- Blocklist: pattern/regex, versi; dimuat di runtime</span></span>
+<span class="line"><span>-- Trending (opsional, kecil): prefix → [(text, score)] dari jendela 10 menit, TTL pendek</span></span></code></pre>
+<p>Normalisasi query: lowercase, trim spasi, hapus tanda baca; saran disimpan dalam bentuk tampilan yang dipilih (varian terpopuler).</p>
+<h2 id="5-high-level-design">5. High-level design</h2>
+<pre><code class="language-mermaid">flowchart LR
+  C[Client\ndebounce + filter lokal] --&gt; E[CDN / edge cache\nper prefix]
+  E --&gt; GW[LB]
+  GW --&gt; S1[&quot;Suggest service\n(trie snapshot v12 di memori)&quot;]
+  GW --&gt; S2[Suggest service]
+  S1 --&gt; BL[(Blocklist runtime)]
+  S1 --&gt; TR[(Trending store\nprefix → top)]
+  SRCH[Search service] --&gt; LOG[[Log pencarian stream]]
+  LOG --&gt; AGG[&quot;Aggregator batch\n(jam/hari): frekuensi + peluruhan&quot;]
+  AGG --&gt; FIL[Filter konten offline]
+  FIL --&gt; BUILD[Trie builder\ntop-k per simpul]
+  BUILD --&gt; SNAP[(Blob: snapshot v13)]
+  SNAP --&gt;|unduh &amp; swap atomik| S1
+  SNAP --&gt; S2
+  LOG --&gt; TAGG[Aggregator jendela 10 mnt] --&gt; TR
+</code></pre>
+<p><strong>Alur query</strong>: ketukan → client cek cache lokal → request ke edge (cache per prefix; hit untuk prefix populer) → suggest service: telusuri trie sesuai prefix (O(panjang)) → ambil top-k simpul → gabung dengan trending (bila ada) dan filter blocklist → respons dengan Cache-Control.</p>
+<p><strong>Alur pembaruan</strong>: log → agregasi batch → filter → builder membangun trie dengan top-k per simpul (traversal post-order: top-k simpul = gabungan top-k anak + dirinya) → snapshot ke blob → tiap node mengunduh, memuat di memori di samping yang lama, lalu swap pointer (tanpa downtime, memori 2x sesaat).</p>
+<h2 id="6-detailed-design">6. Detailed design</h2>
+<h3 id="61-struktur-trie-dan-top-k-terprakomputasi">6.1 Struktur trie dan top-k terprakomputasi</h3>
+<pre><code class="language-mermaid">flowchart TD
+  R((root)) --&gt; S((s))
+  S --&gt; SU((su))
+  SU --&gt; SUS((sus\ntop: sushi tei, susu, sushi hiro))
+  SUS --&gt; SUSH((sush\ntop: sushi tei, sushi hiro, sushi go))
+  SUS --&gt; SUSU((susu\ntop: susu ultra, susu bear brand))
+  SUSH --&gt; SUSHI((sushi …))
+</code></pre>
+<ul>
+<li>Simpul menyimpan daftar <code>top_k</code> (id, skor) yang dihitung bottom-up saat build; query tidak menelusuri subtree.</li>
+<li>Kompresi: radix tree (gabung rantai simpul tunggal) atau FST untuk memori lebih kecil; daftar top-k hanya di simpul dengan kedalaman ≤ 10 atau skor subtree ≥ ambang (prefix panjang jarang diketik dan hasilnya sedikit).</li>
+<li>Multi-kata: prefix dicocokkan di awal frasa; untuk mencocokkan awal kata di tengah frasa (“tei” → “sushi tei”), masukkan juga suffix mulai tiap kata sebagai kunci (memori naik ~2–3x) atau pakai completion suggester dengan input alternatif.</li>
+<li>Unicode: trie per unit karakter; normalisasi (NFC, lowercase) konsisten di build dan query.</li>
+</ul>
+<h3 id="62-pipeline-popularitas">6.2 Pipeline popularitas</h3>
+<ul>
+<li>Skor = Σ frekuensi × peluruhan (mis. setengah tiap 7 hari) sehingga query lama memudar.</li>
+<li>Agregasi harian penuh + agregasi per jam inkremental; frekuensi minimum dan panjang minimum untuk masuk.</li>
+<li>Filter offline: blocklist, klasifier konten, kebijakan hukum per region; hasilnya snapshot per <code>lang/region</code>.</li>
+<li>Sketsa (count-min) dapat dipakai untuk menghitung frekuensi di stream dengan memori terbatas sebelum batch.</li>
+</ul>
+<h3 id="63-distribusi-dan-pembaruan-snapshot">6.3 Distribusi dan pembaruan snapshot</h3>
+<ul>
+<li>Snapshot &lt; beberapa GB → <strong>replikasi penuh</strong> di tiap node (tanpa shard): query lokal, tidak ada scatter-gather. Bila melebihi memori: shard by prefix pertama (hash) dengan router ringan; prefix sangat populer (“a”) diberi partisi sendiri atau cache.</li>
+<li>Rollout: node memuat snapshot baru, validasi (jumlah simpul, sampel query), swap atomik; rollback dengan memuat versi lama. Rollout bertahap per persentase node.</li>
+</ul>
+<h3 id="64-cache-berlapis">6.4 Cache berlapis</h3>
+<table>
+<thead>
+<tr>
+<th>Lapisan</th>
+<th>Kunci</th>
+<th>TTL</th>
+<th>Catatan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Client</td>
+<td>prefix</td>
+<td>sesi</td>
+<td>Filter lokal subset; batalkan request usang</td>
+</tr>
+<tr>
+<td>Edge/CDN</td>
+<td><code>q+lang+region</code></td>
+<td>1 jam (menit untuk prefix tren)</td>
+<td>Hit ratio tinggi untuk prefix pendek; <code>Vary</code> minimal</td>
+</tr>
+<tr>
+<td>Service memori</td>
+<td>prefix</td>
+<td>sampai snapshot berganti</td>
+<td>Hasil top-k sudah hampir gratis; cache untuk gabungan dengan trending</td>
+</tr>
+</tbody>
+</table>
+<h3 id="65-trending-dan-personalisasi-ekstensi">6.5 Trending dan personalisasi (ekstensi)</h3>
+<ul>
+<li>Trending: agregasi jendela 10 menit dari stream, simpan prefix → top beberapa; suggest service menyisipkan ke hasil dengan bobot; TTL pendek; cache edge untuk prefix tersebut diberi TTL menit.</li>
+<li>Personalisasi ringan: client menyimpan riwayat sendiri dan menampilkannya di atas saran global; server tetap tanpa state per user (privasi dan skala).</li>
+</ul>
+<h3 id="66-keamanan-dan-kebijakan">6.6 Keamanan dan kebijakan</h3>
+<p>Blocklist runtime kecil yang dimuat ulang tiap menit untuk takedown cepat; semua saran diaudit (asal query, skor) agar keputusan operator dapat ditelusuri; rate limit per client untuk mencegah scraping.</p>
+<h2 id="7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Dipenuhi oleh</th>
+<th>Risiko tersisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>p99 &lt; 50 ms</td>
+<td>Trie memori + top-k terprakomputasi, cache edge, tanpa DB di jalur</td>
+<td>Node baru memuat snapshot: jangan terima trafik sampai siap</td>
+</tr>
+<tr>
+<td>100.000 QPS</td>
+<td>Replika penuh stateless (tambah node), cache edge menyerap prefix pendek</td>
+<td>Serangan prefix acak menembus cache: rate limit</td>
+</tr>
+<tr>
+<td>Availability 99.99%</td>
+<td>Snapshot lokal (tetap melayani meski pipeline mati), rollout bertahap, rollback</td>
+<td>Snapshot rusak: validasi sebelum swap</td>
+</tr>
+<tr>
+<td>Kesegaran</td>
+<td>Batch jam/hari + lapisan tren menit</td>
+<td>Tren memerlukan jalur terpisah yang juga harus difilter</td>
+</tr>
+<tr>
+<td>Memori</td>
+<td>Kompresi, top-k selektif, per lang/region</td>
+<td>Pertumbuhan katalog: shard by prefix bila melebihi</td>
+</tr>
+</tbody>
+</table>
+<p>Bottleneck 10x: pipeline agregasi (batch horizontal) dan egress edge; SPOF: pipeline build (bukan jalur online; snapshot lama tetap melayani).</p>
+<h2 id="8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</h2>
+<ul>
+<li>“Koreksi ejaan (‘sushy’ → ‘sushi’)?” → Kandidat dari edit distance 1 pada prefix (BK-tree/symspell) bila hasil kosong; mahal, batasi.</li>
+<li>“Saran per user (riwayat)?” → Riwayat di client; server global tanpa state; gabung di client.</li>
+<li>“Trie tidak muat memori?” → Shard by prefix (hash karakter pertama/dua) dengan router; prefix hot dipisah; atau FST.</li>
+<li>“Bagaimana mengukur kualitas saran?” → Rasio klik saran, posisi klik, rasio pencarian tanpa saran; A/B pada bobot skor.</li>
+<li>“Multi-bahasa?” → Snapshot per bahasa/region; deteksi bahasa dari pengaturan client.</li>
+<li>“Pembaruan harus dalam detik (mis. berita)?” → Lapisan trending menangani; trie utama tetap batch.</li>
+</ul></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://en.wikipedia.org/wiki/Trie" target="_blank" rel="noopener noreferrer">Trie — Wikipedia</a></li><li><a href="https://blog.google/products/search/how-google-autocomplete-works-search/" target="_blank" rel="noopener noreferrer">Google Blog — How Google autocomplete works in Search</a></li><li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-suggesters.html#completion-suggester" target="_blank" rel="noopener noreferrer">Elasticsearch docs — Completion suggester (FST di memori)</a></li><li><a href="https://en.wikipedia.org/wiki/Count%E2%80%93min_sketch" target="_blank" rel="noopener noreferrer">Count–min sketch — Wikipedia</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-3/typeahead" data-quiz="[{&quot;q&quot;:&quot;Kenapa trie \&quot;polos\&quot; (tanpa prakomputasi) tidak cukup untuk typeahead pada skala besar?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena trie tidak bisa menyimpan huruf non-Latin&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Trie bisa memakai unit apa pun (byte/karakter Unicode).&quot;},{&quot;text&quot;:&quot;Karena setelah menemukan simpul prefix, mencari top-k harus menelusuri seluruh subtree (bisa jutaan simpul untuk prefix pendek seperti \&quot;a\&quot;) lalu mengurutkan; ini terlalu lambat untuk puluhan ms&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Solusi: simpan top-k (mis. 10) saran terpopuler di setiap simpul saat membangun trie; query menjadi O(panjang prefix) + membaca daftar kecil.&quot;},{&quot;text&quot;:&quot;Karena trie hanya bekerja untuk kata tunggal&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Trie bisa menyimpan frasa (spasi sebagai karakter).&quot;},{&quot;text&quot;:&quot;Karena trie tidak bisa dipartisi&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Bisa dipartisi by prefix atau hash prefix.&quot;}]},{&quot;q&quot;:&quot;Popularitas query dihitung dari log pencarian. Kenapa pembaruan trie dilakukan batch (mis. tiap jam/hari) dan bukan tiap pencarian?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena log tidak tersedia real-time&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Log bisa di-stream; alasannya struktur data dan beban.&quot;},{&quot;text&quot;:&quot;Karena memperbarui top-k di semua simpul prefix untuk tiap pencarian (puluhan ribu/detik) jauh lebih mahal daripada membangun ulang snapshot secara offline dan mengganti (swap) dengan atomik; saran tidak butuh kesegaran detik, kecuali tren yang ditangani lapisan terpisah&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Read-heavy ekstrem dengan toleransi kebasian jam. Lapisan \&quot;trending\&quot; kecil dengan agregasi jendela menit menutup kebutuhan tren tanpa menyentuh trie utama.&quot;},{&quot;text&quot;:&quot;Karena trie tidak bisa diubah setelah dibuat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Bisa diubah; mahalnya yang menjadi masalah.&quot;},{&quot;text&quot;:&quot;Karena user tidak mengetik di malam hari&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak relevan.&quot;}]},{&quot;q&quot;:&quot;Target p99 &amp;lt; 50 ms untuk 100.000 QPS. Lapisan cache mana yang paling berdampak?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Cache di database&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Database tidak ada di jalur query typeahead.&quot;},{&quot;text&quot;:&quot;Debounce dan cache prefix di client (saran untuk \&quot;sus\&quot; dipakai saat user mengetik \&quot;sush\&quot; bila hasilnya subset) plus cache hasil per prefix di CDN/edge dan di memori service; trie sendiri sudah di memori&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Distribusi prefix sangat condong (prefix pendek populer), sehingga cache per prefix di edge mendapat hit ratio tinggi; client-side filtering memotong jumlah request.&quot;},{&quot;text&quot;:&quot;Cache di blob store&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Blob store terlalu lambat untuk jalur ini.&quot;},{&quot;text&quot;:&quot;Tidak perlu cache; trie cukup&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Trie cepat, tetapi 100.000 QPS × hop jaringan membutuhkan cache berlapis untuk latency dan biaya.&quot;}]},{&quot;q&quot;:&quot;Bagaimana saran yang menyinggung/berbahaya dicegah muncul?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Tidak bisa dicegah; saran mengikuti popularitas&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Produk nyata memfilter.&quot;},{&quot;text&quot;:&quot;Filter saat membangun snapshot (daftar blokir, klasifier) dan filter runtime untuk kasus mendesak (daftar blokir kecil yang dimuat ulang cepat), dengan alat operator untuk menghapus saran&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Dua lapis: offline (murah, menyeluruh) dan online (cepat, kecil). Kebijakan konten adalah requirement, bukan afterthought.&quot;},{&quot;text&quot;:&quot;Dengan menurunkan k menjadi 3&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak menyelesaikan isi saran.&quot;},{&quot;text&quot;:&quot;Dengan menonaktifkan typeahead untuk prefix pendek&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Mengorbankan fitur tanpa menyentuh akar masalah.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Kenapa trie &quot;polos&quot; (tanpa prakomputasi) tidak cukup untuk typeahead pada skala besar?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Karena trie tidak bisa menyimpan huruf non-Latin</span></label><div class="why">Trie bisa memakai unit apa pun (byte/karakter Unicode).</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>Karena setelah menemukan simpul prefix, mencari top-k harus menelusuri seluruh subtree (bisa jutaan simpul untuk prefix pendek seperti &quot;a&quot;) lalu mengurutkan; ini terlalu lambat untuk puluhan ms</span></label><div class="why">Solusi: simpan top-k (mis. 10) saran terpopuler di setiap simpul saat membangun trie; query menjadi O(panjang prefix) + membaca daftar kecil.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Karena trie hanya bekerja untuk kata tunggal</span></label><div class="why">Trie bisa menyimpan frasa (spasi sebagai karakter).</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Karena trie tidak bisa dipartisi</span></label><div class="why">Bisa dipartisi by prefix atau hash prefix.</div></div></fieldset><fieldset><legend>2. Popularitas query dihitung dari log pencarian. Kenapa pembaruan trie dilakukan batch (mis. tiap jam/hari) dan bukan tiap pencarian?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Karena log tidak tersedia real-time</span></label><div class="why">Log bisa di-stream; alasannya struktur data dan beban.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Karena memperbarui top-k di semua simpul prefix untuk tiap pencarian (puluhan ribu/detik) jauh lebih mahal daripada membangun ulang snapshot secara offline dan mengganti (swap) dengan atomik; saran tidak butuh kesegaran detik, kecuali tren yang ditangani lapisan terpisah</span></label><div class="why">Read-heavy ekstrem dengan toleransi kebasian jam. Lapisan &quot;trending&quot; kecil dengan agregasi jendela menit menutup kebutuhan tren tanpa menyentuh trie utama.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Karena trie tidak bisa diubah setelah dibuat</span></label><div class="why">Bisa diubah; mahalnya yang menjadi masalah.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Karena user tidak mengetik di malam hari</span></label><div class="why">Tidak relevan.</div></div></fieldset><fieldset><legend>3. Target p99 &amp;lt; 50 ms untuk 100.000 QPS. Lapisan cache mana yang paling berdampak?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>Cache di database</span></label><div class="why">Database tidak ada di jalur query typeahead.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>Debounce dan cache prefix di client (saran untuk &quot;sus&quot; dipakai saat user mengetik &quot;sush&quot; bila hasilnya subset) plus cache hasil per prefix di CDN/edge dan di memori service; trie sendiri sudah di memori</span></label><div class="why">Distribusi prefix sangat condong (prefix pendek populer), sehingga cache per prefix di edge mendapat hit ratio tinggi; client-side filtering memotong jumlah request.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Cache di blob store</span></label><div class="why">Blob store terlalu lambat untuk jalur ini.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Tidak perlu cache; trie cukup</span></label><div class="why">Trie cepat, tetapi 100.000 QPS × hop jaringan membutuhkan cache berlapis untuk latency dan biaya.</div></div></fieldset><fieldset><legend>4. Bagaimana saran yang menyinggung/berbahaya dicegah muncul?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Tidak bisa dicegah; saran mengikuti popularitas</span></label><div class="why">Produk nyata memfilter.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Filter saat membangun snapshot (daftar blokir, klasifier) dan filter runtime untuk kasus mendesak (daftar blokir kecil yang dimuat ulang cepat), dengan alat operator untuk menghapus saran</span></label><div class="why">Dua lapis: offline (murah, menyeluruh) dan online (cepat, kecil). Kebijakan konten adalah requirement, bukan afterthought.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>Dengan menurunkan k menjadi 3</span></label><div class="why">Tidak menyelesaikan isi saran.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Dengan menonaktifkan typeahead untuk prefix pendek</span></label><div class="why">Mengorbankan fitur tanpa menyentuh akar masalah.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-3/typeahead"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="lbl">← Sebelumnya</span><span>Yelp / proximity service</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="lbl">Berikutnya →</span><span>Google Docs</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#1-requirements">1. Requirements</a></li><li class="depth-3"><a href="#functional">Functional</a></li><li class="depth-3"><a href="#non-functional">Non-functional</a></li><li class="depth-2"><a href="#2-estimasi-kapasitas">2. Estimasi kapasitas</a></li><li class="depth-2"><a href="#3-api-design">3. API design</a></li><li class="depth-2"><a href="#4-skema-data">4. Skema data</a></li><li class="depth-2"><a href="#5-high-level-design">5. High-level design</a></li><li class="depth-2"><a href="#6-detailed-design">6. Detailed design</a></li><li class="depth-3"><a href="#61-struktur-trie-dan-top-k-terprakomputasi">6.1 Struktur trie dan top-k terprakomputasi</a></li><li class="depth-3"><a href="#62-pipeline-popularitas">6.2 Pipeline popularitas</a></li><li class="depth-3"><a href="#63-distribusi-dan-pembaruan-snapshot">6.3 Distribusi dan pembaruan snapshot</a></li><li class="depth-3"><a href="#64-cache-berlapis">6.4 Cache berlapis</a></li><li class="depth-3"><a href="#65-trending-dan-personalisasi-ekstensi">6.5 Trending dan personalisasi (ekstensi)</a></li><li class="depth-3"><a href="#66-keamanan-dan-kebijakan">6.6 Keamanan dan kebijakan</a></li><li class="depth-2"><a href="#7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</a></li><li class="depth-2"><a href="#8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

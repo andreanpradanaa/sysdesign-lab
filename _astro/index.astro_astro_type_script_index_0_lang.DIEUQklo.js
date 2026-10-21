@@ -1,0 +1,1 @@
+import{i as e,n as t}from"./storage.DNOVWEBm.js";var n=e(t());document.querySelectorAll(`[data-quiz-row]`).forEach(e=>{let t=n.quiz[e.dataset.quizRow];if(!t)return;let r=e.querySelector(`[data-score]`);r.textContent=`${t.score}/${t.total} · ${new Date(t.at).toLocaleDateString(`id-ID`)}`,r.classList.remove(`muted`)});

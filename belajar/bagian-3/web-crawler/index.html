@@ -1,0 +1,220 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Mengunduh miliaran halaman tanpa menjatuhkan situs orang dan tanpa mengunduh hal yang sama dua kali: frontier URL dengan prioritas dan kesopanan, dedup konten, dan penyimpanan yang bisa diproses ulang."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Web crawler · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 3 · Studi Kasus · Studi kasus</span><h1>Web crawler</h1><div class="lesson-meta"><span class="badge">⏱ ±60 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/message-queue">Message queue</a>, <a href="/sysdesign-lab/belajar/bagian-2/blob-store">Blob store</a>, <a href="/sysdesign-lab/belajar/bagian-2/dns">DNS</a>, <a href="/sysdesign-lab/belajar/bagian-2/task-scheduler">Task scheduler</a></span></div><p class="lesson-summary">Mengunduh miliaran halaman tanpa menjatuhkan situs orang dan tanpa mengunduh hal yang sama dua kali: frontier URL dengan prioritas dan kesopanan, dedup konten, dan penyimpanan yang bisa diproses ulang.</p><div class="prose"><h2 id="1-requirements">1. Requirements</h2>
+<p>Pertanyaan klarifikasi: untuk apa hasil crawl (index pencarian, arsip, riset)? Hanya HTML atau juga gambar/PDF? Berapa halaman per bulan? Seberapa segar (re-crawl)? Satu region atau global?</p>
+<h3 id="functional">Functional</h3>
+<ul>
+<li>Mulai dari daftar seed URL, unduh halaman, ekstrak link, ulangi.</li>
+<li>Simpan konten mentah dan metadata agar bisa diproses ulang (indexing, ekstraksi).</li>
+<li>Patuhi <code>robots.txt</code> dan batas laju per host.</li>
+<li>Re-crawl halaman dengan frekuensi sesuai perubahan dan prioritas.</li>
+<li>Out of scope: ranking, rendering JavaScript (disebut sebagai ekstensi), pencarian.</li>
+</ul>
+<h3 id="non-functional">Non-functional</h3>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Target</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Skala</td>
+<td>1 miliar halaman/bulan, 5 tahun data</td>
+<td>Korpus pencarian</td>
+</tr>
+<tr>
+<td>Kesopanan (politeness)</td>
+<td>≤ 1 permintaan aktif per host, jeda sesuai <code>Crawl-delay</code>/heuristik</td>
+<td>Tidak menjatuhkan situs, tidak diblokir</td>
+</tr>
+<tr>
+<td>Robustness</td>
+<td>Tahan halaman jahat, trap, server lambat, konten raksasa</td>
+<td>Web tidak kooperatif</td>
+</tr>
+<tr>
+<td>Extensibility</td>
+<td>Modul baru (PDF, gambar) tanpa mengubah inti</td>
+<td>Kebutuhan berubah</td>
+</tr>
+<tr>
+<td>Kesegaran</td>
+<td>Halaman populer di-crawl ulang lebih sering</td>
+<td>Nilai index</td>
+</tr>
+<tr>
+<td>Dedup</td>
+<td>Tidak menyimpan URL/konten yang sama dua kali</td>
+<td>Hemat storage dan kerja</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-estimasi-kapasitas">2. Estimasi kapasitas</h2>
+<p>Asumsi: 1 miliar halaman/bulan, rata-rata 500 KB per halaman (HTML + resource ringan), 50 link keluar per halaman, simpan 5 tahun.</p>
+<ul>
+<li>Laju: 10^9 / 2.6 × 10^6 s ≈ <strong>400 halaman/detik</strong>; puncak 1.000/s.</li>
+<li>Bandwidth masuk: 400 × 500 KB ≈ <strong>200 MB/s</strong>.</li>
+<li>Storage mentah: 500 TB/bulan; dengan kompresi 5x ≈ 100 TB/bulan → 5 tahun ≈ <strong>6 PB</strong> terkompresi. Blob store wajib.</li>
+<li>URL ditemukan: 400 × 50 = 20.000 URL/detik masuk frontier; mayoritas sudah pernah dilihat. URL-seen set untuk ~10^10 URL: 10^10 × ~40 byte ≈ 400 GB sebagai hash set eksak, atau beberapa GB sebagai bloom filter.</li>
+<li>DNS: 400 lookup/detik tanpa cache; dengan cache lokal per host, jauh lebih kecil.</li>
+</ul>
+<p>Keputusan: paralelisme ribuan koneksi (I/O-bound, bukan CPU), frontier terpartisi, blob store terkompresi, URL-seen set terpartisi di memori/KV.</p>
+<h2 id="3-api-design">3. API design</h2>
+<p>Crawler adalah sistem batch/stream; API-nya untuk operator dan pipeline hilir.</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>POST /api/v1/seeds           { &quot;urls&quot;: [...], &quot;priority&quot;: 1..10 }        → 202</span></span>
+<span class="line"><span>POST /api/v1/recrawl         { &quot;url&quot;: &quot;...&quot;, &quot;reason&quot;: &quot;sitemap-updated&quot; } → 202</span></span>
+<span class="line"><span>GET  /api/v1/pages/{urlHash} → metadata: fetchedAt, status, contentHash, blobKey, links</span></span>
+<span class="line"><span>GET  /api/v1/stats           → laju, ukuran frontier, error per host (untuk dashboard)</span></span></code></pre>
+<p>Pipeline hilir (indexer, ekstraktor) tidak memanggil API; mereka berlangganan topic <code>page-fetched</code> (pub-sub) yang berisi <code>urlHash, blobKey, contentHash, fetchedAt</code>.</p>
+<h2 id="4-skema-data">4. Skema data</h2>
+<p>Tiga store dengan pola akses berbeda:</p>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#6A737D">-- Metadata URL (KV terpartisi by url_hash; ditulis sering, dibaca by key)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">url_meta: url_hash PK, </span><span style="color:#D73A49;--shiki-dark:#F97583">url</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, host, last_fetched_at, next_fetch_at, status_code,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">          content_hash, blob_key, change_rate, priority, depth</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#6A737D">-- Host state (KV; satu baris per host, dibaca tiap fetch)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">host_state: host PK, robots_rules, robots_fetched_at, crawl_delay_ms,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">            next_allowed_at, ip_cache, error_count</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#6A737D">-- Konten mentah: blob store, key = sha256(content), format WARC terkompresi</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#6A737D">-- Sidik jari konten: KV content_hash → url_hash (dedup eksak); simhash index untuk near-dup</span></span></code></pre>
+<p>Frontier bukan tabel biasa: ia adalah antrian terprioritas dan terpartisi (lihat detailed design), dengan backing durable (queue/log) agar restart tidak kehilangan URL.</p>
+<h2 id="5-high-level-design">5. High-level design</h2>
+<pre><code class="language-mermaid">flowchart LR
+  SEED[Seed / recrawl API] --&gt; F[URL frontier\nprioritas + kesopanan]
+  F --&gt; FE[Fetcher x N\nasync I/O, per-host limiter]
+  FE --&gt; DNS[DNS resolver + cache]
+  FE --&gt; ROB[Robots cache\nper host]
+  FE --&gt; WEB((Internet))
+  FE --&gt; CD[Content dedup\nhash / simhash]
+  CD --&gt; BS[(Blob store\nWARC terkompresi)]
+  CD --&gt; META[(URL metadata KV)]
+  CD --&gt; PUB[[Topic page-fetched]]
+  FE --&gt; PAR[Parser &amp; link extractor]
+  PAR --&gt; NORM[&quot;Normalisasi URL + filter\n(skema, blacklist, trap)&quot;]
+  NORM --&gt; SEEN{URL seen?\nbloom + KV}
+  SEEN -- baru --&gt; F
+  SCHED[Recrawl scheduler] --&gt; F
+</code></pre>
+<p><strong>Alur satu halaman</strong>: frontier mengeluarkan URL yang hostnya “boleh diakses” → fetcher cek robots (cache) dan DNS (cache) → unduh dengan timeout dan batas ukuran → hitung hash; bila konten sudah ada, catat alias dan berhenti → simpan ke blob store, perbarui metadata, publish event → parser mengekstrak link → normalisasi dan filter → URL yang belum pernah dilihat masuk frontier dengan prioritas → scheduler menjadwalkan re-crawl berdasarkan laju perubahan.</p>
+<h2 id="6-detailed-design">6. Detailed design</h2>
+<h3 id="61-url-frontier-prioritas-dan-kesopanan">6.1 URL frontier: prioritas dan kesopanan</h3>
+<p>Dua tujuan yang bertabrakan: mengambil URL <strong>penting</strong> dulu, tetapi <strong>tidak</strong> mengakses satu host terlalu sering.</p>
+<pre><code class="language-mermaid">flowchart LR
+  IN[URL baru] --&gt; PR[Prioritizer\nPageRank-ish, kesegaran, kedalaman]
+  PR --&gt; FQ1[Front queue p=1]
+  PR --&gt; FQ2[Front queue p=2]
+  PR --&gt; FQn[Front queue p=n]
+  FQ1 --&gt; SEL[Selector\nbias ke prioritas tinggi]
+  FQ2 --&gt; SEL
+  FQn --&gt; SEL
+  SEL --&gt; MAP[Host → back queue]
+  MAP --&gt; BQa[Back queue host A]
+  MAP --&gt; BQb[Back queue host B]
+  MAP --&gt; BQz[Back queue host Z]
+  BQa --&gt; HEAP[Min-heap next_allowed_at]
+  BQb --&gt; HEAP
+  BQz --&gt; HEAP
+  HEAP --&gt; OUT[Fetcher mengambil host\nyang sudah boleh]
+</code></pre>
+<ul>
+<li><strong>Front queue</strong> per tingkat prioritas; selector mengambil lebih sering dari prioritas tinggi.</li>
+<li><strong>Back queue</strong> satu per host (atau per IP) agar tiap host hanya punya satu permintaan aktif; heap mengurutkan host berdasarkan waktu boleh diakses berikutnya (<code>last_fetch + delay</code>).</li>
+<li>Skala: frontier dipartisi by host hash ke banyak node; URL baru dirutekan ke partisi hostnya sehingga kesopanan per host tetap terjaga di satu tempat.</li>
+<li>Durability: back queue di memori dengan backing log (Kafka/disk) dan checkpoint; miliaran URL tidak muat di memori, jadi hanya “kepala” tiap queue yang dimuat, sisanya di disk.</li>
+</ul>
+<h3 id="62-fetcher">6.2 Fetcher</h3>
+<ul>
+<li>Async I/O, ribuan koneksi per node; timeout koneksi/baca, batas ukuran respons (mis. 10 MB), batas redirect, hanya tipe konten yang didukung.</li>
+<li>Identitas jelas (<code>User-Agent</code> dengan URL kontak), mematuhi <code>robots.txt</code> (cache per host, refresh harian), <code>Crawl-delay</code>, dan HTTP 429/503 dengan backoff per host.</li>
+<li>DNS: resolver lokal dengan cache; resolusi adalah bottleneck umum.</li>
+<li>Hasil: byte mentah + header + timing ke tahap berikutnya; fetcher tidak mem-parse.</li>
+</ul>
+<h3 id="63-dedup">6.3 Dedup</h3>
+<ul>
+<li><strong>URL</strong>: normalisasi (lowercase host, hapus fragment, urutkan query, hapus parameter pelacak), lalu cek <code>url_seen</code>: bloom filter di memori (cepat, false positive kecil = sedikit URL terlewat) di depan KV eksak terpartisi.</li>
+<li><strong>Konten</strong>: hash eksak untuk duplikat persis; <strong>simhash</strong> 64-bit dengan index per potongan bit untuk near-duplicate (jarak Hamming ≤ 3). Duplikat tidak disimpan ulang dan link-nya tidak diproses lagi.</li>
+</ul>
+<h3 id="64-penyimpanan-dan-pipeline-hilir">6.4 Penyimpanan dan pipeline hilir</h3>
+<ul>
+<li>Blob store menyimpan WARC terkompresi, key by content hash; metadata di KV.</li>
+<li>Event <code>page-fetched</code> ke topic; indexer, ekstraktor entitas, dan deteksi perubahan berlangganan terpisah; crawler tidak tahu konsumen.</li>
+</ul>
+<h3 id="65-re-crawl-dan-kesegaran">6.5 Re-crawl dan kesegaran</h3>
+<ul>
+<li>Tiap URL punya <code>change_rate</code> yang diperbarui dari pengamatan (konten berubah atau tidak sejak fetch terakhir); <code>next_fetch_at</code> dihitung dari laju perubahan dan prioritas (halaman populer yang sering berubah → sering).</li>
+<li>Sitemap dan <code>Last-Modified</code>/<code>ETag</code> (conditional GET) menghemat bandwidth.</li>
+<li>Scheduler (lihat modul task scheduler) memasukkan URL yang jatuh tempo ke frontier.</li>
+</ul>
+<h3 id="66-robustness-dan-trap">6.6 Robustness dan trap</h3>
+<ul>
+<li>Batas kedalaman, batas URL per host per hari, deteksi pola URL berulang, prioritas rendah untuk URL panjang/berparameter.</li>
+<li>Konten berbahaya: parser di sandbox, batas waktu parse, abaikan tipe tak dikenal.</li>
+<li>Daftar hitam domain dan kemampuan menghentikan host tertentu segera (operator).</li>
+</ul>
+<h3 id="67-ekstensi">6.7 Ekstensi</h3>
+<p>Modul plug-in per tipe konten (PDF, gambar) dan rendering JavaScript lewat pool browser headless untuk subset halaman bernilai tinggi (mahal: CPU dan waktu 10–100x).</p>
+<h2 id="7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Dipenuhi oleh</th>
+<th>Risiko tersisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Skala 400–1.000 halaman/s</td>
+<td>Fetcher async terpartisi, frontier terpartisi by host, blob store</td>
+<td>Host raksasa (wikipedia) membatasi laju per host; terima, prioritaskan</td>
+</tr>
+<tr>
+<td>Kesopanan</td>
+<td>Back queue per host + heap, robots cache, backoff 429/503</td>
+<td>Banyak host di satu IP (shared hosting): batasi per IP juga</td>
+</tr>
+<tr>
+<td>Robustness</td>
+<td>Timeout, batas ukuran, sandbox parser, trap heuristik</td>
+<td>Trap baru selalu muncul; pantau URL per host</td>
+</tr>
+<tr>
+<td>Extensibility</td>
+<td>Pipeline event, parser plug-in</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Kesegaran</td>
+<td>change_rate adaptif, sitemap, conditional GET</td>
+<td>Estimasi laju perubahan butuh beberapa siklus</td>
+</tr>
+<tr>
+<td>Dedup</td>
+<td>URL-seen (bloom + KV), content hash + simhash</td>
+<td>Bloom false positive = URL terlewat (kecil, bisa diset)</td>
+</tr>
+</tbody>
+</table>
+<p>Bottleneck pertama saat 10x: URL-seen KV (tulis 200.000/s) dan frontier I/O; keduanya terpartisi horizontal. SPOF: scheduler dan koordinator partisi; jalankan redundan dengan lease.</p>
+<h2 id="8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</h2>
+<ul>
+<li>“Bagaimana mendistribusikan crawler ke beberapa datacenter?” → Partisi host by geografi/TLD; tiap DC punya frontier sendiri; URL lintas partisi dikirim via queue.</li>
+<li>“Halaman dinamis (JavaScript)?” → Pool browser headless untuk subset bernilai tinggi; deteksi kebutuhan render dari heuristik.</li>
+<li>“Bagaimana memprioritaskan halaman?” → PageRank/inlink count, domain authority, kesegaran, permintaan dari pencarian.</li>
+<li>“Crawler diblokir oleh situs?” → Identitas jelas, patuhi robots, laju konservatif, kontak; jangan menyamar.</li>
+<li>“Bagaimana memverifikasi crawler tidak menyimpan duplikat?” → Metrik rasio duplikat per hari; sampling manual.</li>
+<li>“Kehilangan node frontier?” → Backing log + checkpoint; partisi diambil alih node lain dari log.</li>
+</ul></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/web_crawler/README.md" target="_blank" rel="noopener noreferrer">System Design Primer — Design a web crawler</a></li><li><a href="https://www.cs.cornell.edu/courses/cs685/2002fa/mercator.pdf" target="_blank" rel="noopener noreferrer">Mercator: A Scalable, Extensible Web Crawler (Heydon &amp; Najork, 1999, akses terbuka)</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc9309" target="_blank" rel="noopener noreferrer">RFC 9309 — Robots Exclusion Protocol</a></li><li><a href="https://developers.google.com/search/docs/fundamentals/how-search-works" target="_blank" rel="noopener noreferrer">Google Search Central — How Google Search works (crawling, indexing)</a></li><li><a href="https://commoncrawl.org/overview" target="_blank" rel="noopener noreferrer">Common Crawl — Overview (korpus crawl terbuka, format WARC)</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-3/web-crawler" data-quiz="[{&quot;q&quot;:&quot;Crawler harus mengunduh 1 miliar halaman per bulan. Berapa kira-kira laju unduhan yang harus dirancang?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;~40 halaman/detik&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Kurang satu orde: 40/s × 2.6 juta detik/bulan ≈ 100 juta.&quot;},{&quot;text&quot;:&quot;~400 halaman/detik rata-rata, siapkan ~1.000/detik untuk puncak&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;10^9 / (30 × 86.400 ≈ 2.6 × 10^6 s) ≈ 385/s. Dengan 500 KB per halaman, bandwidth masuk ≈ 200 MB/s, storage mentah ~500 TB/bulan sebelum kompresi.&quot;},{&quot;text&quot;:&quot;~4.000 halaman/detik&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Kelebihan satu orde; itu ~10 miliar/bulan.&quot;},{&quot;text&quot;:&quot;Tidak bisa dihitung tanpa tahu jumlah domain&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Jumlah domain memengaruhi kesopanan dan paralelisme, bukan laju total.&quot;}]},{&quot;q&quot;:&quot;Kenapa crawler membutuhkan antrian per host (atau per domain) alih-alih satu antrian global?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Supaya lebih cepat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Justru untuk memperlambat per host; kecepatan total tetap lewat paralelisme antar host.&quot;},{&quot;text&quot;:&quot;Untuk kesopanan: membatasi satu permintaan aktif per host dan jeda antar permintaan agar tidak membebani situs (dan tidak diblokir), sambil tetap paralel lintas ribuan host&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Ini desain Mercator: front queue untuk prioritas, back queue per host dengan timer \&quot;boleh diakses lagi pada T\&quot;. Kesopanan adalah requirement, bukan opsi.&quot;},{&quot;text&quot;:&quot;Karena DNS memerlukannya&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;DNS tidak mengharuskan struktur antrian tertentu.&quot;},{&quot;text&quot;:&quot;Untuk dedup URL&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Dedup dilakukan oleh URL-seen set, terpisah dari struktur antrian.&quot;}]},{&quot;q&quot;:&quot;Dua URL berbeda menghasilkan halaman dengan isi hampir identik (mis. versi cetak dan versi web). Bagaimana crawler menghindari menyimpan dan memproses keduanya?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Membandingkan string URL&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;URL-nya memang berbeda; perbandingan URL tidak menangkap ini.&quot;},{&quot;text&quot;:&quot;Menghitung sidik jari konten (hash eksak untuk duplikat persis, simhash/minhash untuk near-duplicate) dan memeriksa ke store sidik jari sebelum menyimpan&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Dedup URL dan dedup konten adalah dua lapisan berbeda. Simhash memungkinkan mendeteksi dokumen yang \&quot;hampir sama\&quot; dengan membandingkan jarak Hamming.&quot;},{&quot;text&quot;:&quot;Mengunduh hanya halaman dengan ekstensi .html&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak terkait kemiripan isi.&quot;},{&quot;text&quot;:&quot;Mengabaikan halaman yang lebih kecil dari 1 KB&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Ukuran bukan indikator duplikat.&quot;}]},{&quot;q&quot;:&quot;Crawler terjebak di \&quot;spider trap\&quot;: kalender dengan link \&quot;bulan berikutnya\&quot; tanpa batas. Mitigasi yang paling tepat?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Menambah jumlah worker&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Memperbanyak kerja sia-sia.&quot;},{&quot;text&quot;:&quot;Batasi kedalaman dan jumlah URL per host, normalisasi URL, deteksi pola URL berulang, dan beri prioritas rendah untuk URL yang sangat panjang atau berparameter berlebihan&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Tidak ada satu obat; kombinasi batas per host, normalisasi, dan heuristik pola URL menjaga crawler keluar dari ruang URL tak terbatas.&quot;},{&quot;text&quot;:&quot;Mematuhi robots.txt&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Penting, tapi trap biasanya tidak dilarang di robots.txt.&quot;},{&quot;text&quot;:&quot;Mengunduh hanya halaman utama tiap domain&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Mengorbankan cakupan secara drastis.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Crawler harus mengunduh 1 miliar halaman per bulan. Berapa kira-kira laju unduhan yang harus dirancang?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>~40 halaman/detik</span></label><div class="why">Kurang satu orde: 40/s × 2.6 juta detik/bulan ≈ 100 juta.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>~400 halaman/detik rata-rata, siapkan ~1.000/detik untuk puncak</span></label><div class="why">10^9 / (30 × 86.400 ≈ 2.6 × 10^6 s) ≈ 385/s. Dengan 500 KB per halaman, bandwidth masuk ≈ 200 MB/s, storage mentah ~500 TB/bulan sebelum kompresi.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>~4.000 halaman/detik</span></label><div class="why">Kelebihan satu orde; itu ~10 miliar/bulan.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Tidak bisa dihitung tanpa tahu jumlah domain</span></label><div class="why">Jumlah domain memengaruhi kesopanan dan paralelisme, bukan laju total.</div></div></fieldset><fieldset><legend>2. Kenapa crawler membutuhkan antrian per host (atau per domain) alih-alih satu antrian global?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Supaya lebih cepat</span></label><div class="why">Justru untuk memperlambat per host; kecepatan total tetap lewat paralelisme antar host.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Untuk kesopanan: membatasi satu permintaan aktif per host dan jeda antar permintaan agar tidak membebani situs (dan tidak diblokir), sambil tetap paralel lintas ribuan host</span></label><div class="why">Ini desain Mercator: front queue untuk prioritas, back queue per host dengan timer &quot;boleh diakses lagi pada T&quot;. Kesopanan adalah requirement, bukan opsi.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Karena DNS memerlukannya</span></label><div class="why">DNS tidak mengharuskan struktur antrian tertentu.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Untuk dedup URL</span></label><div class="why">Dedup dilakukan oleh URL-seen set, terpisah dari struktur antrian.</div></div></fieldset><fieldset><legend>3. Dua URL berbeda menghasilkan halaman dengan isi hampir identik (mis. versi cetak dan versi web). Bagaimana crawler menghindari menyimpan dan memproses keduanya?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>Membandingkan string URL</span></label><div class="why">URL-nya memang berbeda; perbandingan URL tidak menangkap ini.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>Menghitung sidik jari konten (hash eksak untuk duplikat persis, simhash/minhash untuk near-duplicate) dan memeriksa ke store sidik jari sebelum menyimpan</span></label><div class="why">Dedup URL dan dedup konten adalah dua lapisan berbeda. Simhash memungkinkan mendeteksi dokumen yang &quot;hampir sama&quot; dengan membandingkan jarak Hamming.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Mengunduh hanya halaman dengan ekstensi .html</span></label><div class="why">Tidak terkait kemiripan isi.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Mengabaikan halaman yang lebih kecil dari 1 KB</span></label><div class="why">Ukuran bukan indikator duplikat.</div></div></fieldset><fieldset><legend>4. Crawler terjebak di &quot;spider trap&quot;: kalender dengan link &quot;bulan berikutnya&quot; tanpa batas. Mitigasi yang paling tepat?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Menambah jumlah worker</span></label><div class="why">Memperbanyak kerja sia-sia.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Batasi kedalaman dan jumlah URL per host, normalisasi URL, deteksi pola URL berulang, dan beri prioritas rendah untuk URL yang sangat panjang atau berparameter berlebihan</span></label><div class="why">Tidak ada satu obat; kombinasi batas per host, normalisasi, dan heuristik pola URL menjaga crawler keluar dari ruang URL tak terbatas.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>Mematuhi robots.txt</span></label><div class="why">Penting, tapi trap biasanya tidak dilarang di robots.txt.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Mengunduh hanya halaman utama tiap domain</span></label><div class="why">Mengorbankan cakupan secara drastis.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-3/web-crawler"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="lbl">← Sebelumnya</span><span>TinyURL: layanan pemendek URL</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="lbl">Berikutnya →</span><span>Twitter / newsfeed</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#1-requirements">1. Requirements</a></li><li class="depth-3"><a href="#functional">Functional</a></li><li class="depth-3"><a href="#non-functional">Non-functional</a></li><li class="depth-2"><a href="#2-estimasi-kapasitas">2. Estimasi kapasitas</a></li><li class="depth-2"><a href="#3-api-design">3. API design</a></li><li class="depth-2"><a href="#4-skema-data">4. Skema data</a></li><li class="depth-2"><a href="#5-high-level-design">5. High-level design</a></li><li class="depth-2"><a href="#6-detailed-design">6. Detailed design</a></li><li class="depth-3"><a href="#61-url-frontier-prioritas-dan-kesopanan">6.1 URL frontier: prioritas dan kesopanan</a></li><li class="depth-3"><a href="#62-fetcher">6.2 Fetcher</a></li><li class="depth-3"><a href="#63-dedup">6.3 Dedup</a></li><li class="depth-3"><a href="#64-penyimpanan-dan-pipeline-hilir">6.4 Penyimpanan dan pipeline hilir</a></li><li class="depth-3"><a href="#65-re-crawl-dan-kesegaran">6.5 Re-crawl dan kesegaran</a></li><li class="depth-3"><a href="#66-robustness-dan-trap">6.6 Robustness dan trap</a></li><li class="depth-3"><a href="#67-ekstensi">6.7 Ekstensi</a></li><li class="depth-2"><a href="#7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</a></li><li class="depth-2"><a href="#8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

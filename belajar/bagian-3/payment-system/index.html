@@ -1,0 +1,255 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Sistem di mana &quot;kira-kira&quot; tidak boleh ada: idempotency di setiap batas, ledger double-entry sebagai sumber kebenaran, integrasi dengan payment service provider yang tidak bisa dipercaya sepenuhnya, dan rekonsiliasi sebagai pengaman terakhir."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Payment system · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 3 · Studi Kasus · Studi kasus</span><h1>Payment system</h1><div class="lesson-meta"><span class="badge">⏱ ±65 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/database">Database: replication, partitioning, SQL vs NoSQL</a>, <a href="/sysdesign-lab/belajar/bagian-2/message-queue">Message queue</a>, <a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system">Abstraksi distributed system</a></span></div><p class="lesson-summary">Sistem di mana &quot;kira-kira&quot; tidak boleh ada: idempotency di setiap batas, ledger double-entry sebagai sumber kebenaran, integrasi dengan payment service provider yang tidak bisa dipercaya sepenuhnya, dan rekonsiliasi sebagai pengaman terakhir.</p><div class="prose"><h2 id="1-requirements">1. Requirements</h2>
+<p>Klarifikasi: kita pedagang (menerima pembayaran untuk produk sendiri) atau platform (menerima dan membayar ke penjual, seperti marketplace)? Metode: kartu, e-wallet, transfer bank? Apakah kita memproses kartu sendiri (PCI DSS penuh) atau lewat PSP? Mata uang? Refund dan sengketa?</p>
+<p>Asumsi: platform marketplace yang memakai PSP (Stripe-like) untuk kartu/e-wallet, pay-in dari pembeli, pay-out ke penjual, satu mata uang.</p>
+<h3 id="functional">Functional</h3>
+<ul>
+<li>Pay-in: pembeli membayar pesanan; hasil sukses/gagal; metode kartu dan e-wallet lewat PSP.</li>
+<li>Ledger: mencatat semua pergerakan uang (pembeli → platform → penjual, fee, refund).</li>
+<li>Pay-out: transfer ke penjual terjadwal.</li>
+<li>Refund penuh/sebagian; rekonsiliasi harian dengan laporan PSP.</li>
+<li>Out of scope: pemrosesan kartu sendiri, deteksi fraud mendalam (disebut), multi-mata uang, pajak.</li>
+</ul>
+<h3 id="non-functional">Non-functional</h3>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Target</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Correctness</td>
+<td>Tidak ada tagihan ganda, tidak ada uang hilang/tercipta; ledger seimbang</td>
+<td>Inti</td>
+</tr>
+<tr>
+<td>Konsistensi</td>
+<td>Kuat untuk ledger dan state pembayaran; eventual untuk tampilan</td>
+<td>Uang</td>
+</tr>
+<tr>
+<td>Reliability</td>
+<td>At-least-once + idempotent di semua batas; toleran PSP lambat/timeout</td>
+<td>Integrasi eksternal rapuh</td>
+</tr>
+<tr>
+<td>Availability</td>
+<td>99.99% untuk memulai pembayaran; degradasi anggun saat PSP down</td>
+<td>Pendapatan</td>
+</tr>
+<tr>
+<td>Keamanan</td>
+<td>Data kartu tidak pernah menyentuh server kita (tokenisasi), audit lengkap, akses terbatas</td>
+<td>PCI DSS, kepercayaan</td>
+</tr>
+<tr>
+<td>Skala</td>
+<td>1 juta transaksi/hari, puncak 100/detik</td>
+<td>Marketplace menengah; correctness lebih penting dari throughput</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-estimasi-kapasitas">2. Estimasi kapasitas</h2>
+<ul>
+<li>Transaksi: 10^6 / 10^5 ≈ <strong>10/detik</strong> rata-rata, puncak 100/detik; sangat kecil dibanding sistem lain, sehingga desain mengutamakan correctness, bukan sharding.</li>
+<li>Ledger: tiap pembayaran ≈ 4–8 entri (pay-in, fee, pending payout, dsb.) → ~8 juta entri/hari × 200 B ≈ 1.6 GB/hari; 5 tahun ≈ 3 TB; satu DB relasional dengan partisi by waktu cukup.</li>
+<li>Panggilan PSP: 100/detik puncak, latency 300 ms–2 s; timeout dan antrian retry harus dirancang.</li>
+<li>Webhook masuk: ~2–3 per transaksi → ratusan/detik puncak.</li>
+<li>Rekonsiliasi: laporan harian jutaan baris, batch malam.</li>
+</ul>
+<p>Keputusan: DB relasional transaksional (PostgreSQL) sebagai inti, queue untuk pekerjaan async (webhook, payout, notifikasi), tanpa cache di jalur tulis.</p>
+<h2 id="3-api-design">3. API design</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>POST /v1/payments                          Idempotency-Key: &lt;uuid dari client&gt;</span></span>
+<span class="line"><span>     { orderId, amount, currency, method: { type: &quot;card&quot;, token } }   // token dari PSP SDK, bukan nomor kartu</span></span>
+<span class="line"><span>     → 201 { paymentId, status: &quot;pending&quot; | &quot;succeeded&quot; | &quot;requires_action&quot;, nextAction? }</span></span>
+<span class="line"><span>     → 200 (ulangan dengan key sama: respons tersimpan)  · 409 (key sama, payload beda)</span></span>
+<span class="line"><span>GET  /v1/payments/{id}                     → status, amount, timeline</span></span>
+<span class="line"><span>POST /v1/payments/{id}/refunds             Idempotency-Key  { amount, reason } → 202</span></span>
+<span class="line"><span>POST /v1/payouts/run                       (internal, terjadwal)</span></span>
+<span class="line"><span>POST /webhooks/psp                         (dari PSP; verifikasi tanda tangan; 200 cepat)</span></span>
+<span class="line"><span>GET  /v1/ledger/accounts/{id}/balance      → saldo (materialisasi) + as_of</span></span></code></pre>
+<p>Semua endpoint tulis memakai idempotency key; respons disimpan 24 jam. <code>requires_action</code> untuk 3-D Secure/otentikasi tambahan; client menyelesaikan lewat SDK PSP, hasil akhir datang lewat webhook.</p>
+<h2 id="4-skema-data">4. Skema data</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">payments(id, order_id, payer_id, amount, currency, </span><span style="color:#D73A49;--shiki-dark:#F97583">status</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, psp_ref, method_token_ref,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">         idempotency_key </span><span style="color:#D73A49;--shiki-dark:#F97583">UNIQUE</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, created_at, updated_at, </span><span style="color:#D73A49;--shiki-dark:#F97583">version</span><span style="color:#24292E;--shiki-dark:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">payment_events(id, payment_id, </span><span style="color:#D73A49;--shiki-dark:#F97583">type</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, payload, created_at)         </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- append-only, audit &amp; timeline</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">idempotency_keys(</span><span style="color:#D73A49;--shiki-dark:#F97583">key</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> PK, request_hash, response_status, response_body, payment_id, expires_at)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#6A737D">-- Ledger double-entry (append-only, tidak pernah UPDATE/DELETE):</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">accounts(id, </span><span style="color:#D73A49;--shiki-dark:#F97583">type</span><span style="color:#24292E;--shiki-dark:#E1E4E8">: asset|liability|revenue|…, owner_id, currency)  </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- mis. &quot;psp_receivable&quot;, &quot;seller:123&quot;, &quot;platform_fee&quot;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">journal_entries(id, payment_id, kind, created_at)                  </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- satu transaksi bisnis</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">journal_lines(entry_id, account_id, debit, credit)                 </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- Σdebit = Σkredit per entry (CHECK/constraint aplikasi)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">account_balances(account_id, balance, as_of_entry_id)              </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- materialisasi, direkonsiliasi</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">refunds(id, payment_id, amount, </span><span style="color:#D73A49;--shiki-dark:#F97583">status</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, psp_ref, idempotency_key </span><span style="color:#D73A49;--shiki-dark:#F97583">UNIQUE</span><span style="color:#24292E;--shiki-dark:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">payouts(id, seller_id, amount, </span><span style="color:#D73A49;--shiki-dark:#F97583">status</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, psp_ref, </span><span style="color:#D73A49;--shiki-dark:#F97583">period</span><span style="color:#24292E;--shiki-dark:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">psp_events(event_id PK, </span><span style="color:#D73A49;--shiki-dark:#F97583">type</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, payload, received_at, processed_at)  </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- dedup webhook</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">reconciliation_runs(</span><span style="color:#D73A49;--shiki-dark:#F97583">date</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, psp_total, ledger_total, diff, </span><span style="color:#D73A49;--shiki-dark:#F97583">status</span><span style="color:#24292E;--shiki-dark:#E1E4E8">)</span></span></code></pre>
+<p>Uang disimpan sebagai <strong>integer minor unit</strong> (sen), bukan float. Kolom <code>status</code> adalah state machine; transisi divalidasi dan dicatat di <code>payment_events</code>.</p>
+<h2 id="5-high-level-design">5. High-level design</h2>
+<pre><code class="language-mermaid">flowchart LR
+  C[Client + PSP SDK\ntokenisasi kartu] --&gt; GW[API gateway\nauth, rate limit]
+  GW --&gt; PS[Payment service]
+  PS --&gt; DB[(&quot;Payments DB\n+ idempotency + ledger&quot;)]
+  PS --&gt; PSP[PSP eksternal]
+  PSP --&gt;|webhook| WH[Webhook receiver\nverifikasi, simpan, ack]
+  WH --&gt; Q[[&quot;Queue: psp-events&quot;]]
+  Q --&gt; WP[Webhook processor\nidempotent]
+  WP --&gt; DB
+  PS --&gt; OB[[&quot;Outbox → payment-events&quot;]]
+  OB --&gt; NOTIF[Notifikasi / order service]
+  SCH[Scheduler] --&gt; PO[Payout service] --&gt; PSP
+  PO --&gt; DB
+  SCH --&gt; REC[Rekonsiliasi harian] --&gt; DB
+  REC --&gt; PSP
+  REC --&gt; ALERT[Alert selisih]
+</code></pre>
+<p><strong>Alur pay-in</strong>: client mendapat token metode dari PSP SDK (data kartu tidak lewat kita) → <code>POST /payments</code> dengan idempotency key → payment service dalam satu transaksi DB: cek/insert <code>idempotency_keys</code>, insert <code>payments(pending)</code>, event → commit → panggil PSP dengan key yang sama → sukses: transisi <code>succeeded</code>, tulis journal entry (debit psp_receivable, kredit seller_payable + platform_fee), outbox event → respons; timeout/unknown: tetap <code>pending</code>, job status-check dijadwalkan; webhook menyelesaikan.</p>
+<p><strong>Alur refund dan payout</strong> memakai pola yang sama: record + idempotency + panggilan PSP + journal entry + penyelesaian lewat webhook/polling.</p>
+<h2 id="6-detailed-design">6. Detailed design</h2>
+<h3 id="61-idempotency-di-semua-batas">6.1 Idempotency di semua batas</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Client
+  participant P as Payment service
+  participant D as DB
+  participant X as PSP
+  C-&gt;&gt;P: POST /payments (Idem-Key k1)
+  P-&gt;&gt;D: tx: INSERT idempotency(k1, hash) + payments(pending)
+  D--&gt;&gt;P: ok (atau: k1 sudah ada → kembalikan respons tersimpan / 409 bila hash beda / tunggu bila in-progress)
+  P-&gt;&gt;X: charge(amount, token, Idempotency-Key k1)
+  alt sukses
+    X--&gt;&gt;P: charge id ch_1
+    P-&gt;&gt;D: tx: payments → succeeded, journal entry, outbox, simpan respons untuk k1
+  else timeout / 5xx
+    P-&gt;&gt;D: payments tetap pending, jadwalkan status-check
+    Note over P,X: status-check memanggil GET charge by k1 / psp_ref
+  end
+  P--&gt;&gt;C: 201 { status }
+</code></pre>
+<ul>
+<li>Key disimpan <strong>sebelum</strong> efek samping eksternal, dalam transaksi yang sama dengan record pembayaran; request ulang saat masih in-progress mendapat 409/menunggu, bukan eksekusi kedua.</li>
+<li>Hash payload disimpan untuk menolak key yang dipakai ulang dengan isi berbeda.</li>
+<li>Key diteruskan ke PSP sehingga retry kita pun idempotent di sisi mereka.</li>
+<li>Semua consumer internal (webhook processor, payout, notifikasi) idempotent by id event/record.</li>
+</ul>
+<h3 id="62-state-machine-pembayaran">6.2 State machine pembayaran</h3>
+<p><code>created → pending → succeeded | failed | requires_action → (succeeded|failed)</code>; <code>succeeded → partially_refunded | refunded</code>; <code>disputed</code> dari succeeded. Transisi divalidasi dengan <code>version</code> (optimistic lock); event di luar urutan dari webhook ditunda (requeue dengan delay) atau diselesaikan dengan menarik status terbaru dari PSP.</p>
+<h3 id="63-ledger-double-entry">6.3 Ledger double-entry</h3>
+<p>Setiap kejadian bisnis = satu journal entry dengan ≥ 2 baris yang seimbang:</p>
+<table>
+<thead>
+<tr>
+<th>Kejadian</th>
+<th>Debit</th>
+<th>Kredit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pay-in Rp100.000, fee platform 10%</td>
+<td>psp_receivable 100.000</td>
+<td>seller_payable:123 90.000; platform_revenue 10.000</td>
+</tr>
+<tr>
+<td>PSP menyetor ke rekening bank kita</td>
+<td>bank 100.000</td>
+<td>psp_receivable 100.000</td>
+</tr>
+<tr>
+<td>Payout ke penjual</td>
+<td>seller_payable:123 90.000</td>
+<td>bank 90.000</td>
+</tr>
+<tr>
+<td>Refund penuh</td>
+<td>seller_payable 90.000; platform_revenue 10.000</td>
+<td>psp_receivable 100.000</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Baris ledger <strong>tidak pernah diubah</strong>; koreksi = entry pembalik.</li>
+<li>Invarian Σdebit = Σkredit diperiksa di aplikasi dan oleh job audit; saldo per akun dimaterialisasi (<code>account_balances</code>) dan diverifikasi ulang dari ledger secara berkala.</li>
+<li>Saldo penjual yang bisa ditarik = seller_payable yang sudah “settled” oleh PSP (ada entry bank), bukan sekadar succeeded; ini mencegah membayar sebelum uang benar-benar masuk.</li>
+</ul>
+<h3 id="64-integrasi-psp-timeout-retry-webhook">6.4 Integrasi PSP: timeout, retry, webhook</h3>
+<ul>
+<li>Timeout 10–30 s; retry hanya dengan idempotency key sama, backoff; circuit breaker bila PSP mengembalikan 5xx beruntun → status <code>pending</code>, user diberi tahu “sedang diproses”.</li>
+<li>Webhook: verifikasi tanda tangan HMAC + timestamp (anti-replay), simpan <code>psp_events</code> dengan <code>event_id</code> unik (dedup), balas 200 segera, proses dari queue; untuk state final, <strong>tarik</strong> objek dari PSP (<code>GET /charges/{id}</code>) alih-alih mempercayai payload.</li>
+<li>Status-check job untuk pembayaran <code>pending</code> lebih dari N menit; rekonsiliasi untuk yang lolos semuanya.</li>
+<li>Multi-PSP (ekstensi): abstraksi provider, routing by metode/negara, failover untuk pay-in baru bila satu PSP down (pembayaran yang sudah dimulai tetap di PSP asal).</li>
+</ul>
+<h3 id="65-rekonsiliasi">6.5 Rekonsiliasi</h3>
+<p>Harian: unduh settlement report PSP → bandingkan per transaksi dengan <code>payments</code> dan ledger (jumlah, fee, status) → selisih masuk antrian investigasi dengan alert; otomatis memperbaiki kasus yang jelas (webhook hilang → tarik status). Rekonsiliasi adalah pengaman terakhir, bukan pengganti idempotency.</p>
+<h3 id="66-keamanan-dan-kepatuhan">6.6 Keamanan dan kepatuhan</h3>
+<ul>
+<li>Tokenisasi: nomor kartu hanya menyentuh PSP (iframe/SDK); kita menyimpan token; scope PCI minimal (SAQ A).</li>
+<li>Enkripsi at-rest dan in-transit, akses ledger read-only kecuali service tertentu, audit log semua akses manual, secret di vault dengan rotasi.</li>
+<li>Fraud dasar: velocity check per akun/kartu/IP, rules, dan skor dari PSP; blokir sebelum memanggil PSP.</li>
+<li>Amount selalu integer minor unit; validasi mata uang dan pembulatan di satu tempat.</li>
+</ul>
+<h2 id="7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Dipenuhi oleh</th>
+<th>Risiko tersisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tidak ada tagihan ganda</td>
+<td>Idempotency key disimpan sebelum efek samping, diteruskan ke PSP, status unknown tidak dianggap gagal</td>
+<td>Client yang membuat key baru untuk pesanan sama: tautkan key ke order_id dan tolak pembayaran kedua untuk order yang sudah pending/succeeded</td>
+</tr>
+<tr>
+<td>Ledger seimbang</td>
+<td>Double-entry, append-only, invarian dicek, rekonsiliasi</td>
+<td>Bug mapping akun: terdeteksi oleh rekonsiliasi, bukan dicegah</td>
+</tr>
+<tr>
+<td>Toleran PSP</td>
+<td>Timeout, retry idempotent, circuit breaker, webhook + polling + rekonsiliasi</td>
+<td>PSP down lama: pay-in tertunda; multi-PSP sebagai mitigasi</td>
+</tr>
+<tr>
+<td>Availability 99.99%</td>
+<td>DB primary + sync replica + failover, service stateless, queue durable</td>
+<td>Kehilangan primary: failover dengan sync replica agar tidak ada transaksi hilang</td>
+</tr>
+<tr>
+<td>Keamanan</td>
+<td>Tokenisasi, enkripsi, least privilege, audit</td>
+<td>Insider: pemisahan tugas dan review</td>
+</tr>
+<tr>
+<td>Skala</td>
+<td>100 tps trivial untuk satu DB; partisi ledger by waktu</td>
+<td>Pertumbuhan 100x: shard by account/payer dengan ledger per shard dan rekonsiliasi lintas shard</td>
+</tr>
+</tbody>
+</table>
+<p>Bottleneck: tidak di throughput, melainkan di latency PSP dan operasional (sengketa, rekonsiliasi). SPOF: DB primary (failover sync) dan PSP (multi-provider).</p>
+<h2 id="8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</h2>
+<ul>
+<li>“Dua service (order dan payment) harus konsisten: order dibayar tetapi stok habis?” → Saga dengan kompensasi (refund) atau reservasi stok sebelum tagih; status order mengikuti event pembayaran dari outbox.</li>
+<li>“Bagaimana multi-mata uang?” → Akun per mata uang, entry FX dengan kurs tercatat, jangan konversi di ledger secara implisit.</li>
+<li>“Bagaimana memastikan ledger tidak dimanipulasi?” → Append-only dengan hak tulis terbatas, hash chain per akun (opsional), audit eksternal.</li>
+<li>“User menekan bayar dua kali di dua tab?” → Idempotency per order: satu pembayaran aktif per order; kedua menerima 409 dengan referensi pembayaran pertama.</li>
+<li>“Bagaimana menguji sistem ini?” → Sandbox PSP, injeksi kegagalan (timeout, webhook duplikat/terbalik), property test invarian ledger, replay event produksi ke staging.</li>
+<li>“Skala 10.000 tps?” → Shard by payer/account, ledger per shard, agregasi global async; idempotency store terpartisi by key; PSP paralel.</li>
+</ul></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://docs.stripe.com/api/idempotent_requests" target="_blank" rel="noopener noreferrer">Stripe docs — Idempotent requests</a></li><li><a href="https://stripe.com/blog/idempotency" target="_blank" rel="noopener noreferrer">Stripe Engineering — Designing robust and predictable APIs with idempotency</a></li><li><a href="https://microservices.io/patterns/data/saga.html" target="_blank" rel="noopener noreferrer">microservices.io — Saga pattern</a></li><li><a href="https://en.wikipedia.org/wiki/Double-entry_bookkeeping" target="_blank" rel="noopener noreferrer">Double-entry bookkeeping — Wikipedia</a></li><li><a href="https://www.pcisecuritystandards.org/standards/pci-dss/" target="_blank" rel="noopener noreferrer">PCI Security Standards Council — PCI DSS (ringkasan)</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-3/payment-system" data-quiz="[{&quot;q&quot;:&quot;Client mengirim POST /payments, koneksi putus sebelum respons, lalu client mengulang. Apa yang mencegah user ditagih dua kali?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Payment service provider (PSP) otomatis mendeteksi duplikat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;PSP mendukung idempotency key, tetapi kalau sistem kita membuat dua permintaan dengan key berbeda, PSP melihat dua pembayaran sah.&quot;},{&quot;text&quot;:&quot;Idempotency key dari client disimpan bersama hasil di sistem kita sebelum memanggil PSP; permintaan ulang dengan key sama mengembalikan hasil yang sama (atau menunggu bila masih diproses), dan key yang sama diteruskan ke PSP&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Idempotency di setiap batas: client → kita, kita → PSP. Key disimpan dalam transaksi yang sama dengan pembuatan record pembayaran agar tidak ada jendela balapan.&quot;},{&quot;text&quot;:&quot;Client dilarang mengulang&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Jaringan putus adalah hal biasa; retry harus aman.&quot;},{&quot;text&quot;:&quot;Menunggu 30 detik sebelum memproses&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak menjamin apa pun.&quot;}]},{&quot;q&quot;:&quot;Kenapa saldo tidak disimpan sebagai satu kolom yang di-UPDATE, melainkan diturunkan dari ledger append-only double-entry?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena UPDATE lebih lambat dari INSERT&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Performa bukan alasannya.&quot;},{&quot;text&quot;:&quot;Karena ledger memberi jejak audit lengkap dan tidak bisa diubah, setiap transaksi harus seimbang (debit = kredit) sehingga kesalahan terdeteksi, dan saldo pada titik waktu mana pun bisa direkonstruksi; kolom saldo hanyalah cache/materialisasi yang bisa direkonsiliasi&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Prinsip akuntansi yang berusia ratusan tahun: uang tidak diciptakan atau hilang, hanya berpindah antar akun. Ini membuat bug dan fraud terlihat sebagai ketidakseimbangan.&quot;},{&quot;text&quot;:&quot;Karena regulasi melarang kolom saldo&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Kolom saldo boleh ada sebagai turunan.&quot;},{&quot;text&quot;:&quot;Karena ledger tidak butuh database&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Ledger disimpan di DB transaksional.&quot;}]},{&quot;q&quot;:&quot;Kita memanggil PSP untuk menagih kartu; panggilan timeout. Status pembayaran di sisi kita?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Gagal; tandai failed dan beri tahu user&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;PSP mungkin sudah menagih; menandai failed lalu user bayar lagi = tagihan ganda.&quot;},{&quot;text&quot;:&quot;Tidak diketahui (pending); jangan tandai sukses maupun gagal; lakukan query status ke PSP dengan idempotency key/referensi, atau tunggu webhook, dan tetap pending sampai ada jawaban pasti; rekonsiliasi menangkap yang tertinggal&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Timeout = ketidaktahuan, bukan kegagalan. State machine pembayaran harus punya status \&quot;pending/unknown\&quot; yang diselesaikan oleh polling, webhook, atau rekonsiliasi.&quot;},{&quot;text&quot;:&quot;Sukses; PSP hampir pasti menerima&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Mengasumsikan sukses bisa mengirim barang tanpa dibayar.&quot;},{&quot;text&quot;:&quot;Ulang langsung dengan idempotency key baru&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Key baru = pembayaran baru di PSP.&quot;}]},{&quot;q&quot;:&quot;Webhook dari PSP bisa datang dua kali, terlambat, atau di luar urutan (refund.succeeded sebelum charge.succeeded). Bagaimana consumer webhook dirancang?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Proses setiap webhook apa adanya&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Duplikat dan urutan salah akan merusak state.&quot;},{&quot;text&quot;:&quot;Verifikasi tanda tangan, simpan event mentah dengan event id (unique), ack cepat, proses async secara idempotent; jangan percaya payload untuk state final tetapi tarik status terbaru dari PSP (atau terapkan transisi state machine yang menolak urutan tidak valid dan menunda event yang datang terlalu awal)&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Webhook adalah pemberitahuan at-least-once tanpa jaminan urutan. Dedup by event id, idempotency, dan verifikasi ke sumber adalah pola standar.&quot;},{&quot;text&quot;:&quot;Tolak webhook yang terlambat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Terlambat bukan berarti tidak valid.&quot;},{&quot;text&quot;:&quot;Hanya memakai polling, tanpa webhook&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Polling boleh sebagai pelengkap; webhook memberi latency lebih rendah.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Client mengirim POST /payments, koneksi putus sebelum respons, lalu client mengulang. Apa yang mencegah user ditagih dua kali?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Payment service provider (PSP) otomatis mendeteksi duplikat</span></label><div class="why">PSP mendukung idempotency key, tetapi kalau sistem kita membuat dua permintaan dengan key berbeda, PSP melihat dua pembayaran sah.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>Idempotency key dari client disimpan bersama hasil di sistem kita sebelum memanggil PSP; permintaan ulang dengan key sama mengembalikan hasil yang sama (atau menunggu bila masih diproses), dan key yang sama diteruskan ke PSP</span></label><div class="why">Idempotency di setiap batas: client → kita, kita → PSP. Key disimpan dalam transaksi yang sama dengan pembuatan record pembayaran agar tidak ada jendela balapan.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Client dilarang mengulang</span></label><div class="why">Jaringan putus adalah hal biasa; retry harus aman.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Menunggu 30 detik sebelum memproses</span></label><div class="why">Tidak menjamin apa pun.</div></div></fieldset><fieldset><legend>2. Kenapa saldo tidak disimpan sebagai satu kolom yang di-UPDATE, melainkan diturunkan dari ledger append-only double-entry?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Karena UPDATE lebih lambat dari INSERT</span></label><div class="why">Performa bukan alasannya.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Karena ledger memberi jejak audit lengkap dan tidak bisa diubah, setiap transaksi harus seimbang (debit = kredit) sehingga kesalahan terdeteksi, dan saldo pada titik waktu mana pun bisa direkonstruksi; kolom saldo hanyalah cache/materialisasi yang bisa direkonsiliasi</span></label><div class="why">Prinsip akuntansi yang berusia ratusan tahun: uang tidak diciptakan atau hilang, hanya berpindah antar akun. Ini membuat bug dan fraud terlihat sebagai ketidakseimbangan.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Karena regulasi melarang kolom saldo</span></label><div class="why">Kolom saldo boleh ada sebagai turunan.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Karena ledger tidak butuh database</span></label><div class="why">Ledger disimpan di DB transaksional.</div></div></fieldset><fieldset><legend>3. Kita memanggil PSP untuk menagih kartu; panggilan timeout. Status pembayaran di sisi kita?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>Gagal; tandai failed dan beri tahu user</span></label><div class="why">PSP mungkin sudah menagih; menandai failed lalu user bayar lagi = tagihan ganda.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>Tidak diketahui (pending); jangan tandai sukses maupun gagal; lakukan query status ke PSP dengan idempotency key/referensi, atau tunggu webhook, dan tetap pending sampai ada jawaban pasti; rekonsiliasi menangkap yang tertinggal</span></label><div class="why">Timeout = ketidaktahuan, bukan kegagalan. State machine pembayaran harus punya status &quot;pending/unknown&quot; yang diselesaikan oleh polling, webhook, atau rekonsiliasi.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Sukses; PSP hampir pasti menerima</span></label><div class="why">Mengasumsikan sukses bisa mengirim barang tanpa dibayar.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Ulang langsung dengan idempotency key baru</span></label><div class="why">Key baru = pembayaran baru di PSP.</div></div></fieldset><fieldset><legend>4. Webhook dari PSP bisa datang dua kali, terlambat, atau di luar urutan (refund.succeeded sebelum charge.succeeded). Bagaimana consumer webhook dirancang?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Proses setiap webhook apa adanya</span></label><div class="why">Duplikat dan urutan salah akan merusak state.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Verifikasi tanda tangan, simpan event mentah dengan event id (unique), ack cepat, proses async secara idempotent; jangan percaya payload untuk state final tetapi tarik status terbaru dari PSP (atau terapkan transisi state machine yang menolak urutan tidak valid dan menunda event yang datang terlalu awal)</span></label><div class="why">Webhook adalah pemberitahuan at-least-once tanpa jaminan urutan. Dedup by event id, idempotency, dan verifikasi ke sumber adalah pola standar.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>Tolak webhook yang terlambat</span></label><div class="why">Terlambat bukan berarti tidak valid.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Hanya memakai polling, tanpa webhook</span></label><div class="why">Polling boleh sebagai pelengkap; webhook memberi latency lebih rendah.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-3/payment-system"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="lbl">← Sebelumnya</span><span>Google Docs</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="lbl">Berikutnya →</span><span>Deployment system</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#1-requirements">1. Requirements</a></li><li class="depth-3"><a href="#functional">Functional</a></li><li class="depth-3"><a href="#non-functional">Non-functional</a></li><li class="depth-2"><a href="#2-estimasi-kapasitas">2. Estimasi kapasitas</a></li><li class="depth-2"><a href="#3-api-design">3. API design</a></li><li class="depth-2"><a href="#4-skema-data">4. Skema data</a></li><li class="depth-2"><a href="#5-high-level-design">5. High-level design</a></li><li class="depth-2"><a href="#6-detailed-design">6. Detailed design</a></li><li class="depth-3"><a href="#61-idempotency-di-semua-batas">6.1 Idempotency di semua batas</a></li><li class="depth-3"><a href="#62-state-machine-pembayaran">6.2 State machine pembayaran</a></li><li class="depth-3"><a href="#63-ledger-double-entry">6.3 Ledger double-entry</a></li><li class="depth-3"><a href="#64-integrasi-psp-timeout-retry-webhook">6.4 Integrasi PSP: timeout, retry, webhook</a></li><li class="depth-3"><a href="#65-rekonsiliasi">6.5 Rekonsiliasi</a></li><li class="depth-3"><a href="#66-keamanan-dan-kepatuhan">6.6 Keamanan dan kepatuhan</a></li><li class="depth-2"><a href="#7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</a></li><li class="depth-2"><a href="#8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

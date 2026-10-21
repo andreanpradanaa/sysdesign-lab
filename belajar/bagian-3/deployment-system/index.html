@@ -1,0 +1,248 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Mengirim ribuan perubahan per hari ke ribuan server tanpa menjatuhkan produksi: artefak immutable, pipeline bertahap, rollout progresif dengan health gate otomatis, rollback cepat, dan konfigurasi sebagai bagian dari deploy."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Deployment system · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 3 · Studi Kasus · Studi kasus</span><h1>Deployment system</h1><div class="lesson-meta"><span class="badge">⏱ ±55 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring">Distributed monitoring</a>, <a href="/sysdesign-lab/belajar/bagian-2/task-scheduler">Task scheduler</a>, <a href="/sysdesign-lab/belajar/bagian-2/blob-store">Blob store</a></span></div><p class="lesson-summary">Mengirim ribuan perubahan per hari ke ribuan server tanpa menjatuhkan produksi: artefak immutable, pipeline bertahap, rollout progresif dengan health gate otomatis, rollback cepat, dan konfigurasi sebagai bagian dari deploy.</p><div class="prose"><h2 id="1-requirements">1. Requirements</h2>
+<p>Klarifikasi: target deploy (VM, container/Kubernetes, serverless, mobile/web statis)? Berapa service dan deploy per hari? Apakah ada regulasi (approval, audit)? Multi-region?</p>
+<p>Asumsi: ratusan service di Kubernetes multi-region, ribuan deploy/hari, tim mandiri men-deploy sendiri.</p>
+<h3 id="functional">Functional</h3>
+<ul>
+<li>Pipeline: commit → build → test → artefak immutable → deploy ke environment (dev, staging, prod) dengan promosi.</li>
+<li>Strategi rollout: rolling, canary dengan analisis otomatis, blue-green; per region bertahap.</li>
+<li>Rollback cepat (satu klik/otomatis) ke versi sebelumnya.</li>
+<li>Konfigurasi dan secret ter-versi dan ter-deploy bersama (atau terpisah tapi terkendali); feature flag.</li>
+<li>Visibilitas: status deploy, siapa men-deploy apa, audit; approval opsional.</li>
+<li>Out of scope: CI build system detail, manajemen cluster, infrastruktur sebagai kode (disebut).</li>
+</ul>
+<h3 id="non-functional">Non-functional</h3>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Target</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Keamanan rilis</td>
+<td>Tidak ada downtime saat deploy normal; insiden akibat deploy terdeteksi &lt; 5 menit dan rollback &lt; 2 menit</td>
+<td>Deploy adalah penyebab insiden terbesar</td>
+</tr>
+<tr>
+<td>Throughput</td>
+<td>5.000 deploy/hari, paralel antar service</td>
+<td>Tim mandiri</td>
+</tr>
+<tr>
+<td>Latency</td>
+<td>Commit → prod &lt; 1 jam untuk perubahan biasa</td>
+<td>Umpan balik cepat</td>
+</tr>
+<tr>
+<td>Reproducibility</td>
+<td>Artefak immutable, deploy deterministik, audit lengkap</td>
+<td>Kepatuhan, debugging</td>
+</tr>
+<tr>
+<td>Availability sistem deploy</td>
+<td>99.9%, tetapi produksi tidak bergantung padanya saat runtime</td>
+<td>Deploy sistem mati ≠ produksi mati</td>
+</tr>
+<tr>
+<td>Skala</td>
+<td>10.000+ instance, multi-region</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-estimasi-kapasitas">2. Estimasi kapasitas</h2>
+<ul>
+<li>Deploy: 5.000/hari ≈ 0.06/s rata-rata, puncak ~1/s pada jam kerja; tiap deploy ratusan langkah (per instance/pod); orkestrator menangani ribuan langkah paralel.</li>
+<li>Artefak: 5.000 build × 500 MB = 2.5 TB/hari ke registry; dengan layer sharing ~10x lebih kecil; retensi 90 hari → puluhan TB di blob store.</li>
+<li>Distribusi: 10.000 instance × beberapa deploy/hari × delta 50 MB ≈ TB/hari; mirror per zona dan P2P menekan egress origin.</li>
+<li>Metrik untuk canary analysis: query ke sistem monitoring tiap 30–60 s per rollout aktif (ratusan rollout bersamaan) → ribuan query/menit; ringan.</li>
+<li>Audit/event: puluhan ribu event/hari; kecil.</li>
+</ul>
+<p>Keputusan: control plane (orkestrator) terpisah dari data plane (cluster yang menjalankan beban); registry di blob store dengan mirror; state deploy di DB transaksional; eksekusi langkah lewat worker + queue.</p>
+<h2 id="3-api-design">3. API design</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>POST /v1/artifacts                      (dari CI) { service, version, digest, sbom, provenance }</span></span>
+<span class="line"><span>POST /v1/releases                       { service, artifactDigest, config: { ref }, strategy: canary|rolling|bluegreen,</span></span>
+<span class="line"><span>                                          targets: [{ env, regions[] }], steps: [{ weight: 1 }, { pause: 10m }, { weight: 10 }, ...] }</span></span>
+<span class="line"><span>     → 201 { releaseId, status: pending }</span></span>
+<span class="line"><span>POST /v1/releases/{id}/promote          lanjut ke langkah berikutnya (manual) · /pause · /abort · /rollback</span></span>
+<span class="line"><span>GET  /v1/releases/{id}                  → status per target/langkah, analisis canary, siapa, kapan</span></span>
+<span class="line"><span>GET  /v1/services/{name}/deployments     → versi aktif per env/region, riwayat</span></span>
+<span class="line"><span>POST /v1/flags/{name}                   { env, rollout: 25%, rules } (feature flag)</span></span>
+<span class="line"><span>Webhook/event: release.started, step.completed, analysis.failed, release.rolled_back</span></span></code></pre>
+<p>Semua operasi idempotent by <code>releaseId</code>; setiap perubahan tercatat dengan actor (user/CI) untuk audit.</p>
+<h2 id="4-skema-data">4. Skema data</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">artifacts(</span><span style="color:#D73A49;--shiki-dark:#F97583">digest</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> PK, </span><span style="color:#D73A49;--shiki-dark:#F97583">service</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, </span><span style="color:#D73A49;--shiki-dark:#F97583">version</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, </span><span style="color:#D73A49;--shiki-dark:#F97583">size</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, sbom_ref, provenance_ref, created_at)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">releases(id, </span><span style="color:#D73A49;--shiki-dark:#F97583">service</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, artifact_digest, config_ref, strategy, steps JSONB, </span><span style="color:#D73A49;--shiki-dark:#F97583">status</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, created_by, created_at, </span><span style="color:#D73A49;--shiki-dark:#F97583">version</span><span style="color:#24292E;--shiki-dark:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">release_targets(release_id, env, region, </span><span style="color:#D73A49;--shiki-dark:#F97583">status</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, current_step, canary_weight, baseline_version, started_at)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">release_events(id, release_id, </span><span style="color:#D73A49;--shiki-dark:#F97583">type</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, payload, actor, ts)                 </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- append-only audit</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">service_state(</span><span style="color:#D73A49;--shiki-dark:#F97583">service</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, env, region, active_digest, previous_digest, config_ref, updated_at)  </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- sumber kebenaran &quot;apa yang berjalan&quot;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">analysis_runs(release_id, </span><span style="color:#D73A49;--shiki-dark:#F97583">target</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, step, metric, canary_value, baseline_value, verdict, ts)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">feature_flags(</span><span style="color:#D73A49;--shiki-dark:#F97583">name</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, env, rules JSONB, </span><span style="color:#D73A49;--shiki-dark:#F97583">version</span><span style="color:#24292E;--shiki-dark:#E1E4E8">)</span></span></code></pre>
+<p>Artefak di registry (blob store) by digest; konfigurasi di repo ter-versi (git ref) dan dirender saat deploy; secret di vault, hanya referensi yang disimpan.</p>
+<h2 id="5-high-level-design">5. High-level design</h2>
+<pre><code class="language-mermaid">flowchart LR
+  DEV[Commit / PR] --&gt; CI[CI: build, test,\nscan, sign]
+  CI --&gt; REG[(&quot;Registry / blob\nartefak by digest&quot;)]
+  CI --&gt;|daftarkan| API[Deploy API]
+  API --&gt; DB[(&quot;Deploy DB\nreleases, state, audit&quot;)]
+  API --&gt; ORC[Orchestrator\nstate machine rilis]
+  ORC --&gt; Q[[&quot;Queue: langkah deploy&quot;]]
+  Q --&gt; W[Worker per region]
+  W --&gt; K8S[(&quot;Cluster target\n(rolling/canary via\nservice mesh / ingress)&quot;)]
+  K8S --&gt; MIR[Registry mirror\nper zona / P2P] --&gt; REG
+  ORC --&gt; AN[Canary analysis]
+  AN --&gt; MON[(Monitoring: metrik\nerror, latency, bisnis)]
+  K8S --&gt; MON
+  ORC --&gt; NOTIF[Notifikasi / chat / UI]
+  CFG[(&quot;Config repo + vault&quot;)] --&gt; W
+</code></pre>
+<p><strong>Alur rilis</strong>: CI membangun artefak, menandatangani, mendaftarkan digest → pengembang (atau otomatis) membuat release dengan strategi dan langkah → orchestrator menjalankan state machine per target (env, region): langkah 1 canary 1% → worker memperbarui bobot trafik/replika di cluster → analisis membandingkan canary vs baseline selama jendela → lulus: langkah berikutnya; gagal: rollback otomatis (bobot kembali 0, pod canary dihapus) + alert → selesai: <code>service_state</code> diperbarui, versi lama tetap tersedia untuk rollback.</p>
+<p><strong>Rollback</strong>: deploy versi sebelumnya (digest yang sudah ada di cluster/cache) dengan langkah dipercepat; konfigurasi ikut kembali ke ref sebelumnya.</p>
+<h2 id="6-detailed-design">6. Detailed design</h2>
+<h3 id="61-artefak-supply-chain-dan-distribusi">6.1 Artefak, supply chain, dan distribusi</h3>
+<ul>
+<li>Build reproducible; hasil = image/binary dengan <strong>digest</strong> sebagai identitas; tag hanya alias.</li>
+<li>Tanda tangan dan provenance (siapa membangun dari commit apa) diverifikasi saat deploy (admission); SBOM untuk audit kerentanan.</li>
+<li>Distribusi: registry mirror pull-through per zona/region; untuk ribuan node, P2P (node berbagi layer) agar origin hanya melayani beberapa unduhan per layer; pre-pull ke node sebelum rollout dimulai agar langkah deploy tidak menunggu unduhan.</li>
+</ul>
+<h3 id="62-strategi-rollout">6.2 Strategi rollout</h3>
+<table>
+<thead>
+<tr>
+<th>Strategi</th>
+<th>Cara</th>
+<th>Kelebihan</th>
+<th>Kekurangan</th>
+<th>Kapan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rolling</td>
+<td>Ganti instance sedikit demi sedikit (maxSurge/maxUnavailable)</td>
+<td>Hemat kapasitas, sederhana</td>
+<td>Dua versi berjalan bersama; rollback = rolling lagi</td>
+<td>Default untuk service stateless</td>
+</tr>
+<tr>
+<td>Canary</td>
+<td>Sebagian kecil trafik ke versi baru dengan analisis</td>
+<td>Dampak kecil, keputusan berbasis data</td>
+<td>Butuh routing trafik dan metrik yang bisa dipisah per versi</td>
+<td>Perubahan berisiko, service besar</td>
+</tr>
+<tr>
+<td>Blue-green</td>
+<td>Lingkungan baru penuh, lalu switch trafik</td>
+<td>Rollback instan (switch balik)</td>
+<td>Kapasitas 2x sementara</td>
+<td>Perubahan besar, migrasi runtime</td>
+</tr>
+<tr>
+<td>Per region bertahap</td>
+<td>Region kecil dulu, tunggu, lanjut</td>
+<td>Membatasi blast radius global</td>
+<td>Lebih lama</td>
+<td>Selalu untuk produksi global</td>
+</tr>
+</tbody>
+</table>
+<p>Semua strategi berjalan bersama: canary di dalam region, region bertahap global.</p>
+<h3 id="63-canary-analysis-otomatis">6.3 Canary analysis otomatis</h3>
+<pre><code class="language-mermaid">flowchart LR
+  S[Langkah: canary 10%] --&gt; W[Jendela 10 menit]
+  W --&gt; Q1[Query metrik canary\nerror rate, p99, success order]
+  W --&gt; Q2[Query metrik baseline\nversi lama, waktu sama]
+  Q1 --&gt; CMP{&quot;Perbandingan\n(uji statistik / ambang relatif)&quot;}
+  Q2 --&gt; CMP
+  CMP -- lulus --&gt; N[Langkah berikutnya]
+  CMP -- gagal --&gt; R[Rollback otomatis + alert]
+  CMP -- tidak cukup data --&gt; E[Perpanjang jendela / minta manual]
+</code></pre>
+<ul>
+<li>Metrik harus ber-label versi (dari service mesh/ingress atau label pod) agar canary dan baseline terpisah.</li>
+<li>Baseline = versi lama pada waktu yang sama (bukan histori), untuk menghilangkan efek musiman.</li>
+<li>Verdict dengan toleransi (mis. error rate canary ≤ 1.2× baseline dan p99 ≤ baseline + 20 ms) atau uji statistik; metrik bisnis (konversi) sebagai gate tambahan.</li>
+<li>Jeda minimum per langkah agar metrik lambat (crash setelah 5 menit, kebocoran memori) terlihat; bake time lebih lama untuk langkah terakhir.</li>
+</ul>
+<h3 id="64-orchestrator-dan-eksekusi">6.4 Orchestrator dan eksekusi</h3>
+<ul>
+<li>State machine per release target disimpan di DB; orchestrator stateless mengambil pekerjaan via lease (beberapa instance, satu pemilik per release) sehingga kegagalan orchestrator tidak menggantung rilis.</li>
+<li>Langkah dieksekusi oleh worker per region (dekat cluster, kredensial lokal) lewat queue; idempotent (menerapkan “keadaan yang diinginkan”, bukan perintah), sehingga retry aman.</li>
+<li>Kontrol konkurensi: satu rilis aktif per service per env; antrian; batas jumlah rilis bersamaan per cluster; freeze window (mis. akhir pekan, peak sale) dengan pengecualian darurat.</li>
+<li>Produksi <strong>tidak bergantung</strong> pada sistem deploy saat runtime: bila sistem deploy mati, yang berjalan tetap berjalan; rollback darurat tersedia lewat jalur manual terdokumentasi.</li>
+</ul>
+<h3 id="65-konfigurasi-secret-migrasi-flag">6.5 Konfigurasi, secret, migrasi, flag</h3>
+<ul>
+<li>Konfigurasi di repo (ter-versi), dirender per env/region, di-deploy sebagai bagian rilis (perubahan config = rilis dengan canary juga).</li>
+<li>Secret dari vault saat runtime; rotasi tanpa rebuild.</li>
+<li>Migrasi DB: expand-contract; migrasi dijalankan sebagai langkah terpisah sebelum kode, selalu kompatibel mundur; alat migrasi idempotent dan ter-lock.</li>
+<li>Feature flag: memisahkan deploy dari release; perubahan perilaku dinyalakan bertahap by persen/segmen tanpa deploy; flag punya pemilik dan tanggal kedaluwarsa.</li>
+</ul>
+<h3 id="66-observability-dan-audit">6.6 Observability dan audit</h3>
+<p>Setiap rilis: timeline langkah, verdict analisis, link dashboard versi; event ke chat. Audit append-only: siapa, apa, kapan, dari commit apa, dengan approval bila diperlukan. Metrik sistem: lead time commit → prod, frekuensi deploy, rasio rollback, MTTR.</p>
+<h2 id="7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Dipenuhi oleh</th>
+<th>Risiko tersisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tanpa downtime, deteksi &lt; 5 menit, rollback &lt; 2 menit</td>
+<td>Rolling/canary dengan health gate, artefak lama tersedia di cache node, rollback = langkah dipercepat</td>
+<td>Masalah yang hanya muncul di 100% (kapasitas): tahap terakhir dengan bake time dan load-aware</td>
+</tr>
+<tr>
+<td>5.000 deploy/hari</td>
+<td>Orchestrator stateless + worker per region, paralel antar service</td>
+<td>Kontensi cluster: batas konkurensi per cluster</td>
+</tr>
+<tr>
+<td>Commit → prod &lt; 1 jam</td>
+<td>Pipeline otomatis, promosi otomatis saat gate lulus</td>
+<td>Bake time canary memakan sebagian; untuk perubahan kecil langkah lebih sedikit</td>
+</tr>
+<tr>
+<td>Reproducibility</td>
+<td>Digest, tanda tangan, config ter-versi, audit</td>
+<td>Dependensi runtime (secret, data) di luar artefak: catat versinya</td>
+</tr>
+<tr>
+<td>Sistem deploy mati</td>
+<td>Produksi independen, rollback manual terdokumentasi</td>
+<td>Insiden saat sistem deploy mati memperlama MTTR; prioritaskan availability-nya</td>
+</tr>
+<tr>
+<td>Multi-region</td>
+<td>Region bertahap, worker lokal, mirror lokal</td>
+<td>Rilis yang berjalan lama memerlukan toleransi dua versi lama</td>
+</tr>
+</tbody>
+</table>
+<p>Bottleneck 10x: distribusi artefak (mirror/P2P) dan query analisis (cache, agregasi); SPOF: deploy DB (replikasi) dan registry (mirror + replika).</p>
+<h2 id="8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</h2>
+<ul>
+<li>“Service stateful (database, queue broker)?” → Rolling per node dengan drain, satu node per waktu, cek replikasi sebelum lanjut; operator/controller khusus.</li>
+<li>“Bagaimana deploy mobile app?” → Rollout bertahap di store + feature flag server-side; tidak bisa rollback binary, maka kill switch lewat flag.</li>
+<li>“Dua tim men-deploy service yang saling bergantung?” → Kontrak API kompatibel mundur, deploy independen; dependency hanya pada versi minimum, bukan rilis bersama.</li>
+<li>“Bagaimana memastikan artefak yang di-deploy memang dari CI?” → Tanda tangan + provenance diverifikasi oleh admission controller; registry menolak unsigned.</li>
+<li>“Hotfix saat freeze?” → Jalur darurat dengan approval dua orang, audit, dan tetap melalui canary dipercepat.</li>
+<li>“Rollback yang tidak bisa (migrasi data merusak)?” → Expand-contract mencegahnya; bila terjadi, roll forward dengan fix + restore data dari backup/PITR.</li>
+</ul></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://sre.google/sre-book/release-engineering/" target="_blank" rel="noopener noreferrer">Google SRE Book — Release Engineering</a></li><li><a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" rel="noopener noreferrer">Kubernetes docs — Deployments (rolling update, rollback)</a></li><li><a href="https://argo-rollouts.readthedocs.io/en/stable/features/canary/" target="_blank" rel="noopener noreferrer">Argo Rollouts docs — Canary &amp; blue-green strategies</a></li><li><a href="https://engineering.fb.com/2017/08/31/web/rapid-release-at-massive-scale/" target="_blank" rel="noopener noreferrer">Facebook Engineering — Rapid release at massive scale</a></li><li><a href="https://martinfowler.com/bliki/ContinuousDelivery.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Continuous Delivery</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-3/deployment-system" data-quiz="[{&quot;q&quot;:&quot;Kenapa artefak (image/container, binary) harus immutable dan diidentifikasi oleh hash/versi, bukan \&quot;latest\&quot;?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena registry tidak mendukung tag&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Registry mendukung; masalahnya tag yang bisa berpindah.&quot;},{&quot;text&quot;:&quot;Supaya yang diuji di staging persis sama dengan yang dijalankan di produksi, rollback = menunjuk versi lama yang masih ada, dan dua server tidak diam-diam menjalankan isi berbeda di bawah nama yang sama&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Reproducibility dan rollback bergantung pada identitas artefak yang tidak berubah. \&quot;latest\&quot; membuat deploy tidak dapat diaudit.&quot;},{&quot;text&quot;:&quot;Supaya artefak lebih kecil&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Ukuran tidak terkait.&quot;},{&quot;text&quot;:&quot;Supaya tidak perlu registry&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Registry tetap dibutuhkan.&quot;}]},{&quot;q&quot;:&quot;Rollout canary 1% → 10% → 50% → 100% dengan analisis otomatis. Metrik mana yang menjadi gate dan kenapa dibandingkan dengan baseline, bukan ambang absolut?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Jumlah deploy per hari&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Bukan indikator kesehatan versi baru.&quot;},{&quot;text&quot;:&quot;Error rate, latency p99, dan metrik bisnis kunci pada canary dibandingkan dengan baseline versi lama pada waktu yang sama; perbandingan relatif menghilangkan efek musiman/trafik yang memengaruhi keduanya&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Canary analysis: dua populasi, satu waktu. Ambang absolut gagal saat trafik atau latency memang berubah karena faktor luar.&quot;},{&quot;text&quot;:&quot;Penggunaan CPU saja&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;CPU bukan gejala yang dirasakan user.&quot;},{&quot;text&quot;:&quot;Jumlah log&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak informatif.&quot;}]},{&quot;q&quot;:&quot;Skema database perlu kolom baru dan kode baru memakainya. Urutan deploy yang aman?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Deploy kode dan migrasi bersamaan dalam satu langkah&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Selama rollout, versi lama dan baru berjalan bersama; salah satu akan rusak.&quot;},{&quot;text&quot;:&quot;Expand-contract: migrasi tambah kolom (kompatibel mundur) dulu, deploy kode yang menulis ke kolom lama dan baru, backfill, deploy kode yang membaca kolom baru, baru hapus kolom lama di rilis berikutnya&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Setiap langkah kompatibel dengan versi sebelum dan sesudahnya, sehingga rollout dan rollback kode aman tanpa migrasi balik.&quot;},{&quot;text&quot;:&quot;Hapus kolom lama dulu agar bersih&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Versi lama yang masih berjalan akan gagal.&quot;},{&quot;text&quot;:&quot;Matikan sistem selama migrasi&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Downtime yang tidak perlu.&quot;}]},{&quot;q&quot;:&quot;Deploy ke 5.000 server dalam 20 menit. Server mengunduh artefak 500 MB dari satu registry. Masalah dan solusinya?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Tidak ada masalah; registry sanggup&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;5.000 × 500 MB = 2.5 TB dalam 20 menit ≈ 2 GB/s dari satu titik; registry dan jaringannya jenuh.&quot;},{&quot;text&quot;:&quot;Distribusi artefak harus di-cache per rack/zona (registry mirror, cache pull-through) atau peer-to-peer, dengan layer image yang dibagi agar hanya delta yang diunduh&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Distribusi adalah bottleneck deploy skala besar; mirror bertingkat dan P2P (seperti yang dipakai perusahaan besar) memotong beban origin ribuan kali.&quot;},{&quot;text&quot;:&quot;Deploy lebih lambat, 2 server per menit&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Membutuhkan hampir dua hari.&quot;},{&quot;text&quot;:&quot;Kirim artefak lewat email&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak serius.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Kenapa artefak (image/container, binary) harus immutable dan diidentifikasi oleh hash/versi, bukan &quot;latest&quot;?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Karena registry tidak mendukung tag</span></label><div class="why">Registry mendukung; masalahnya tag yang bisa berpindah.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>Supaya yang diuji di staging persis sama dengan yang dijalankan di produksi, rollback = menunjuk versi lama yang masih ada, dan dua server tidak diam-diam menjalankan isi berbeda di bawah nama yang sama</span></label><div class="why">Reproducibility dan rollback bergantung pada identitas artefak yang tidak berubah. &quot;latest&quot; membuat deploy tidak dapat diaudit.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Supaya artefak lebih kecil</span></label><div class="why">Ukuran tidak terkait.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Supaya tidak perlu registry</span></label><div class="why">Registry tetap dibutuhkan.</div></div></fieldset><fieldset><legend>2. Rollout canary 1% → 10% → 50% → 100% dengan analisis otomatis. Metrik mana yang menjadi gate dan kenapa dibandingkan dengan baseline, bukan ambang absolut?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Jumlah deploy per hari</span></label><div class="why">Bukan indikator kesehatan versi baru.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Error rate, latency p99, dan metrik bisnis kunci pada canary dibandingkan dengan baseline versi lama pada waktu yang sama; perbandingan relatif menghilangkan efek musiman/trafik yang memengaruhi keduanya</span></label><div class="why">Canary analysis: dua populasi, satu waktu. Ambang absolut gagal saat trafik atau latency memang berubah karena faktor luar.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Penggunaan CPU saja</span></label><div class="why">CPU bukan gejala yang dirasakan user.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Jumlah log</span></label><div class="why">Tidak informatif.</div></div></fieldset><fieldset><legend>3. Skema database perlu kolom baru dan kode baru memakainya. Urutan deploy yang aman?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>Deploy kode dan migrasi bersamaan dalam satu langkah</span></label><div class="why">Selama rollout, versi lama dan baru berjalan bersama; salah satu akan rusak.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>Expand-contract: migrasi tambah kolom (kompatibel mundur) dulu, deploy kode yang menulis ke kolom lama dan baru, backfill, deploy kode yang membaca kolom baru, baru hapus kolom lama di rilis berikutnya</span></label><div class="why">Setiap langkah kompatibel dengan versi sebelum dan sesudahnya, sehingga rollout dan rollback kode aman tanpa migrasi balik.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Hapus kolom lama dulu agar bersih</span></label><div class="why">Versi lama yang masih berjalan akan gagal.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Matikan sistem selama migrasi</span></label><div class="why">Downtime yang tidak perlu.</div></div></fieldset><fieldset><legend>4. Deploy ke 5.000 server dalam 20 menit. Server mengunduh artefak 500 MB dari satu registry. Masalah dan solusinya?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Tidak ada masalah; registry sanggup</span></label><div class="why">5.000 × 500 MB = 2.5 TB dalam 20 menit ≈ 2 GB/s dari satu titik; registry dan jaringannya jenuh.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Distribusi artefak harus di-cache per rack/zona (registry mirror, cache pull-through) atau peer-to-peer, dengan layer image yang dibagi agar hanya delta yang diunduh</span></label><div class="why">Distribusi adalah bottleneck deploy skala besar; mirror bertingkat dan P2P (seperti yang dipakai perusahaan besar) memotong beban origin ribuan kali.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>Deploy lebih lambat, 2 server per menit</span></label><div class="why">Membutuhkan hampir dua hari.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Kirim artefak lewat email</span></label><div class="why">Tidak serius.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-3/deployment-system"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="lbl">← Sebelumnya</span><span>Payment system</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="lbl">Berikutnya →</span><span>Online judge (LeetCode)</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#1-requirements">1. Requirements</a></li><li class="depth-3"><a href="#functional">Functional</a></li><li class="depth-3"><a href="#non-functional">Non-functional</a></li><li class="depth-2"><a href="#2-estimasi-kapasitas">2. Estimasi kapasitas</a></li><li class="depth-2"><a href="#3-api-design">3. API design</a></li><li class="depth-2"><a href="#4-skema-data">4. Skema data</a></li><li class="depth-2"><a href="#5-high-level-design">5. High-level design</a></li><li class="depth-2"><a href="#6-detailed-design">6. Detailed design</a></li><li class="depth-3"><a href="#61-artefak-supply-chain-dan-distribusi">6.1 Artefak, supply chain, dan distribusi</a></li><li class="depth-3"><a href="#62-strategi-rollout">6.2 Strategi rollout</a></li><li class="depth-3"><a href="#63-canary-analysis-otomatis">6.3 Canary analysis otomatis</a></li><li class="depth-3"><a href="#64-orchestrator-dan-eksekusi">6.4 Orchestrator dan eksekusi</a></li><li class="depth-3"><a href="#65-konfigurasi-secret-migrasi-flag">6.5 Konfigurasi, secret, migrasi, flag</a></li><li class="depth-3"><a href="#66-observability-dan-audit">6.6 Observability dan audit</a></li><li class="depth-2"><a href="#7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</a></li><li class="depth-2"><a href="#8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

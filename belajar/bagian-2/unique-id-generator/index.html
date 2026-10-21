@@ -1,0 +1,193 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Masalah kecil dengan jawaban yang menyingkap banyak hal: bagaimana ribuan server membuat ID unik, terurut kira-kira menurut waktu, tanpa saling bertanya."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Unique ID generator · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 2 · Building Blocks · Pelajaran</span><h1>Unique ID generator</h1><div class="lesson-meta"><span class="badge">⏱ ±35 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/database">Database: replication, partitioning, SQL vs NoSQL</a>, <a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system">Abstraksi distributed system</a></span></div><p class="lesson-summary">Masalah kecil dengan jawaban yang menyingkap banyak hal: bagaimana ribuan server membuat ID unik, terurut kira-kira menurut waktu, tanpa saling bertanya.</p><div class="prose"><h2 id="tujuan-belajar">Tujuan belajar</h2>
+<p>Setelah pelajaran ini kamu bisa:</p>
+<ul>
+<li>Menyebut sifat ID yang biasanya diminta (unik, 64-bit, terurut kasar, tanpa koordinasi) dan kenapa masing-masing penting.</li>
+<li>Membandingkan auto-increment, ticket server, UUID, dan Snowflake-style dengan trade-off yang jelas.</li>
+<li>Menjelaskan tata letak bit Snowflake, masalah jam, dan cara membagikan machine ID.</li>
+</ul>
+<h2 id="kenapa-ini-sulit">Kenapa ini sulit</h2>
+<p>Di satu database, <code>AUTO_INCREMENT</code> sudah cukup. Begitu data di-shard atau tulisan datang dari banyak service, tidak ada lagi satu counter. Kita butuh ID yang:</p>
+<table>
+<thead>
+<tr>
+<th>Sifat</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unik global</td>
+<td>Primary key, dedup, referensi antar service</td>
+</tr>
+<tr>
+<td>Muat 64 bit</td>
+<td>Index kecil, join cepat, cocok dengan <code>BIGINT</code></td>
+</tr>
+<tr>
+<td>Terurut kasar menurut waktu</td>
+<td>Sisipan index di ujung (B-tree ramah), <code>ORDER BY id</code> ≈ urutan waktu, paginasi cursor</td>
+</tr>
+<tr>
+<td>Dibuat tanpa koordinasi</td>
+<td>Latency tulis tidak boleh menunggu round trip ke “layanan ID”</td>
+</tr>
+<tr>
+<td>Tidak mudah ditebak berurutan (opsional)</td>
+<td>Mencegah enumerasi dan membocorkan volume bisnis</td>
+</tr>
+</tbody>
+</table>
+<h2 id="pilihan-yang-biasa-dibandingkan">Pilihan yang biasa dibandingkan</h2>
+<table>
+<thead>
+<tr>
+<th>Pendekatan</th>
+<th>Cara</th>
+<th>Unik</th>
+<th>Terurut</th>
+<th>Koordinasi</th>
+<th>Catatan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auto-increment DB pusat</td>
+<td>Satu DB memberi ID</td>
+<td>ya</td>
+<td>ya</td>
+<td>setiap ID</td>
+<td>SPOF dan bottleneck tulis</td>
+</tr>
+<tr>
+<td>Multi-master increment</td>
+<td>DB ke-k mulai dari k, step N</td>
+<td>ya</td>
+<td>kasar</td>
+<td>tidak</td>
+<td>Sulit menambah DB (N berubah); Flickr ticket server adalah varian dua DB ganjil/genap</td>
+</tr>
+<tr>
+<td>UUID v4</td>
+<td>122 bit acak</td>
+<td>praktis ya</td>
+<td>tidak</td>
+<td>tidak</td>
+<td>128 bit, index acak, tidak informatif</td>
+</tr>
+<tr>
+<td>UUID v7</td>
+<td>48 bit timestamp ms + acak</td>
+<td>praktis ya</td>
+<td>ya</td>
+<td>tidak</td>
+<td>128 bit, standar (RFC 9562), ramah index</td>
+</tr>
+<tr>
+<td>Snowflake-style</td>
+<td>timestamp + machine id + sequence</td>
+<td>ya</td>
+<td>ya</td>
+<td>sekali, untuk machine id</td>
+<td>64 bit, cepat, butuh jam yang tidak mundur</td>
+</tr>
+<tr>
+<td>DB-side Snowflake (Instagram)</td>
+<td>ID dibuat oleh fungsi di tiap shard PostgreSQL</td>
+<td>ya</td>
+<td>ya</td>
+<td>tidak</td>
+<td>Shard id tertanam di ID; tanpa layanan tambahan</td>
+</tr>
+<tr>
+<td>Range dari KV/etcd</td>
+<td>Service mengambil blok 1.000 ID</td>
+<td>ya</td>
+<td>kasar</td>
+<td>per blok</td>
+<td>Lubang ID saat crash; urutan antar service tidak terjaga</td>
+</tr>
+</tbody>
+</table>
+<h2 id="snowflake-tata-letak-bit">Snowflake: tata letak bit</h2>
+<pre><code class="language-mermaid">flowchart LR
+  S[1 bit\ntanda, selalu 0] --- T[41 bit\ntimestamp ms\nsejak epoch kustom] --- M[10 bit\nmachine id\n1024 node] --- Q[12 bit\nsequence\n4096 per ms per node]
+</code></pre>
+<ul>
+<li>41 bit ms ≈ 69 tahun dari epoch kustom; pilih epoch saat sistem lahir, bukan 1970.</li>
+<li>10 bit machine id bisa dibagi (5 bit datacenter + 5 bit worker).</li>
+<li>12 bit sequence = 4.096 ID/ms/node ≈ 4 juta ID/detik/node. Bila habis dalam satu ms, tunggu ms berikutnya.</li>
+<li>Hasilnya terurut menurut waktu <strong>antar node hanya kira-kira</strong> (jam tiap node berbeda beberapa ms); di dalam satu node terurut ketat.</li>
+</ul>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant App as Service (worker id 17)
+  participant Clk as Jam lokal
+  App-&gt;&gt;Clk: now()
+  Clk--&gt;&gt;App: t = 1.700.000.000.123 ms
+  alt t == timestamp terakhir
+    App-&gt;&gt;App: sequence++ (bila 4096 → tunggu ms berikut)
+  else t &gt; timestamp terakhir
+    App-&gt;&gt;App: sequence = 0
+  else t &lt; timestamp terakhir (jam mundur)
+    App-&gt;&gt;App: tolak / tunggu sampai jam mengejar
+  end
+  App-&gt;&gt;App: id = (t - epoch) &lt;&lt; 22 | 17 &lt;&lt; 12 | sequence
+</code></pre>
+<h3 id="dua-masalah-operasional">Dua masalah operasional</h3>
+<ol>
+<li><strong>Jam mundur</strong> (NTP step, migrasi VM): bisa mengulang timestamp. Simpan timestamp terakhir; tolak atau tunggu bila jam mundur. Alternatif: pakai monotonic/logical clock yang hanya naik.</li>
+<li><strong>Membagikan machine id</strong>: harus unik di antara node yang hidup. Cara: konfigurasi statis, lease dari ZooKeeper/etcd saat start (dilepas saat mati), atau diturunkan dari identitas pod/host. Dua node dengan id sama = ID duplikat yang senyap.</li>
+</ol>
+<h2 id="menyembunyikan-volume">Menyembunyikan volume</h2>
+<p>ID terurut membocorkan laju pembuatan (selisih dua ID = jumlah objek di antaranya). Bila itu masalah, tampilkan ID publik yang di-encode (base62 dengan bit-shuffle atau enkripsi format-preserving) sementara ID internal tetap terurut.</p>
+<h2 id="trade-off-ringkas">Trade-off ringkas</h2>
+<table>
+<thead>
+<tr>
+<th>Keputusan</th>
+<th>Pilih A bila</th>
+<th>Pilih B bila</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>64-bit Snowflake (A) vs 128-bit UUID v7 (B)</td>
+<td>Index kecil penting, kontrol machine id tersedia</td>
+<td>Tidak ingin mengelola machine id; interoperabilitas standar</td>
+</tr>
+<tr>
+<td>Dibuat di aplikasi (A) vs di database per shard (B)</td>
+<td>Banyak service menulis, ingin ID sebelum INSERT</td>
+<td>Satu jalur tulis lewat DB; ingin shard id tertanam</td>
+</tr>
+<tr>
+<td>Terurut (A) vs acak (B)</td>
+<td>Paginasi cursor, index ramah</td>
+<td>Harus tidak tertebak dan volume rahasia</td>
+</tr>
+</tbody>
+</table>
+<h2 id="pertanyaan-yang-sering-ditanya-interviewer">Pertanyaan yang sering ditanya interviewer</h2>
+<ul>
+<li>“Kenapa tidak UUID saja?” → Ukuran, urutan acak di index, tidak informatif; UUID v7 memperbaiki urutannya.</li>
+<li>“Bagaimana memastikan dua node tidak memakai machine id yang sama?” → Lease terkoordinasi saat start, atau alokasi statis yang diaudit.</li>
+<li>“Jam server mundur, apa yang terjadi?” → Duplikat; tolak/tunggu; sebutkan monotonic clock.</li>
+<li>“Berapa ID per detik yang bisa dibuat?” → 4.096/ms/node; 1.024 node → jutaan per detik.</li>
+<li>“Bagaimana kalau butuh ID terurut ketat secara global?” → Tidak bisa tanpa koordinasi; pakai satu sequencer (Raft log) dan terima latency-nya.</li>
+</ul>
+<h2 id="ringkasan">Ringkasan</h2>
+<ol>
+<li>ID terdistribusi yang baik: unik, 64-bit, terurut kasar menurut waktu, dibuat tanpa round trip; auto-increment pusat gagal di koordinasi, UUID v4 gagal di urutan dan ukuran.</li>
+<li>Snowflake membagi 64 bit menjadi timestamp (41), machine id (10), sequence (12); dua risikonya adalah jam mundur dan machine id ganda.</li>
+<li>Bila tidak ingin mengelola machine id, UUID v7 adalah standar yang terurut; bila volume harus rahasia, encode ID untuk konsumsi publik.</li>
+</ol></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://blog.x.com/engineering/en_us/a/2010/announcing-snowflake" target="_blank" rel="noopener noreferrer">Twitter Engineering — Announcing Snowflake (arsip)</a></li><li><a href="https://instagram-engineering.com/sharding-ids-at-instagram-1cf5a71e5a5c" target="_blank" rel="noopener noreferrer">Instagram Engineering — Sharding &amp; IDs at Instagram</a></li><li><a href="https://code.flickr.net/2010/02/08/ticket-servers-distributed-unique-primary-keys-on-the-cheap/" target="_blank" rel="noopener noreferrer">Flickr Engineering — Ticket Servers: Distributed Unique Primary Keys on the Cheap</a></li><li><a href="https://www.rfc-editor.org/rfc/rfc9562" target="_blank" rel="noopener noreferrer">RFC 9562 — Universally Unique IDentifiers (UUID), termasuk versi 7</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-2/unique-id-generator" data-quiz="[{&quot;q&quot;:&quot;Kenapa UUID v4 (acak) sering dihindari sebagai primary key di tabel yang besar?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena bisa bertabrakan dengan mudah&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;122 bit acak membuat tabrakan praktis mustahil; itu bukan masalahnya.&quot;},{&quot;text&quot;:&quot;Karena 128 bit lebih besar dari 64 bit dan urutannya acak sehingga index B-tree menerima sisipan di posisi acak, memecah halaman dan merusak cache locality&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Dua biaya: ukuran index dua kali lipat, dan sisipan acak membuat setiap INSERT menyentuh halaman index yang berbeda. ID yang terurut menurut waktu (Snowflake, UUID v7) selalu menyisip di ujung.&quot;},{&quot;text&quot;:&quot;Karena UUID tidak bisa disimpan di database&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Semua database punya tipe UUID atau bisa menyimpannya sebagai 16 byte.&quot;},{&quot;text&quot;:&quot;Karena UUID hanya bisa dibuat oleh satu server&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Justru kebalikannya: UUID bisa dibuat di mana saja tanpa koordinasi.&quot;}]},{&quot;q&quot;:&quot;Snowflake memakai 41 bit timestamp dalam milidetik. Kira-kira berapa lama ruang ID itu bertahan dari epoch kustom?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Sekitar 69 tahun&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;2^41 ms ≈ 2.2 × 10^12 ms ≈ 69.7 tahun. Dengan epoch kustom (mis. 2020), aman sampai ~2089.&quot;},{&quot;text&quot;:&quot;Sekitar 7 tahun&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Kurang satu orde; 2^41 ms jauh lebih dari itu.&quot;},{&quot;text&quot;:&quot;Sekitar 690 tahun&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Kelebihan satu orde.&quot;},{&quot;text&quot;:&quot;Tidak terbatas karena timestamp berputar&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Timestamp yang berputar akan menghasilkan ID yang tidak lagi terurut dan bisa bertabrakan dengan ID lama.&quot;}]},{&quot;q&quot;:&quot;Jam sebuah node Snowflake melompat mundur 2 detik karena sinkronisasi NTP. Apa risiko dan penanganannya?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Tidak ada risiko; sequence number menjamin keunikan&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Sequence hanya unik dalam satu milidetik yang sama; timestamp yang mundur bisa mengulang kombinasi timestamp+sequence yang pernah dipakai.&quot;},{&quot;text&quot;:&quot;ID duplikat mungkin terjadi; node harus menolak membuat ID (atau menunggu) sampai jam melewati timestamp terakhir yang dipakai&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Implementasi Snowflake menyimpan timestamp terakhir dan menolak bila jam mundur. Alternatif: menaikkan logical clock sendiri sampai wall-clock mengejar.&quot;},{&quot;text&quot;:&quot;Node harus restart dengan machine ID baru&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Machine ID baru memang menghindari duplikat, tapi menguras ruang ID dan tidak perlu; cukup menunggu.&quot;},{&quot;text&quot;:&quot;Jam mundur tidak mungkin terjadi di produksi&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;NTP step, migrasi VM, dan leap second membuatnya nyata.&quot;}]},{&quot;q&quot;:&quot;Pendekatan mana yang memberi ID unik global, terurut kasar menurut waktu, dan bisa dibuat secara lokal tanpa memanggil layanan lain?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Auto-increment di satu database pusat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Unik dan terurut, tapi setiap pembuatan ID adalah round trip ke satu titik yang menjadi bottleneck dan SPOF.&quot;},{&quot;text&quot;:&quot;Ticket server ganjil/genap&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Menghilangkan SPOF tapi tetap memerlukan panggilan jaringan untuk tiap ID (atau batch).&quot;},{&quot;text&quot;:&quot;ID ala Snowflake (timestamp + machine id + sequence) yang dibuat di dalam proses&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Tiap proses memegang machine id unik; sisanya dihitung lokal. Tidak ada round trip, terurut kasar menurut waktu, 64 bit.&quot;},{&quot;text&quot;:&quot;Hash dari isi record&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Deterministik dan tidak terurut menurut waktu; dua record identik menghasilkan ID sama.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Kenapa UUID v4 (acak) sering dihindari sebagai primary key di tabel yang besar?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Karena bisa bertabrakan dengan mudah</span></label><div class="why">122 bit acak membuat tabrakan praktis mustahil; itu bukan masalahnya.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>Karena 128 bit lebih besar dari 64 bit dan urutannya acak sehingga index B-tree menerima sisipan di posisi acak, memecah halaman dan merusak cache locality</span></label><div class="why">Dua biaya: ukuran index dua kali lipat, dan sisipan acak membuat setiap INSERT menyentuh halaman index yang berbeda. ID yang terurut menurut waktu (Snowflake, UUID v7) selalu menyisip di ujung.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Karena UUID tidak bisa disimpan di database</span></label><div class="why">Semua database punya tipe UUID atau bisa menyimpannya sebagai 16 byte.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Karena UUID hanya bisa dibuat oleh satu server</span></label><div class="why">Justru kebalikannya: UUID bisa dibuat di mana saja tanpa koordinasi.</div></div></fieldset><fieldset><legend>2. Snowflake memakai 41 bit timestamp dalam milidetik. Kira-kira berapa lama ruang ID itu bertahan dari epoch kustom?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Sekitar 69 tahun</span></label><div class="why">2^41 ms ≈ 2.2 × 10^12 ms ≈ 69.7 tahun. Dengan epoch kustom (mis. 2020), aman sampai ~2089.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Sekitar 7 tahun</span></label><div class="why">Kurang satu orde; 2^41 ms jauh lebih dari itu.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Sekitar 690 tahun</span></label><div class="why">Kelebihan satu orde.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Tidak terbatas karena timestamp berputar</span></label><div class="why">Timestamp yang berputar akan menghasilkan ID yang tidak lagi terurut dan bisa bertabrakan dengan ID lama.</div></div></fieldset><fieldset><legend>3. Jam sebuah node Snowflake melompat mundur 2 detik karena sinkronisasi NTP. Apa risiko dan penanganannya?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>Tidak ada risiko; sequence number menjamin keunikan</span></label><div class="why">Sequence hanya unik dalam satu milidetik yang sama; timestamp yang mundur bisa mengulang kombinasi timestamp+sequence yang pernah dipakai.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>ID duplikat mungkin terjadi; node harus menolak membuat ID (atau menunggu) sampai jam melewati timestamp terakhir yang dipakai</span></label><div class="why">Implementasi Snowflake menyimpan timestamp terakhir dan menolak bila jam mundur. Alternatif: menaikkan logical clock sendiri sampai wall-clock mengejar.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Node harus restart dengan machine ID baru</span></label><div class="why">Machine ID baru memang menghindari duplikat, tapi menguras ruang ID dan tidak perlu; cukup menunggu.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Jam mundur tidak mungkin terjadi di produksi</span></label><div class="why">NTP step, migrasi VM, dan leap second membuatnya nyata.</div></div></fieldset><fieldset><legend>4. Pendekatan mana yang memberi ID unik global, terurut kasar menurut waktu, dan bisa dibuat secara lokal tanpa memanggil layanan lain?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Auto-increment di satu database pusat</span></label><div class="why">Unik dan terurut, tapi setiap pembuatan ID adalah round trip ke satu titik yang menjadi bottleneck dan SPOF.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Ticket server ganjil/genap</span></label><div class="why">Menghilangkan SPOF tapi tetap memerlukan panggilan jaringan untuk tiap ID (atau batch).</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>ID ala Snowflake (timestamp + machine id + sequence) yang dibuat di dalam proses</span></label><div class="why">Tiap proses memegang machine id unik; sisanya dihitung lokal. Tidak ada round trip, terurut kasar menurut waktu, 64 bit.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Hash dari isi record</span></label><div class="why">Deterministik dan tidak terurut menurut waktu; dua record identik menghasilkan ID sama.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-2/unique-id-generator"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="lbl">← Sebelumnya</span><span>CDN</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="lbl">Berikutnya →</span><span>Distributed monitoring</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#tujuan-belajar">Tujuan belajar</a></li><li class="depth-2"><a href="#kenapa-ini-sulit">Kenapa ini sulit</a></li><li class="depth-2"><a href="#pilihan-yang-biasa-dibandingkan">Pilihan yang biasa dibandingkan</a></li><li class="depth-2"><a href="#snowflake-tata-letak-bit">Snowflake: tata letak bit</a></li><li class="depth-3"><a href="#dua-masalah-operasional">Dua masalah operasional</a></li><li class="depth-2"><a href="#menyembunyikan-volume">Menyembunyikan volume</a></li><li class="depth-2"><a href="#trade-off-ringkas">Trade-off ringkas</a></li><li class="depth-2"><a href="#pertanyaan-yang-sering-ditanya-interviewer">Pertanyaan yang sering ditanya interviewer</a></li><li class="depth-2"><a href="#ringkasan">Ringkasan</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Komponen yang hampir selalu menjadi jawaban untuk beban baca: strategi baca/tulis, eviction, invalidasi, dan tiga kegagalan klasik (stampede, hot key, penetration) beserta obatnya."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Distributed cache · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 2 · Building Blocks · Pelajaran</span><h1>Distributed cache</h1><div class="lesson-meta"><span class="badge">⏱ ±45 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/key-value-store">Key-value store</a>, <a href="/sysdesign-lab/belajar/bagian-2/database">Database: replication, partitioning, SQL vs NoSQL</a></span></div><p class="lesson-summary">Komponen yang hampir selalu menjadi jawaban untuk beban baca: strategi baca/tulis, eviction, invalidasi, dan tiga kegagalan klasik (stampede, hot key, penetration) beserta obatnya.</p><div class="prose"><h2 id="tujuan-belajar">Tujuan belajar</h2>
+<p>Setelah pelajaran ini kamu bisa:</p>
+<ul>
+<li>Menempatkan cache di lapisan yang tepat (client, CDN, aplikasi, in-process, database) dan tahu apa yang di-cache.</li>
+<li>Memilih strategi cache-aside, read-through, write-through, write-behind, dan menjelaskan race condition yang menyertainya.</li>
+<li>Mendiagnosis dan mengobati stampede, hot key, dan penetration, serta merancang cluster cache yang tahan node mati.</li>
+</ul>
+<h2 id="kenapa-cache">Kenapa cache</h2>
+<p>Dari pelajaran estimasi: baca 4.000 QPS dan tulis 40 QPS. Database bisa melayani puluhan ribu baca per detik, tapi setiap baca yang bisa dihindari adalah latency yang lebih rendah (RAM ~100 ns vs disk/network ~ms) dan ruang untuk tumbuh. Aturan 80/20 membuat cache sangat efektif: sebagian kecil data menghasilkan sebagian besar baca.</p>
+<h2 id="di-mana-cache-berada">Di mana cache berada</h2>
+<table>
+<thead>
+<tr>
+<th>Lapisan</th>
+<th>Contoh</th>
+<th>Menyimpan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Client / browser</td>
+<td>HTTP cache</td>
+<td>Aset statis</td>
+</tr>
+<tr>
+<td>CDN</td>
+<td>Edge</td>
+<td>Konten yang bisa dibagi</td>
+</tr>
+<tr>
+<td>In-process (L1)</td>
+<td>Map/LRU di memori service</td>
+<td>Konfigurasi, hot key, hasil komputasi</td>
+</tr>
+<tr>
+<td>Distributed (L2)</td>
+<td>Redis, Memcached cluster</td>
+<td>Objek, hasil query, sesi</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>Buffer pool, query cache</td>
+<td>Halaman data panas</td>
+</tr>
+</tbody>
+</table>
+<p>Modul ini fokus pada <strong>L2</strong>: cache terdistribusi yang dibagi oleh semua instance service.</p>
+<h2 id="strategi-bacatulis">Strategi baca/tulis</h2>
+<pre><code class="language-mermaid">flowchart LR
+  subgraph aside[Cache-aside]
+    A1[App] --&gt;|1. get| C1[(Cache)]
+    C1 -. miss .-&gt; A1
+    A1 --&gt;|2. baca| D1[(DB)]
+    A1 --&gt;|3. set| C1
+  end
+  subgraph wt[Write-through]
+    A2[App] --&gt;|tulis| C2[(Cache)]
+    C2 --&gt;|tulis sinkron| D2[(DB)]
+  end
+  subgraph wb[Write-behind]
+    A3[App] --&gt;|tulis| C3[(Cache)]
+    C3 -. async, batch .-&gt; D3[(DB)]
+  end
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Strategi</th>
+<th>Cara</th>
+<th>Kelebihan</th>
+<th>Kekurangan</th>
+<th>Kapan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cache-aside (lazy)</td>
+<td>App cek cache; miss → baca DB → isi cache</td>
+<td>Sederhana; hanya data yang diminta yang di-cache; cache mati = sistem tetap jalan</td>
+<td>Miss pertama lambat; race saat update; app harus mengelola invalidasi</td>
+<td>Default untuk read-heavy</td>
+</tr>
+<tr>
+<td>Read-through</td>
+<td>Cache yang membaca DB saat miss</td>
+<td>App lebih sederhana</td>
+<td>Cache harus tahu cara memuat; vendor-specific</td>
+<td>Library cache (Caffeine, Guava)</td>
+</tr>
+<tr>
+<td>Write-through</td>
+<td>Tulis ke cache dan DB sinkron</td>
+<td>Cache selalu segar</td>
+<td>Latency tulis naik; data yang tidak pernah dibaca ikut di-cache</td>
+<td>Data yang pasti dibaca setelah ditulis</td>
+</tr>
+<tr>
+<td>Write-behind (write-back)</td>
+<td>Tulis ke cache, DB diperbarui async</td>
+<td>Tulis sangat cepat, batch ke DB</td>
+<td>Risiko kehilangan tulisan bila cache mati; kompleks</td>
+<td>Counter, metrik, beban tulis tinggi yang toleran</td>
+</tr>
+<tr>
+<td>Write-around</td>
+<td>Tulis langsung ke DB, cache diisi saat baca</td>
+<td>Cache tidak dipenuhi data dingin</td>
+<td>Baca setelah tulis = miss</td>
+<td>Data yang jarang dibaca setelah ditulis (log, arsip)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="invalidasi-dan-race-cache-aside">Invalidasi dan race cache-aside</h3>
+<p>Saat data berubah: <strong>hapus</strong> key (bukan perbarui), lalu biarkan pembaca berikutnya mengisi ulang. Urutan yang lazim: tulis DB → hapus cache. Tetap ada jendela race (pembaca lama menulis nilai basi setelah penghapusan). Mitigasi berjenjang: TTL sebagai jaring pengaman, <em>delayed double delete</em> (hapus lagi setelah beberapa ratus ms), atau mengisi cache dari <strong>CDC/binlog</strong> (Facebook memakai pendekatan ini) sehingga cache selalu mengikuti DB.</p>
+<h2 id="eviction-dan-ttl">Eviction dan TTL</h2>
+<p>Memori terbatas; saat penuh, sesuatu harus keluar.</p>
+<table>
+<thead>
+<tr>
+<th>Kebijakan</th>
+<th>Menjaga</th>
+<th>Cocok untuk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LRU</td>
+<td>Yang baru dipakai</td>
+<td>Beban umum, long-tail</td>
+</tr>
+<tr>
+<td>LFU</td>
+<td>Yang sering dipakai</td>
+<td>Hot set stabil; tahan terhadap scan sekali lewat</td>
+</tr>
+<tr>
+<td>TTL-based</td>
+<td>Yang belum kedaluwarsa</td>
+<td>Data dengan masa berlaku jelas</td>
+</tr>
+<tr>
+<td>FIFO / random</td>
+<td>—</td>
+<td>Jarang tepat; murah</td>
+</tr>
+</tbody>
+</table>
+<p>Redis dan Memcached memakai <strong>aproksimasi</strong> LRU/LFU (sampling) karena LRU eksak mahal. Beri TTL pada hampir semua key: menutup race, membatasi data basi, dan mencegah key yatim. Tambahkan <strong>jitter</strong> pada TTL agar key yang diisi bersamaan tidak kedaluwarsa bersamaan.</p>
+<h2 id="tiga-kegagalan-klasik">Tiga kegagalan klasik</h2>
+<table>
+<thead>
+<tr>
+<th>Masalah</th>
+<th>Gejala</th>
+<th>Obat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stampede</strong> (thundering herd)</td>
+<td>Key populer kedaluwarsa → ribuan miss serentak ke DB</td>
+<td>Single-flight/lock per key (satu yang mengisi, lainnya menunggu), early/background refresh, TTL dengan jitter, serve-stale sambil refresh</td>
+</tr>
+<tr>
+<td><strong>Hot key</strong></td>
+<td>Satu key membebani satu node cache</td>
+<td>Replikasi key ke N salinan (suffix acak), cache lokal L1 di service, batching request</td>
+</tr>
+<tr>
+<td><strong>Penetration</strong></td>
+<td>Request untuk key yang tidak ada selalu miss dan menembus ke DB</td>
+<td>Negative cache (simpan “tidak ada” dengan TTL pendek), bloom filter di depan</td>
+</tr>
+</tbody>
+</table>
+<p>Satu lagi yang lebih jarang disebut: <strong>avalanche</strong>, sebagian besar cache mati sekaligus (restart cluster) dan DB tertimpa seluruh beban. Obat: cache warm-up bertahap, rate limit ke DB, circuit breaker, dan kapasitas DB yang tidak mengasumsikan hit ratio 100%.</p>
+<h2 id="arsitektur-cluster">Arsitektur cluster</h2>
+<ul>
+<li><strong>Partisi</strong>: consistent hashing di sisi client (Memcached) atau hash slot 16.384 (Redis Cluster); menambah node memindahkan sebagian kecil key.</li>
+<li><strong>Replikasi</strong>: Redis primary-replica per shard; failover otomatis lewat Sentinel/Cluster. Memcached biasanya tanpa replikasi: node mati = miss, dan itu diterima.</li>
+<li><strong>Konsistensi</strong>: cache adalah <strong>salinan yang boleh basi</strong>; sumber kebenaran tetap DB. Jangan menaruh data yang butuh konsistensi kuat hanya di cache.</li>
+<li><strong>Ukuran</strong>: dari estimasi 80/20; pantau hit ratio (target &gt; 90% untuk read-heavy), eviction rate, dan latency p99 cache.</li>
+</ul>
+<pre><code class="language-mermaid">flowchart LR
+  S1[Service] --&gt; L1a[L1 in-process\nTTL 1-5 s]
+  S2[Service] --&gt; L1b[L1 in-process]
+  L1a --&gt; P[Client/proxy\nconsistent hashing]
+  L1b --&gt; P
+  P --&gt; N1[(Cache node 1\n+ replica)]
+  P --&gt; N2[(Cache node 2\n+ replica)]
+  P --&gt; N3[(Cache node 3\n+ replica)]
+  N1 -. miss .-&gt; DB[(DB)]
+</code></pre>
+<h2 id="trade-off-ringkas">Trade-off ringkas</h2>
+<table>
+<thead>
+<tr>
+<th>Keputusan</th>
+<th>Pilih A bila</th>
+<th>Pilih B bila</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cache-aside (A) vs write-through (B)</td>
+<td>Read-heavy, toleransi miss pertama</td>
+<td>Data pasti dibaca setelah ditulis; ingin cache selalu segar</td>
+</tr>
+<tr>
+<td>Redis (A) vs Memcached (B)</td>
+<td>Struktur data, persistence, replikasi, pub/sub</td>
+<td>Cache murni, multi-thread sederhana, memori maksimal</td>
+</tr>
+<tr>
+<td>Hapus key (A) vs perbarui key (B) saat tulis</td>
+<td>Hampir selalu; menghindari menulis nilai yang mungkin basi</td>
+<td>Komputasi ulang sangat mahal dan urutan tulis terjamin</td>
+</tr>
+<tr>
+<td>L1 + L2 (A) vs L2 saja (B)</td>
+<td>Hot key, latency sub-ms</td>
+<td>Ingin konsistensi antar instance lebih ketat</td>
+</tr>
+</tbody>
+</table>
+<h2 id="pertanyaan-yang-sering-ditanya-interviewer">Pertanyaan yang sering ditanya interviewer</h2>
+<ul>
+<li>“Apa yang di-cache, dan dengan key apa?” → Objek per ID, hasil query populer; key = jenis + id + versi.</li>
+<li>“Bagaimana menjaga cache tetap konsisten dengan DB?” → Hapus saat tulis + TTL; akui jendela race dan mitigasinya.</li>
+<li>“Cache mati, apa yang terjadi?” → DB menerima semua beban; sebutkan avalanche dan pengaman.</li>
+<li>“Key populer kedaluwarsa bersamaan?” → Stampede: single-flight, jitter, early refresh.</li>
+<li>“Berapa besar cache-nya?” → 20% data harian; verifikasi dengan hit ratio.</li>
+<li>“Kenapa tidak write-through saja?” → Latency tulis dan data dingin yang memenuhi cache.</li>
+</ul>
+<h2 id="ringkasan">Ringkasan</h2>
+<ol>
+<li>Cache adalah salinan yang boleh basi di depan DB; cache-aside dengan hapus-saat-tulis plus TTL adalah default, dan jendela race-nya harus diakui.</li>
+<li>Eviction LRU/LFU menjaga hot set; TTL dengan jitter menutup kebocoran dan mencegah kedaluwarsa serentak.</li>
+<li>Tiga kegagalan klasik: stampede (single-flight), hot key (replikasi key/L1), penetration (negative cache/bloom filter); cluster dipartisi dengan consistent hashing dan hit ratio dipantau.</li>
+</ol></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://github.com/donnemartin/system-design-primer#cache" target="_blank" rel="noopener noreferrer">System Design Primer — Cache (strategi cache-aside, write-through, write-behind)</a></li><li><a href="https://www.usenix.org/conference/nsdi13/technical-sessions/presentation/nishtala" target="_blank" rel="noopener noreferrer">Scaling Memcache at Facebook (NSDI 2013, akses terbuka)</a></li><li><a href="https://redis.io/docs/latest/develop/reference/eviction/" target="_blank" rel="noopener noreferrer">Redis docs — Key eviction policies</a></li><li><a href="https://github.com/memcached/memcached/wiki/Overview" target="_blank" rel="noopener noreferrer">Memcached wiki — Overview &amp; architecture</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-2/distributed-cache" data-quiz="[{&quot;q&quot;:&quot;Key populer kedaluwarsa, dan 5.000 request per detik serentak miss lalu membebani database. Nama masalah dan solusi yang paling tepat?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Cache penetration; solusinya bloom filter&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Penetration adalah request untuk key yang memang tidak ada. Di sini key ada, hanya kedaluwarsa.&quot;},{&quot;text&quot;:&quot;Cache stampede (thundering herd); solusinya single-flight/lock agar hanya satu request mengisi ulang, atau early refresh sebelum TTL habis&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Semua request miss bersamaan dan berebut ke DB. Kunci per key (hanya satu yang ke DB, sisanya menunggu), TTL dengan jitter, atau refresh di latar belakang mencegahnya.&quot;},{&quot;text&quot;:&quot;Hot key; solusinya sharding cache&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Hot key tentang satu node cache kewalahan oleh satu key; masalah di soal adalah beban DB saat miss.&quot;},{&quot;text&quot;:&quot;Replication lag; solusinya read-your-writes&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak ada replica yang terlibat.&quot;}]},{&quot;q&quot;:&quot;Aplikasi memakai cache-aside. Data di DB diperbarui, lalu cache dihapus. Sesaat kemudian user masih melihat data lama di cache. Skenario mana yang menjelaskan?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Cache tidak bisa dihapus&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Penghapusan berhasil; masalahnya urutan kejadian.&quot;},{&quot;text&quot;:&quot;Race: request A miss dan membaca nilai lama dari DB, request B memperbarui DB lalu menghapus cache, lalu A menulis nilai lama ke cache&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Race klasik cache-aside. Mitigasi: TTL agar tidak basi selamanya, delayed double delete, atau mengisi cache dari CDC/binlog alih-alih dari pembaca.&quot;},{&quot;text&quot;:&quot;TTL terlalu pendek&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;TTL pendek justru mengurangi dampak masalah ini.&quot;},{&quot;text&quot;:&quot;Cache memakai write-through&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Soal menyebut cache-aside; write-through menulis cache dan DB bersamaan.&quot;}]},{&quot;q&quot;:&quot;Mana kebijakan eviction yang paling cocok untuk cache dengan distribusi akses long-tail (sedikit key sangat populer)?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;FIFO&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Membuang key tertua tanpa peduli popularitas; key viral yang masuk lebih dulu akan dibuang.&quot;},{&quot;text&quot;:&quot;LRU atau LFU (dengan aproksimasi seperti sampling di Redis)&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;LRU menjaga yang baru dipakai, LFU menjaga yang sering dipakai; keduanya mempertahankan hot key. Redis memakai aproksimasi sampling agar murah.&quot;},{&quot;text&quot;:&quot;Random&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Mengabaikan popularitas; hit ratio jauh lebih rendah untuk beban long-tail.&quot;},{&quot;text&quot;:&quot;Tidak perlu eviction, cukup tambah memori&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Memori selalu terbatas; tanpa eviction cache berhenti menerima tulisan.&quot;}]},{&quot;q&quot;:&quot;Satu key (profil selebriti) menerima 100.000 baca/detik dan node cache yang memegangnya jenuh. Mitigasi yang tepat?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Menaikkan TTL key itu&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;TTL tidak mengurangi jumlah baca ke node yang sama.&quot;},{&quot;text&quot;:&quot;Menyalin key ke beberapa node (key dengan suffix acak 1..N) atau menambahkan cache lokal in-process dengan TTL singkat di tiap service&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Hot key diatasi dengan menyebarkan bacaan: replikasi key ke N salinan atau lapisan cache lokal (L1) di aplikasi yang menyerap mayoritas baca.&quot;},{&quot;text&quot;:&quot;Memindahkan key ke database&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Database jauh lebih tidak sanggup menangani 100.000 baca/detik untuk satu baris.&quot;},{&quot;text&quot;:&quot;Menghapus key dari cache&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Semua baca akan jatuh ke DB.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Key populer kedaluwarsa, dan 5.000 request per detik serentak miss lalu membebani database. Nama masalah dan solusi yang paling tepat?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Cache penetration; solusinya bloom filter</span></label><div class="why">Penetration adalah request untuk key yang memang tidak ada. Di sini key ada, hanya kedaluwarsa.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>Cache stampede (thundering herd); solusinya single-flight/lock agar hanya satu request mengisi ulang, atau early refresh sebelum TTL habis</span></label><div class="why">Semua request miss bersamaan dan berebut ke DB. Kunci per key (hanya satu yang ke DB, sisanya menunggu), TTL dengan jitter, atau refresh di latar belakang mencegahnya.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Hot key; solusinya sharding cache</span></label><div class="why">Hot key tentang satu node cache kewalahan oleh satu key; masalah di soal adalah beban DB saat miss.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Replication lag; solusinya read-your-writes</span></label><div class="why">Tidak ada replica yang terlibat.</div></div></fieldset><fieldset><legend>2. Aplikasi memakai cache-aside. Data di DB diperbarui, lalu cache dihapus. Sesaat kemudian user masih melihat data lama di cache. Skenario mana yang menjelaskan?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Cache tidak bisa dihapus</span></label><div class="why">Penghapusan berhasil; masalahnya urutan kejadian.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Race: request A miss dan membaca nilai lama dari DB, request B memperbarui DB lalu menghapus cache, lalu A menulis nilai lama ke cache</span></label><div class="why">Race klasik cache-aside. Mitigasi: TTL agar tidak basi selamanya, delayed double delete, atau mengisi cache dari CDC/binlog alih-alih dari pembaca.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>TTL terlalu pendek</span></label><div class="why">TTL pendek justru mengurangi dampak masalah ini.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Cache memakai write-through</span></label><div class="why">Soal menyebut cache-aside; write-through menulis cache dan DB bersamaan.</div></div></fieldset><fieldset><legend>3. Mana kebijakan eviction yang paling cocok untuk cache dengan distribusi akses long-tail (sedikit key sangat populer)?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>FIFO</span></label><div class="why">Membuang key tertua tanpa peduli popularitas; key viral yang masuk lebih dulu akan dibuang.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>LRU atau LFU (dengan aproksimasi seperti sampling di Redis)</span></label><div class="why">LRU menjaga yang baru dipakai, LFU menjaga yang sering dipakai; keduanya mempertahankan hot key. Redis memakai aproksimasi sampling agar murah.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Random</span></label><div class="why">Mengabaikan popularitas; hit ratio jauh lebih rendah untuk beban long-tail.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Tidak perlu eviction, cukup tambah memori</span></label><div class="why">Memori selalu terbatas; tanpa eviction cache berhenti menerima tulisan.</div></div></fieldset><fieldset><legend>4. Satu key (profil selebriti) menerima 100.000 baca/detik dan node cache yang memegangnya jenuh. Mitigasi yang tepat?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Menaikkan TTL key itu</span></label><div class="why">TTL tidak mengurangi jumlah baca ke node yang sama.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Menyalin key ke beberapa node (key dengan suffix acak 1..N) atau menambahkan cache lokal in-process dengan TTL singkat di tiap service</span></label><div class="why">Hot key diatasi dengan menyebarkan bacaan: replikasi key ke N salinan atau lapisan cache lokal (L1) di aplikasi yang menyerap mayoritas baca.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>Memindahkan key ke database</span></label><div class="why">Database jauh lebih tidak sanggup menangani 100.000 baca/detik untuk satu baris.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Menghapus key dari cache</span></label><div class="why">Semua baca akan jatuh ke DB.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-2/distributed-cache"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="lbl">← Sebelumnya</span><span>Distributed monitoring</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="lbl">Berikutnya →</span><span>Message queue</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#tujuan-belajar">Tujuan belajar</a></li><li class="depth-2"><a href="#kenapa-cache">Kenapa cache</a></li><li class="depth-2"><a href="#di-mana-cache-berada">Di mana cache berada</a></li><li class="depth-2"><a href="#strategi-bacatulis">Strategi baca/tulis</a></li><li class="depth-3"><a href="#invalidasi-dan-race-cache-aside">Invalidasi dan race cache-aside</a></li><li class="depth-2"><a href="#eviction-dan-ttl">Eviction dan TTL</a></li><li class="depth-2"><a href="#tiga-kegagalan-klasik">Tiga kegagalan klasik</a></li><li class="depth-2"><a href="#arsitektur-cluster">Arsitektur cluster</a></li><li class="depth-2"><a href="#trade-off-ringkas">Trade-off ringkas</a></li><li class="depth-2"><a href="#pertanyaan-yang-sering-ditanya-interviewer">Pertanyaan yang sering ditanya interviewer</a></li><li class="depth-2"><a href="#ringkasan">Ringkasan</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

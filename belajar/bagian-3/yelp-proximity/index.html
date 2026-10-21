@@ -1,0 +1,222 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Menemukan tempat dalam radius tertentu dari posisi user: membandingkan geohash, quadtree, dan index grid heksagonal; memisahkan data bisnis yang jarang berubah dari pencarian geospasial yang sangat sering dibaca."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Yelp / proximity service · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 3 · Studi Kasus · Studi kasus</span><h1>Yelp / proximity service</h1><div class="lesson-meta"><span class="badge">⏱ ±55 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/database">Database: replication, partitioning, SQL vs NoSQL</a>, <a href="/sysdesign-lab/belajar/bagian-2/distributed-cache">Distributed cache</a>, <a href="/sysdesign-lab/belajar/bagian-2/distributed-search">Distributed search</a>, <a href="/sysdesign-lab/belajar/bagian-3/uber">Uber</a></span></div><p class="lesson-summary">Menemukan tempat dalam radius tertentu dari posisi user: membandingkan geohash, quadtree, dan index grid heksagonal; memisahkan data bisnis yang jarang berubah dari pencarian geospasial yang sangat sering dibaca.</p><div class="prose"><h2 id="1-requirements">1. Requirements</h2>
+<p>Klarifikasi: radius maksimum? Hasil diurutkan by jarak, rating, atau relevansi? Seberapa sering bisnis berubah? Apakah perlu pencarian teks (“sushi”) digabung lokasi? Ulasan termasuk?</p>
+<h3 id="functional">Functional</h3>
+<ul>
+<li>Cari tempat dalam radius r dari (lat, lng), dengan filter kategori dan teks opsional, diurutkan by jarak atau skor.</li>
+<li>Lihat detail tempat (jam, foto, rating, ulasan ringkas).</li>
+<li>Pemilik menambah/mengubah tempat; perubahan terlihat dalam menit.</li>
+<li>Out of scope: menulis ulasan (dibahas ringkas), rekomendasi, iklan, reservasi.</li>
+</ul>
+<h3 id="non-functional">Non-functional</h3>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Target</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Latency pencarian</td>
+<td>p99 &lt; 200 ms</td>
+<td>Interaktif saat peta digeser</td>
+</tr>
+<tr>
+<td>Availability</td>
+<td>99.99% baca</td>
+<td>Produk inti</td>
+</tr>
+<tr>
+<td>Konsistensi</td>
+<td>Eventual (menit) untuk perubahan tempat; detail yang dilihat harus utuh</td>
+<td>Read-heavy</td>
+</tr>
+<tr>
+<td>Skala</td>
+<td>200 juta tempat, 100 juta DAU, 10.000+ QPS pencarian</td>
+<td>Global</td>
+</tr>
+<tr>
+<td>Kelengkapan</td>
+<td>Tidak melewatkan tempat di dalam radius</td>
+<td>Kepercayaan</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-estimasi-kapasitas">2. Estimasi kapasitas</h2>
+<p>Asumsi: 200 juta tempat; 100 juta DAU dengan 5 pencarian/hari; detail tempat 2 KB + foto di blob; perubahan 1% tempat/hari.</p>
+<ul>
+<li>Pencarian: 100M × 5 / 10^5 ≈ <strong>5.000 QPS</strong>, puncak 15.000.</li>
+<li>Index geospasial: 200M × (id 8 B + lat/lng 16 B + cell 8 B + flag 8 B ≈ 40 B) ≈ <strong>8 GB</strong>; muat di memori, dipartisi by wilayah dan direplikasi.</li>
+<li>Detail: 200M × 2 KB ≈ 400 GB di DB; cache objek untuk tempat populer (20% × 400 GB = 80 GB).</li>
+<li>Tulis: 2 juta perubahan/hari ≈ 25/s; trivial; index diperbarui via stream.</li>
+<li>Hasil per query: ambil ≤ 100 kandidat dari index, hydrate 20 untuk halaman pertama = 20 multi-get cache per query → 100.000–300.000 cache get/s.</li>
+</ul>
+<p>Keputusan: index ringkas di memori, detail di DB + cache, sinkronisasi async; tidak ada sharding DB untuk tulis (25/s), tetapi partisi index untuk lokalitas dan replikasi untuk throughput.</p>
+<h2 id="3-api-design">3. API design</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>GET /v1/search?lat=&amp;lng=&amp;radius=1000&amp;category=restaurant&amp;q=sushi&amp;sort=distance|score&amp;cursor=</span></span>
+<span class="line"><span>    → { results: [{ placeId, name, distanceM, rating, category, thumbUrl }], nextCursor }</span></span>
+<span class="line"><span>GET /v1/places/{id}      → detail lengkap</span></span>
+<span class="line"><span>POST /v1/places          (pemilik; auth)  → 202, menunggu verifikasi</span></span>
+<span class="line"><span>PATCH /v1/places/{id}    (pemilik)        → 202</span></span></code></pre>
+<p>Radius dibatasi (mis. 50 km) dan hasil dipotong (k-nearest 100) agar biaya terikat. Cursor berisi posisi dalam daftar yang sudah diurutkan dan hash parameter.</p>
+<h2 id="4-skema-data">4. Skema data</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">places(id, </span><span style="color:#D73A49;--shiki-dark:#F97583">name</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, category, lat, lng, geohash6 </span><span style="color:#6A737D;--shiki-dark:#6A737D">/* atau cell */</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, </span><span style="color:#D73A49;--shiki-dark:#F97583">address</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, phone, </span><span style="color:#D73A49;--shiki-dark:#F97583">hours</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> JSONB,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">       rating, review_count, </span><span style="color:#D73A49;--shiki-dark:#F97583">status</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, updated_at)          </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- sumber kebenaran, index pada geohash6</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">photos(place_id, blob_key, order)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">reviews(id, place_id, user_id, rating, </span><span style="color:#D73A49;--shiki-dark:#F97583">text</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, created_at)  </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- shard by place_id</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#6A737D">-- Index geospasial (memori/KV, turunan):</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">cell_index: cell_id → [ {place_id, lat, lng, category_bits, rating_bucket} ]   </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- diurutkan/di-bucket</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">place_cell: place_id → cell_id  (untuk </span><span style="color:#D73A49;--shiki-dark:#F97583">update</span><span style="color:#24292E;--shiki-dark:#E1E4E8">: hapus dari sel lama)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#6A737D">-- Cache objek: place:{id} → detail ringkas (TTL jam, dihapus saat update)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#6A737D">-- Search cluster (opsional): index teks tempat dengan geo_point untuk q + lokasi</span></span></code></pre>
+<p>Pilihan sel: geohash presisi 6 (±1 km) atau H3 res 8; presisi dipilih dari radius umum. Satu tempat hanya di satu sel.</p>
+<h2 id="5-high-level-design">5. High-level design</h2>
+<pre><code class="language-mermaid">flowchart LR
+  C[Client] --&gt; GW[API gateway]
+  GW --&gt; SS[Search service]
+  SS --&gt; GI[(Geo index\nmemori, partisi by wilayah,\nreplika)]
+  SS --&gt; OC[(Place cache)]
+  OC -. miss .-&gt; PDB[(Places DB)]
+  SS --&gt; TX[(Search cluster\nteks + geo)]
+  GW --&gt; PS[&quot;Place service\n(CRUD, verifikasi)&quot;]
+  PS --&gt; PDB
+  PDB --&gt; CDC[CDC / outbox] --&gt; Q[[Queue: place-changed]]
+  Q --&gt; IDX[Index updater] --&gt; GI
+  Q --&gt; IDX2[Text indexer] --&gt; TX
+  Q --&gt; INV[Cache invalidator] --&gt; OC
+  C --&gt;|foto| CDN[CDN] --&gt; BLOB[(Blob)]
+</code></pre>
+<p><strong>Alur pencarian</strong>: client → search service → hitung sel user + ring tetangga sesuai radius → ambil kandidat dari partisi index (satu atau dua partisi di batas wilayah) → filter kategori/radius nyata (haversine) → urutkan (jarak atau skor gabungan jarak+rating) → ambil top-k → hydrate 20 dari cache objek → respons. Bila ada <code>q</code> teks: query search cluster dengan filter geo_distance, lalu hydrate.</p>
+<p><strong>Alur perubahan</strong>: pemilik → place service → DB → CDC → queue → index updater memindahkan tempat antar sel (jika lokasi berubah) atau memperbarui atribut ringkas; cache objek dihapus; text indexer memperbarui dokumen. Terlihat dalam detik–menit.</p>
+<h2 id="6-detailed-design">6. Detailed design</h2>
+<h3 id="61-memilih-index-geospasial">6.1 Memilih index geospasial</h3>
+<table>
+<thead>
+<tr>
+<th>Pendekatan</th>
+<th>Cara</th>
+<th>Kelebihan</th>
+<th>Kekurangan</th>
+<th>Cocok</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Geohash (string prefix)</td>
+<td>2D → string base32; sel = prefix</td>
+<td>Sederhana, bisa di DB/KV apa pun (index B-tree pada string), range query by prefix</td>
+<td>Sel seragam (padat vs kosong), bentuk persegi panjang, batas sel; tetangga perlu dihitung</td>
+<td>Default untuk penyimpanan</td>
+</tr>
+<tr>
+<td>S2 / H3 (cell id)</td>
+<td>Kurva Hilbert / heksagon hirarkis</td>
+<td>Sel lebih seragam secara luas; H3 ring tetangga mudah; hirarki resolusi</td>
+<td>Butuh library; id 64-bit</td>
+<td>Index memori, analitik</td>
+</tr>
+<tr>
+<td>Quadtree</td>
+<td>Pohon; sel dipecah saat &gt; N tempat</td>
+<td>Adaptif terhadap kepadatan; k-nearest efisien (telusuri sel terdekat)</td>
+<td>Struktur memori yang harus dibangun, dipartisi, direplikasi; update menyeimbangkan pohon</td>
+<td>Query nearest di memori</td>
+</tr>
+<tr>
+<td>R-tree / GiST (PostGIS)</td>
+<td>Pohon bounding box</td>
+<td>Query spasial lengkap di SQL</td>
+<td>Throughput terbatas DB tunggal</td>
+<td>Skala kecil-menengah, prototipe</td>
+</tr>
+</tbody>
+</table>
+<p>Pilihan: <strong>geohash/H3 di penyimpanan dan index memori</strong> (partisi, replikasi mudah), dengan <strong>quadtree opsional</strong> di memori tiap partisi untuk k-nearest yang cepat pada area padat. Jelaskan batas sel dan ring tetangga dalam setiap pilihan.</p>
+<pre><code class="language-mermaid">flowchart LR
+  U[User lat,lng radius 1 km] --&gt; G[geohash6 user: &#39;qqgux&#39;]
+  G --&gt; N[8 tetangga: &#39;qqguv&#39;,&#39;qqguy&#39;,…]
+  N --&gt; F[&quot;Ambil kandidat 9 sel\n(≈ ratusan tempat)&quot;]
+  F --&gt; H[Filter haversine ≤ 1 km\n+ kategori]
+  H --&gt; S[Urutkan &amp; top-k]
+</code></pre>
+<h3 id="62-partisi-dan-replikasi-index">6.2 Partisi dan replikasi index</h3>
+<ul>
+<li>Partisi by wilayah (kumpulan sel) ke node; wilayah dipilih agar beban merata (kota besar = wilayah sendiri). Query di batas wilayah menyentuh 2 node.</li>
+<li>Replikasi: index adalah turunan, dibangun ulang dari DB; tiap partisi punya beberapa replika read-only; update dari queue diterapkan ke semua replika (idempotent, versi per tempat).</li>
+<li>Rebuild: snapshot periodik dari DB untuk node baru, lalu catch-up dari queue (offset).</li>
+</ul>
+<h3 id="63-ranking">6.3 Ranking</h3>
+<p>Skor = w1 × f(jarak) + w2 × rating × log(review_count) + w3 × kecocokan teks + w4 × buka sekarang. Hitung di search service untuk ≤ 100 kandidat; murah. Personalisasi (riwayat) sebagai ekstensi di tahap kedua.</p>
+<h3 id="64-detail-dan-ulasan">6.4 Detail dan ulasan</h3>
+<ul>
+<li>Detail dari cache objek (cache-aside, hapus saat update); foto via CDN.</li>
+<li>Ulasan: shard by place_id, halaman pertama di-cache; rating agregat dihitung ulang asinkron saat ulasan baru (counter + rata-rata; sharded counter untuk tempat viral).</li>
+</ul>
+<h3 id="65-konsistensi-dan-pembaruan">6.5 Konsistensi dan pembaruan</h3>
+<ul>
+<li>Tempat baru menunggu verifikasi (status <code>pending</code>) sebelum masuk index.</li>
+<li>Perubahan lokasi: index updater menghapus dari sel lama dan menambah ke sel baru; antara dua langkah, tempat bisa muncul dua kali atau tidak sama sekali sesaat; versi per tempat membuat pembaca mengabaikan entri basi.</li>
+<li>Lag index dipantau; SLA “terlihat dalam 5 menit”.</li>
+</ul>
+<h2 id="7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Dipenuhi oleh</th>
+<th>Risiko tersisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>p99 &lt; 200 ms</td>
+<td>Index memori lokal, ≤ 9 sel, hydrate dari cache</td>
+<td>Area sangat padat: ribuan kandidat per sel; quadtree/sel lebih kecil adaptif</td>
+</tr>
+<tr>
+<td>Availability 99.99%</td>
+<td>Index replika, stateless search service, cache; DB hanya untuk miss</td>
+<td>Kehilangan semua replika partisi: rebuild dari snapshot (menit)</td>
+</tr>
+<tr>
+<td>Eventual (menit)</td>
+<td>CDC → queue → index/ cache invalidasi</td>
+<td>Lag saat backlog; prioritas perubahan lokasi</td>
+</tr>
+<tr>
+<td>Kelengkapan</td>
+<td>Ring tetangga + filter jarak nyata</td>
+<td>Radius besar (50 km) → turunkan presisi, bukan ring 1.000 sel</td>
+</tr>
+<tr>
+<td>Skala</td>
+<td>Index 8 GB terpartisi/replika; tulis kecil</td>
+<td>Hot wilayah (pusat kota saat makan siang): replika tambahan</td>
+</tr>
+</tbody>
+</table>
+<p>Bottleneck 10x: cache objek (hydrate) dan partisi index wilayah populer; keduanya horizontal via replika. SPOF: queue perubahan; cluster terreplikasi; index tetap melayani data lama bila queue mati.</p>
+<h2 id="8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</h2>
+<ul>
+<li>“Pencarian teks + lokasi (‘sushi dekat saya’)?” → Search cluster dengan filter geo_distance dan skor gabungan, atau filter teks di kandidat sel bila kecil.</li>
+<li>“Objek yang bergerak (pengemudi)?” → Update tinggi; lihat kasus Uber: index memori dengan TTL, tanpa DB per ping.</li>
+<li>“Polygon (‘dalam wilayah Menteng’) bukan radius?” → Pecah polygon menjadi himpunan sel (S2 covering), query sel, filter point-in-polygon.</li>
+<li>“Pagination stabil saat data berubah?” → Cursor berisi skor+id terakhir; hasil baru di antara dua halaman diterima.</li>
+<li>“Multi-region?” → Index per region geografis secara alami lokal; DB primary per region atau global dengan replika baca.</li>
+<li>“Mengukur kualitas pencarian?” → CTR hasil, rasio hasil kosong, latency per partisi.</li>
+</ul></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://en.wikipedia.org/wiki/Geohash" target="_blank" rel="noopener noreferrer">Geohash — Wikipedia</a></li><li><a href="https://en.wikipedia.org/wiki/Quadtree" target="_blank" rel="noopener noreferrer">Quadtree — Wikipedia</a></li><li><a href="https://redis.io/docs/latest/develop/data-types/geospatial/" target="_blank" rel="noopener noreferrer">Redis docs — Geospatial (GEOADD, GEOSEARCH)</a></li><li><a href="https://postgis.net/workshops/postgis-intro/indexing.html" target="_blank" rel="noopener noreferrer">PostGIS docs — Spatial indexing (GiST)</a></li><li><a href="https://www.uber.com/blog/h3/" target="_blank" rel="noopener noreferrer">Uber Engineering — H3: Hexagonal Hierarchical Spatial Index</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-3/yelp-proximity" data-quiz="[{&quot;q&quot;:&quot;Kenapa index B-tree pada kolom latitude dan satu lagi pada longitude tidak cukup untuk query \&quot;semua tempat dalam radius 1 km\&quot;?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena B-tree tidak bisa menyimpan angka desimal&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Bisa; masalahnya dimensi.&quot;},{&quot;text&quot;:&quot;Karena tiap index hanya membatasi satu dimensi: range latitude ±1 km masih mencakup pita selebar seluruh dunia; irisan dua range tetap memindai banyak baris sebelum menghitung jarak nyata&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Data 2D butuh index yang menjaga kedekatan spasial: geohash/S2/H3 (mengubah 2D menjadi string/ID 1D yang terurut) atau struktur pohon (quadtree, R-tree/GiST).&quot;},{&quot;text&quot;:&quot;Karena latitude dan longitude disimpan sebagai string&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tipe tidak relevan.&quot;},{&quot;text&quot;:&quot;Karena query radius memerlukan join&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak ada join.&quot;}]},{&quot;q&quot;:&quot;Dengan geohash presisi 6 (sel ~1.2 km × 0.6 km), user di tepi sel mencari radius 1 km. Masalah apa yang muncul dan solusinya?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Tidak ada masalah; satu sel cukup&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tempat di sel sebelah yang jaraknya 100 m akan terlewat.&quot;},{&quot;text&quot;:&quot;Tempat dekat di sel tetangga terlewat; solusinya query sel user + 8 sel tetangga (prefix geohash masing-masing), lalu filter by jarak nyata&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Masalah batas sel adalah sifat semua grid. Ring tetangga + filter jarak menjamin kelengkapan; untuk radius lebih besar, turunkan presisi atau perbesar ring.&quot;},{&quot;text&quot;:&quot;Gunakan presisi 12 agar lebih akurat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Sel lebih kecil memperburuk masalah batas (lebih banyak sel harus dicek).&quot;},{&quot;text&quot;:&quot;Simpan setiap tempat di semua sel&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Duplikasi tanpa batas.&quot;}]},{&quot;q&quot;:&quot;Quadtree vs geohash untuk 200 juta tempat dengan kepadatan sangat tidak merata (kota padat, gurun kosong). Mana pernyataan yang tepat?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Geohash selalu lebih baik karena sederhana&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Geohash membagi dunia merata; sel kota padat bisa berisi puluhan ribu tempat, sel gurun kosong.&quot;},{&quot;text&quot;:&quot;Quadtree membagi sel hanya saat penuh (mis. &amp;gt; 100 tempat), sehingga sel kecil di kota dan besar di gurun; query k-nearest lebih efisien, tetapi strukturnya pohon di memori yang harus dipartisi dan direplikasi sendiri, sedangkan geohash cukup string terurut di DB/KV apa pun&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Trade-off: adaptif vs sederhana. Banyak sistem memakai geohash/S2 di penyimpanan dan quadtree/k-d tree di memori untuk query nearest.&quot;},{&quot;text&quot;:&quot;Quadtree tidak bisa menangani penambahan tempat baru&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Bisa; sel dipecah saat penuh.&quot;},{&quot;text&quot;:&quot;Keduanya tidak bisa menangani 200 juta tempat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;200 juta × ~50 B ≈ 10 GB; muat di memori beberapa node.&quot;}]},{&quot;q&quot;:&quot;Data bisnis (jam buka, menu, rating) berubah jarang, tetapi pencarian \&quot;restoran dekat saya\&quot; terjadi 10.000 QPS. Desain penyimpanan yang tepat?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Semua di satu tabel relasional yang dibaca langsung tiap query&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Query radius + join detail pada 10.000 QPS membebani DB; detail bisnis pun besar.&quot;},{&quot;text&quot;:&quot;Index geospasial (id, lat, lng, cell, kategori ringkas) di memori/KV terpartisi dan direplikasi untuk query, DB relasional sebagai sumber kebenaran detail bisnis dengan cache objek; perubahan dialirkan ke index via CDC/event&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Read-heavy dengan dua pola akses berbeda: cari by lokasi (index ringkas) lalu hydrate by id (cache objek). Pemisahan ini memberi skala baca tanpa mengorbankan konsistensi sumber.&quot;},{&quot;text&quot;:&quot;Hanya cache, tanpa DB&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Cache bukan sumber kebenaran; data bisnis harus durable.&quot;},{&quot;text&quot;:&quot;Simpan detail bisnis di dalam index geospasial&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Index menjadi besar dan setiap perubahan detail memaksa menulis ulang index.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Kenapa index B-tree pada kolom latitude dan satu lagi pada longitude tidak cukup untuk query &quot;semua tempat dalam radius 1 km&quot;?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Karena B-tree tidak bisa menyimpan angka desimal</span></label><div class="why">Bisa; masalahnya dimensi.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>Karena tiap index hanya membatasi satu dimensi: range latitude ±1 km masih mencakup pita selebar seluruh dunia; irisan dua range tetap memindai banyak baris sebelum menghitung jarak nyata</span></label><div class="why">Data 2D butuh index yang menjaga kedekatan spasial: geohash/S2/H3 (mengubah 2D menjadi string/ID 1D yang terurut) atau struktur pohon (quadtree, R-tree/GiST).</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Karena latitude dan longitude disimpan sebagai string</span></label><div class="why">Tipe tidak relevan.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Karena query radius memerlukan join</span></label><div class="why">Tidak ada join.</div></div></fieldset><fieldset><legend>2. Dengan geohash presisi 6 (sel ~1.2 km × 0.6 km), user di tepi sel mencari radius 1 km. Masalah apa yang muncul dan solusinya?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Tidak ada masalah; satu sel cukup</span></label><div class="why">Tempat di sel sebelah yang jaraknya 100 m akan terlewat.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Tempat dekat di sel tetangga terlewat; solusinya query sel user + 8 sel tetangga (prefix geohash masing-masing), lalu filter by jarak nyata</span></label><div class="why">Masalah batas sel adalah sifat semua grid. Ring tetangga + filter jarak menjamin kelengkapan; untuk radius lebih besar, turunkan presisi atau perbesar ring.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Gunakan presisi 12 agar lebih akurat</span></label><div class="why">Sel lebih kecil memperburuk masalah batas (lebih banyak sel harus dicek).</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Simpan setiap tempat di semua sel</span></label><div class="why">Duplikasi tanpa batas.</div></div></fieldset><fieldset><legend>3. Quadtree vs geohash untuk 200 juta tempat dengan kepadatan sangat tidak merata (kota padat, gurun kosong). Mana pernyataan yang tepat?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>Geohash selalu lebih baik karena sederhana</span></label><div class="why">Geohash membagi dunia merata; sel kota padat bisa berisi puluhan ribu tempat, sel gurun kosong.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>Quadtree membagi sel hanya saat penuh (mis. &amp;gt; 100 tempat), sehingga sel kecil di kota dan besar di gurun; query k-nearest lebih efisien, tetapi strukturnya pohon di memori yang harus dipartisi dan direplikasi sendiri, sedangkan geohash cukup string terurut di DB/KV apa pun</span></label><div class="why">Trade-off: adaptif vs sederhana. Banyak sistem memakai geohash/S2 di penyimpanan dan quadtree/k-d tree di memori untuk query nearest.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Quadtree tidak bisa menangani penambahan tempat baru</span></label><div class="why">Bisa; sel dipecah saat penuh.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Keduanya tidak bisa menangani 200 juta tempat</span></label><div class="why">200 juta × ~50 B ≈ 10 GB; muat di memori beberapa node.</div></div></fieldset><fieldset><legend>4. Data bisnis (jam buka, menu, rating) berubah jarang, tetapi pencarian &quot;restoran dekat saya&quot; terjadi 10.000 QPS. Desain penyimpanan yang tepat?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Semua di satu tabel relasional yang dibaca langsung tiap query</span></label><div class="why">Query radius + join detail pada 10.000 QPS membebani DB; detail bisnis pun besar.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Index geospasial (id, lat, lng, cell, kategori ringkas) di memori/KV terpartisi dan direplikasi untuk query, DB relasional sebagai sumber kebenaran detail bisnis dengan cache objek; perubahan dialirkan ke index via CDC/event</span></label><div class="why">Read-heavy dengan dua pola akses berbeda: cari by lokasi (index ringkas) lalu hydrate by id (cache objek). Pemisahan ini memberi skala baca tanpa mengorbankan konsistensi sumber.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>Hanya cache, tanpa DB</span></label><div class="why">Cache bukan sumber kebenaran; data bisnis harus durable.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Simpan detail bisnis di dalam index geospasial</span></label><div class="why">Index menjadi besar dan setiap perubahan detail memaksa menulis ulang index.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-3/yelp-proximity"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="lbl">← Sebelumnya</span><span>Google Maps</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="lbl">Berikutnya →</span><span>Typeahead / autocomplete</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#1-requirements">1. Requirements</a></li><li class="depth-3"><a href="#functional">Functional</a></li><li class="depth-3"><a href="#non-functional">Non-functional</a></li><li class="depth-2"><a href="#2-estimasi-kapasitas">2. Estimasi kapasitas</a></li><li class="depth-2"><a href="#3-api-design">3. API design</a></li><li class="depth-2"><a href="#4-skema-data">4. Skema data</a></li><li class="depth-2"><a href="#5-high-level-design">5. High-level design</a></li><li class="depth-2"><a href="#6-detailed-design">6. Detailed design</a></li><li class="depth-3"><a href="#61-memilih-index-geospasial">6.1 Memilih index geospasial</a></li><li class="depth-3"><a href="#62-partisi-dan-replikasi-index">6.2 Partisi dan replikasi index</a></li><li class="depth-3"><a href="#63-ranking">6.3 Ranking</a></li><li class="depth-3"><a href="#64-detail-dan-ulasan">6.4 Detail dan ulasan</a></li><li class="depth-3"><a href="#65-konsistensi-dan-pembaruan">6.5 Konsistensi dan pembaruan</a></li><li class="depth-2"><a href="#7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</a></li><li class="depth-2"><a href="#8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>

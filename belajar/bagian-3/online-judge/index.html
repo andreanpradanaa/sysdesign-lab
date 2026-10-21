@@ -1,0 +1,240 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Menjalankan kode orang asing dengan aman dan adil: antrian submission, worker tersandbox dengan batas CPU/memori/waktu, pengukuran yang konsisten, dan penanganan contest dengan lonjakan ribuan submission per detik."><meta name="theme-color" content="#4f46e5"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="icon" href="/sysdesign-lab/favicon.svg" type="image/svg+xml"><title>Online judge (LeetCode) · SysDesign Lab</title><script>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script><link rel="stylesheet" href="/sysdesign-lab/_astro/Base.DC91TfYu.css"></head><body data-available="[&quot;bagian-1/cara-kerja-interview&quot;,&quot;bagian-1/do-and-dont&quot;,&quot;bagian-1/abstraksi-distributed-system&quot;,&quot;bagian-1/karakteristik-non-fungsional&quot;,&quot;bagian-1/estimasi-kapasitas&quot;,&quot;bagian-2/dns&quot;,&quot;bagian-2/load-balancer&quot;,&quot;bagian-2/database&quot;,&quot;bagian-2/key-value-store&quot;,&quot;bagian-2/cdn&quot;,&quot;bagian-2/unique-id-generator&quot;,&quot;bagian-2/distributed-monitoring&quot;,&quot;bagian-2/distributed-cache&quot;,&quot;bagian-2/message-queue&quot;,&quot;bagian-2/pub-sub&quot;,&quot;bagian-2/rate-limiter&quot;,&quot;bagian-2/blob-store&quot;,&quot;bagian-2/distributed-search&quot;,&quot;bagian-2/distributed-logging&quot;,&quot;bagian-2/task-scheduler&quot;,&quot;bagian-2/sharded-counter&quot;,&quot;bagian-2/framework-45-menit&quot;,&quot;bagian-3/tinyurl&quot;,&quot;bagian-3/web-crawler&quot;,&quot;bagian-3/newsfeed&quot;,&quot;bagian-3/instagram&quot;,&quot;bagian-3/whatsapp&quot;,&quot;bagian-3/youtube&quot;,&quot;bagian-3/uber&quot;,&quot;bagian-3/google-maps&quot;,&quot;bagian-3/yelp-proximity&quot;,&quot;bagian-3/typeahead&quot;,&quot;bagian-3/google-docs&quot;,&quot;bagian-3/payment-system&quot;,&quot;bagian-3/deployment-system&quot;,&quot;bagian-3/online-judge&quot;,&quot;bagian-3/chatgpt-like&quot;,&quot;bagian-3/llm-customer-support&quot;,&quot;bagian-4/cloudflare&quot;,&quot;bagian-4/aws&quot;,&quot;bagian-4/facebook-bgp-2021&quot;,&quot;bagian-4/rangkuman&quot;]" data-base="/sysdesign-lab"><div class="app"><header class="header"><button id="menu-toggle" class="icon-btn menu-btn" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">☰</button><a class="brand" href="/sysdesign-lab/"><span class="brand-mark" aria-hidden="true">SD</span>SysDesign Lab</a><nav aria-label="Utama"><a href="/sysdesign-lab/" aria-current="page">Belajar</a><a href="/sysdesign-lab/mock">Mock Interview</a><a href="/sysdesign-lab/kuis">Kuis</a><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></nav><span class="spacer"></span><div class="header-progress" aria-hidden="true"><span data-progress-short>0/0</span><div class="progress"><div data-progress-bar></div></div></div><button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">☾</button></header><aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum"><div class="progress-wrap"><div class="small muted" data-progress-text>0/0 selesai · 0%</div><div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem"><div data-progress-bar></div></div><p style="margin:0.7rem 0 0"><a class="btn btn-primary small" data-continue-link href="#" style="white-space:normal;text-align:left;width:100%">Mulai belajar</a></p></div><nav class="mobile-nav" aria-label="Halaman"><h2>Halaman</h2><ul><li><a href="/sysdesign-lab/">Belajar</a></li><li><a href="/sysdesign-lab/mock">Mock Interview</a></li><li><a href="/sysdesign-lab/kuis">Kuis</a></li><li><a href="/sysdesign-lab/cheatsheet">Cheat Sheet</a></li></ul></nav><section><h2 title="Cara kerja interview, abstraksi distributed system, karakteristik non-fungsional, dan estimasi.">Bagian 1 · Fondasi</h2><ul><li data-lesson-id="bagian-1/cara-kerja-interview"><a href="/sysdesign-lab/belajar/bagian-1/cara-kerja-interview"><span class="check" aria-hidden="true">✓</span><span data-title>Cara kerja system design interview</span></a></li><li data-lesson-id="bagian-1/do-and-dont"><a href="/sysdesign-lab/belajar/bagian-1/do-and-dont"><span class="check" aria-hidden="true">✓</span><span data-title>Do &amp; don&#39;t saat interview</span></a></li><li data-lesson-id="bagian-1/abstraksi-distributed-system"><a href="/sysdesign-lab/belajar/bagian-1/abstraksi-distributed-system"><span class="check" aria-hidden="true">✓</span><span data-title>Abstraksi distributed system</span></a></li><li data-lesson-id="bagian-1/karakteristik-non-fungsional"><a href="/sysdesign-lab/belajar/bagian-1/karakteristik-non-fungsional"><span class="check" aria-hidden="true">✓</span><span data-title>Karakteristik non-fungsional</span></a></li><li data-lesson-id="bagian-1/estimasi-kapasitas"><a href="/sysdesign-lab/belajar/bagian-1/estimasi-kapasitas"><span class="check" aria-hidden="true">✓</span><span data-title>Back-of-the-envelope estimation</span></a></li></ul></section><section><h2 title="Komponen dasar yang dirangkai dalam hampir semua desain.">Bagian 2 · Building Blocks</h2><ul><li data-lesson-id="bagian-2/dns"><a href="/sysdesign-lab/belajar/bagian-2/dns"><span class="check" aria-hidden="true">✓</span><span data-title>DNS</span></a></li><li data-lesson-id="bagian-2/load-balancer"><a href="/sysdesign-lab/belajar/bagian-2/load-balancer"><span class="check" aria-hidden="true">✓</span><span data-title>Load balancer</span></a></li><li data-lesson-id="bagian-2/database"><a href="/sysdesign-lab/belajar/bagian-2/database"><span class="check" aria-hidden="true">✓</span><span data-title>Database: replication, partitioning, SQL vs NoSQL</span></a></li><li data-lesson-id="bagian-2/key-value-store"><a href="/sysdesign-lab/belajar/bagian-2/key-value-store"><span class="check" aria-hidden="true">✓</span><span data-title>Key-value store</span></a></li><li data-lesson-id="bagian-2/cdn"><a href="/sysdesign-lab/belajar/bagian-2/cdn"><span class="check" aria-hidden="true">✓</span><span data-title>CDN</span></a></li><li data-lesson-id="bagian-2/unique-id-generator"><a href="/sysdesign-lab/belajar/bagian-2/unique-id-generator"><span class="check" aria-hidden="true">✓</span><span data-title>Unique ID generator</span></a></li><li data-lesson-id="bagian-2/distributed-monitoring"><a href="/sysdesign-lab/belajar/bagian-2/distributed-monitoring"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed monitoring</span></a></li><li data-lesson-id="bagian-2/distributed-cache"><a href="/sysdesign-lab/belajar/bagian-2/distributed-cache"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed cache</span></a></li><li data-lesson-id="bagian-2/message-queue"><a href="/sysdesign-lab/belajar/bagian-2/message-queue"><span class="check" aria-hidden="true">✓</span><span data-title>Message queue</span></a></li><li data-lesson-id="bagian-2/pub-sub"><a href="/sysdesign-lab/belajar/bagian-2/pub-sub"><span class="check" aria-hidden="true">✓</span><span data-title>Pub-sub</span></a></li><li data-lesson-id="bagian-2/rate-limiter"><a href="/sysdesign-lab/belajar/bagian-2/rate-limiter"><span class="check" aria-hidden="true">✓</span><span data-title>Rate limiter</span></a></li><li data-lesson-id="bagian-2/blob-store"><a href="/sysdesign-lab/belajar/bagian-2/blob-store"><span class="check" aria-hidden="true">✓</span><span data-title>Blob store</span></a></li><li data-lesson-id="bagian-2/distributed-search"><a href="/sysdesign-lab/belajar/bagian-2/distributed-search"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed search</span></a></li><li data-lesson-id="bagian-2/distributed-logging"><a href="/sysdesign-lab/belajar/bagian-2/distributed-logging"><span class="check" aria-hidden="true">✓</span><span data-title>Distributed logging</span></a></li><li data-lesson-id="bagian-2/task-scheduler"><a href="/sysdesign-lab/belajar/bagian-2/task-scheduler"><span class="check" aria-hidden="true">✓</span><span data-title>Task scheduler</span></a></li><li data-lesson-id="bagian-2/sharded-counter"><a href="/sysdesign-lab/belajar/bagian-2/sharded-counter"><span class="check" aria-hidden="true">✓</span><span data-title>Sharded counter</span></a></li><li data-lesson-id="bagian-2/framework-45-menit"><a href="/sysdesign-lab/belajar/bagian-2/framework-45-menit"><span class="check" aria-hidden="true">✓</span><span data-title>Framework menjawab soal dalam 45 menit</span></a></li></ul></section><section><h2 title="Desain sistem nyata, selalu dengan urutan 8 langkah yang sama.">Bagian 3 · Studi Kasus</h2><ul><li data-lesson-id="bagian-3/tinyurl"><a href="/sysdesign-lab/belajar/bagian-3/tinyurl"><span class="check" aria-hidden="true">✓</span><span data-title>TinyURL: layanan pemendek URL</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/web-crawler"><a href="/sysdesign-lab/belajar/bagian-3/web-crawler"><span class="check" aria-hidden="true">✓</span><span data-title>Web crawler</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/newsfeed"><a href="/sysdesign-lab/belajar/bagian-3/newsfeed"><span class="check" aria-hidden="true">✓</span><span data-title>Twitter / newsfeed</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/instagram"><a href="/sysdesign-lab/belajar/bagian-3/instagram"><span class="check" aria-hidden="true">✓</span><span data-title>Instagram</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/whatsapp"><a href="/sysdesign-lab/belajar/bagian-3/whatsapp"><span class="check" aria-hidden="true">✓</span><span data-title>WhatsApp</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/youtube"><a href="/sysdesign-lab/belajar/bagian-3/youtube"><span class="check" aria-hidden="true">✓</span><span data-title>YouTube</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/uber"><a href="/sysdesign-lab/belajar/bagian-3/uber"><span class="check" aria-hidden="true">✓</span><span data-title>Uber</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-maps"><a href="/sysdesign-lab/belajar/bagian-3/google-maps"><span class="check" aria-hidden="true">✓</span><span data-title>Google Maps</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/yelp-proximity"><a href="/sysdesign-lab/belajar/bagian-3/yelp-proximity"><span class="check" aria-hidden="true">✓</span><span data-title>Yelp / proximity service</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/typeahead"><a href="/sysdesign-lab/belajar/bagian-3/typeahead"><span class="check" aria-hidden="true">✓</span><span data-title>Typeahead / autocomplete</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/google-docs"><a href="/sysdesign-lab/belajar/bagian-3/google-docs"><span class="check" aria-hidden="true">✓</span><span data-title>Google Docs</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/payment-system"><a href="/sysdesign-lab/belajar/bagian-3/payment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Payment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/deployment-system"><a href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="check" aria-hidden="true">✓</span><span data-title>Deployment system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/online-judge"><a href="/sysdesign-lab/belajar/bagian-3/online-judge" aria-current="page"><span class="check" aria-hidden="true">✓</span><span data-title>Online judge (LeetCode)</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/chatgpt-like"><a href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="check" aria-hidden="true">✓</span><span data-title>ChatGPT-like system</span><span class="badge">kasus</span></a></li><li data-lesson-id="bagian-3/llm-customer-support"><a href="/sysdesign-lab/belajar/bagian-3/llm-customer-support"><span class="check" aria-hidden="true">✓</span><span data-title>LLM customer support bot</span><span class="badge">kasus</span></a></li></ul></section><section><h2 title="Postmortem publik dibedah: apa yang gagal, kenapa, dan pola apa yang bisa dipetik.">Bagian 4 · Pelajaran dari Outage Nyata</h2><ul><li data-lesson-id="bagian-4/cloudflare"><a href="/sysdesign-lab/belajar/bagian-4/cloudflare"><span class="check" aria-hidden="true">✓</span><span data-title>Cloudflare: regex yang menghentikan internet selama 27 menit (2019)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/aws"><a href="/sysdesign-lab/belajar/bagian-4/aws"><span class="check" aria-hidden="true">✓</span><span data-title>AWS: us-east-1 dan jaringan internal yang kewalahan (2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/facebook-bgp-2021"><a href="/sysdesign-lab/belajar/bagian-4/facebook-bgp-2021"><span class="check" aria-hidden="true">✓</span><span data-title>Facebook: enam jam hilang dari internet (BGP, 2021)</span><span class="badge">outage</span></a></li><li data-lesson-id="bagian-4/rangkuman"><a href="/sysdesign-lab/belajar/bagian-4/rangkuman"><span class="check" aria-hidden="true">✓</span><span data-title>Rangkuman: pola yang berulang dan cara memakainya di interview</span></a></li></ul></section></aside><main class="main"><div class="lesson-layout"><article><span class="eyebrow">Bagian 3 · Studi Kasus · Studi kasus</span><h1>Online judge (LeetCode)</h1><div class="lesson-meta"><span class="badge">⏱ ±55 menit</span><span class="badge">✎ 4 soal kuis</span><span class="badge" style="white-space:normal">Prasyarat: <a href="/sysdesign-lab/belajar/bagian-2/message-queue">Message queue</a>, <a href="/sysdesign-lab/belajar/bagian-2/task-scheduler">Task scheduler</a>, <a href="/sysdesign-lab/belajar/bagian-2/blob-store">Blob store</a>, <a href="/sysdesign-lab/belajar/bagian-2/rate-limiter">Rate limiter</a></span></div><p class="lesson-summary">Menjalankan kode orang asing dengan aman dan adil: antrian submission, worker tersandbox dengan batas CPU/memori/waktu, pengukuran yang konsisten, dan penanganan contest dengan lonjakan ribuan submission per detik.</p><div class="prose"><h2 id="1-requirements">1. Requirements</h2>
+<p>Klarifikasi: bahasa yang didukung? Latihan saja atau contest dengan leaderboard real-time? Soal dengan checker khusus/interaktif? Batas waktu dan memori per soal? Apakah ada eksekusi “run” (uji dengan input sendiri) selain “submit”?</p>
+<h3 id="functional">Functional</h3>
+<ul>
+<li>Pengguna melihat soal, menulis kode di beberapa bahasa, menjalankan dengan input kustom, dan submit untuk dinilai terhadap test case tersembunyi.</li>
+<li>Verdict: Accepted, Wrong Answer, Time Limit Exceeded, Memory Limit Exceeded, Runtime Error, Compile Error; dengan waktu dan memori terpakai.</li>
+<li>Contest: durasi tetap, leaderboard, penalti; submission contest diprioritaskan.</li>
+<li>Pembuat soal mengunggah test case, solusi referensi, checker opsional.</li>
+<li>Out of scope: editor kolaboratif, plagiarism detection (disebut), diskusi.</li>
+</ul>
+<h3 id="non-functional">Non-functional</h3>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Target</th>
+<th>Alasan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Keamanan</td>
+<td>Kode user tidak bisa mengakses host, jaringan, atau submission lain</td>
+<td>Kode tidak dipercaya</td>
+</tr>
+<tr>
+<td>Keadilan</td>
+<td>Pengukuran waktu/memori konsisten antar mesin dan waktu</td>
+<td>Verdict harus adil</td>
+</tr>
+<tr>
+<td>Latency verdict</td>
+<td>p50 &lt; 5 s untuk soal biasa di luar puncak; posisi antrian terlihat saat puncak</td>
+<td>Umpan balik</td>
+</tr>
+<tr>
+<td>Availability</td>
+<td>99.9%; contest tidak boleh terganggu</td>
+<td>Reputasi</td>
+</tr>
+<tr>
+<td>Skala</td>
+<td>10 juta submission/bulan; puncak contest 1.000 submission/detik</td>
+<td>Lonjakan ekstrem</td>
+</tr>
+<tr>
+<td>Biaya</td>
+<td>Worker sandbox adalah biaya utama; autoscale</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-estimasi-kapasitas">2. Estimasi kapasitas</h2>
+<p>Asumsi: 10 juta submission/bulan; rata-rata 20 test case × 0.2 s CPU = 4 s CPU per submission (plus kompilasi ~1 s); puncak contest 1.000 submission/detik selama menit pertama.</p>
+<ul>
+<li>Rata-rata: 10^7 / 2.6×10^6 s ≈ <strong>4 submission/detik</strong> × 5 s CPU ≈ 20 core sibuk; kecil.</li>
+<li>Puncak contest: 1.000/s × 5 s = <strong>5.000 core</strong> untuk verdict instan; tidak masuk akal secara biaya. Target realistis: 500–1.000 core (autoscale, pre-warm sebelum contest) dengan antrian beberapa menit di menit pertama, prioritas untuk soal mudah/submission pertama.</li>
+<li>Storage: kode 10^7 × 5 KB = 50 GB/bulan; test case per soal (ratusan KB–puluhan MB) × 5.000 soal ≈ puluhan GB; output/log verdict kecil. Blob store untuk test case dan kode.</li>
+<li>Antrian: 60.000 pesan di menit pertama contest; trivial untuk broker.</li>
+<li>Leaderboard: 50.000 peserta × puluhan update/menit → sorted set di memori.</li>
+</ul>
+<p>Keputusan: API stateless + queue durable + pool worker sandbox homogen yang autoscale; test case di-cache lokal di worker; hasil ke DB + push ke client.</p>
+<h2 id="3-api-design">3. API design</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>GET  /v1/problems/{id}                       → statement, limits, contoh</span></span>
+<span class="line"><span>POST /v1/run      { problemId, lang, code, stdin }        → 202 { runId }       (uji cepat, tanpa penilaian, limit lebih ketat)</span></span>
+<span class="line"><span>POST /v1/submissions { problemId, lang, code, contestId?, Idempotency-Key } → 202 { submissionId, status: queued, position }</span></span>
+<span class="line"><span>GET  /v1/submissions/{id}                   → status, verdict, perTest: [{ verdict, timeMs, memKb }], compileOutput</span></span>
+<span class="line"><span>WS/SSE /v1/submissions/{id}/events          → status berubah (queued → running → verdict)</span></span>
+<span class="line"><span>GET  /v1/contests/{id}/leaderboard?cursor=  → peringkat</span></span>
+<span class="line"><span>POST /v1/problems (author)  { statement, limits, tests[] (upload via presigned URL), checker?, referenceSolution }</span></span></code></pre>
+<p>Rate limit: submission per user per menit (mis. 10), run per menit lebih longgar; ukuran kode maksimum.</p>
+<h2 id="4-skema-data">4. Skema data</h2>
+<pre class="astro-code astro-code-themes github-light github-dark" style="background-color:#fff;--shiki-dark-bg:#24292e;color:#24292e;--shiki-dark:#e1e4e8;overflow-x:auto" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">problems(id, title, statement_ref, time_limit_ms, memory_limit_kb, checker_ref, author_id, visibility)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">problem_tests(problem_id, idx, input_key, expected_key, </span><span style="color:#D73A49;--shiki-dark:#F97583">weight</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, is_sample)     </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- file di blob</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">submissions(id, user_id, problem_id, contest_id, lang, code_key, </span><span style="color:#D73A49;--shiki-dark:#F97583">status</span><span style="color:#24292E;--shiki-dark:#E1E4E8">, verdict, time_ms, memory_kb,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">            score, created_at, judged_at, worker_id)                          </span><span style="color:#6A737D;--shiki-dark:#6A737D">-- shard by id/time</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">submission_tests(submission_id, idx, verdict, time_ms, memory_kb, checker_msg)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">contests(id, start_at, end_at, rules), contest_participants(contest_id, user_id)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">leaderboard (Redis sorted </span><span style="color:#D73A49;--shiki-dark:#F97583">set</span><span style="color:#24292E;--shiki-dark:#E1E4E8"> per contest): score|penalty → user_id, dimaterialisasi ke DB berkala</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#E1E4E8">language_images(lang, image_digest, compile_cmd, run_cmd, limits_multiplier)</span></span></code></pre>
+<p>Kode dan test case di blob store; DB hanya referensi dan hasil. Idempotency key mencegah submission ganda saat retry.</p>
+<h2 id="5-high-level-design">5. High-level design</h2>
+<pre><code class="language-mermaid">flowchart LR
+  U[Client / editor] --&gt; GW[API gateway\nauth, rate limit]
+  GW --&gt; SS[Submission service]
+  SS --&gt; DB[(&quot;Submissions DB&quot;)]
+  SS --&gt; BLOB[(&quot;Blob: kode, test case&quot;)]
+  SS --&gt; Q[[&quot;Queue: judge\nprioritas contest &gt; latihan &gt; run&quot;]]
+  Q --&gt; W1[Judge worker\nsandbox per submission]
+  Q --&gt; W2[Judge worker]
+  W1 --&gt; TC[(&quot;Cache test case lokal&quot;)]
+  TC -. miss .-&gt; BLOB
+  W1 --&gt; RES[[&quot;Hasil: submission-judged&quot;]]
+  RES --&gt; SS
+  RES --&gt; LB[Leaderboard service\nsorted set]
+  RES --&gt; PUSH[Push ke client\nSSE/WS]
+  AS[Autoscaler\ndari lag antrian] --&gt; W2
+</code></pre>
+<p><strong>Alur submit</strong>: client → submission service memvalidasi (ukuran, bahasa, rate limit), menyimpan kode ke blob, membuat record <code>queued</code>, mengirim pesan ke queue dengan prioritas → worker mengambil pesan (lease/visibility timeout lebih panjang dari total limit), menandai <code>running</code>, mengunduh kode dan test case (cache lokal per problem), kompilasi di sandbox, menjalankan tiap test case di sandbox baru dengan limit, membandingkan output (atau checker), menghasilkan verdict → publish hasil → service memperbarui DB, leaderboard, dan push ke client.</p>
+<h2 id="6-detailed-design">6. Detailed design</h2>
+<h3 id="61-sandbox-eksekusi">6.1 Sandbox eksekusi</h3>
+<pre><code class="language-mermaid">flowchart LR
+  P[Pesan submission] --&gt; C[Siapkan sandbox\nimage bahasa read-only + tmpfs kerja]
+  C --&gt; K[&quot;Kompilasi\n(limit: 10 s, 512 MB, tanpa jaringan)&quot;]
+  K -- gagal --&gt; CE[Compile Error]
+  K --&gt; T1[&quot;Test 1: jalankan binary\nstdin dari file, stdout ke file\ncgroups: CPU 1 core pinned, mem limit\nseccomp: syscall minimal, no net, pids limit&quot;]
+  T1 --&gt; V1{bandingkan / checker}
+  V1 --&gt; T2[Test 2 …]
+  T2 --&gt; VD[Verdict agregat\n+ waktu/memori maksimum]
+</code></pre>
+<p>Lapisan isolasi (defense in depth):</p>
+<table>
+<thead>
+<tr>
+<th>Lapisan</th>
+<th>Mekanisme</th>
+<th>Melindungi dari</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Namespace</td>
+<td>PID, mount, net, user</td>
+<td>Melihat proses/filesystem host; jaringan dimatikan total</td>
+</tr>
+<tr>
+<td>cgroups v2</td>
+<td>cpu, memory (+ swap 0), pids</td>
+<td>Fork bomb, OOM host, CPU hog; sekaligus pengukuran</td>
+</tr>
+<tr>
+<td>seccomp</td>
+<td>Allowlist syscall per bahasa</td>
+<td>Syscall berbahaya</td>
+</tr>
+<tr>
+<td>Filesystem</td>
+<td>Root read-only, tmpfs kecil untuk kerja, no setuid</td>
+<td>Modifikasi, exfiltrasi</td>
+</tr>
+<tr>
+<td>Sandbox kernel</td>
+<td>gVisor (syscall diinterposisi) atau microVM Firecracker</td>
+<td>Eksploit kernel host</td>
+</tr>
+<tr>
+<td>Waktu</td>
+<td>CPU time limit via rlimit/cgroups + wall-clock guard</td>
+<td>Sleep/IO stall</td>
+</tr>
+</tbody>
+</table>
+<p>Satu sandbox per test case (atau per submission dengan reset) agar test case tidak saling memengaruhi; output dibatasi ukurannya (mencegah output bomb); stdin/stdout lewat file, bukan pipe tanpa batas.</p>
+<h3 id="62-keadilan-pengukuran">6.2 Keadilan pengukuran</h3>
+<ul>
+<li>Worker homogen (tipe instance sama), CPU frequency scaling dimatikan, satu submission per core dengan <code>cpuset</code>, tidak ada tetangga berisik (jangan menjalankan dua submission di core hyperthread sepasang).</li>
+<li>Ukur <strong>CPU time</strong> (user+sys) dari cgroups; wall-clock sebagai pengaman 2–3×.</li>
+<li>Limit per bahasa: faktor pengali (Python 3×, Java 2× + memori JVM) dikalibrasi dengan solusi referensi saat soal dibuat; verdikt “TLE” dengan toleransi kecil di ambang.</li>
+<li>Memori: peak dari cgroups memory.peak; JVM/.NET memerlukan pengaturan heap eksplisit.</li>
+</ul>
+<h3 id="63-antrian-prioritas-dan-skala">6.3 Antrian, prioritas, dan skala</h3>
+<ul>
+<li>Queue dengan beberapa tingkat prioritas: contest aktif &gt; latihan &gt; run; dalam contest, submission pertama per (user, soal) lebih dulu agar umpan balik merata.</li>
+<li>Visibility timeout = total limit + margin; worker mengirim heartbeat untuk submission panjang; worker mati → pesan kembali → submission dijalankan ulang (idempotent: hasil lama ditimpa by submission id).</li>
+<li>Autoscale worker dari lag dan waktu eksekusi rata-rata; <strong>pre-warm</strong> kapasitas sebelum contest (jadwal diketahui); cache image bahasa dan test case di node.</li>
+<li>Posisi antrian dan ETA ditampilkan ke user; batas submission per user per menit menahan spam.</li>
+</ul>
+<h3 id="64-penilaian-perbandingan-output-dan-checker">6.4 Penilaian: perbandingan output dan checker</h3>
+<ul>
+<li>Default: bandingkan token (abaikan whitespace di akhir); mode presisi untuk floating point (epsilon).</li>
+<li>Checker khusus (testlib-style): program pembuat soal dijalankan di sandbox juga; interaktif: interactor dan solusi dihubungkan lewat pipe di dalam sandbox dengan limit terpisah.</li>
+<li>Verdict agregat: berhenti di test pertama yang gagal (hemat) untuk contest ICPC-style, atau jalankan semua untuk skor parsial (IOI-style) tergantung aturan.</li>
+<li>Hasil per test disimpan; pesan checker dibatasi untuk tidak membocorkan test case tersembunyi.</li>
+</ul>
+<h3 id="65-contest-dan-leaderboard">6.5 Contest dan leaderboard</h3>
+<ul>
+<li>Jam contest dari server; submission ditandai contest hanya jika diterima sebelum <code>end_at</code> (dengan grace network kecil, diterapkan konsisten).</li>
+<li>Leaderboard di sorted set: skor gabungan (poin, penalti) sebagai score; update saat verdict; halaman diambil dengan ZRANGE; dimaterialisasi ke DB untuk hasil akhir; freeze leaderboard di menit akhir (opsional).</li>
+<li>Anti-cheat dasar: deteksi kemiripan kode async (MOSS-like) setelah contest; rate limit; satu sesi per user.</li>
+</ul>
+<h3 id="66-pengelolaan-soal">6.6 Pengelolaan soal</h3>
+<p>Pembuat mengunggah test via presigned URL; solusi referensi dijalankan untuk menghasilkan output yang diharapkan dan mengkalibrasi limit; validator input memeriksa batasan; versi test case agar submission lama tetap dapat direproduksi.</p>
+<h2 id="7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Dipenuhi oleh</th>
+<th>Risiko tersisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Keamanan</td>
+<td>Isolasi berlapis + gVisor/microVM, tanpa jaringan, read-only, pids/mem limit</td>
+<td>Zero-day kernel/sandbox: worker ephemeral, tanpa secret, jaringan egress ditutup di level host</td>
+</tr>
+<tr>
+<td>Keadilan</td>
+<td>Worker homogen, cpuset, CPU time, kalibrasi per bahasa</td>
+<td>Variasi cache CPU ~5%: toleransi di ambang</td>
+</tr>
+<tr>
+<td>Latency verdict</td>
+<td>Worker tersedia + cache test case; prioritas</td>
+<td>Puncak contest: antrian menit; posisi antrian terlihat; pre-warm</td>
+</tr>
+<tr>
+<td>Availability 99.9%</td>
+<td>API stateless, queue durable, worker ephemeral; contest tidak bergantung pada komponen non-kritis (anti-cheat, analitik)</td>
+<td>Kegagalan broker: cluster terreplikasi; submission tetap tersimpan di DB sebagai “queued” dan dapat di-requeue</td>
+</tr>
+<tr>
+<td>Skala</td>
+<td>Horizontal worker, blob untuk artefak, DB shard by waktu</td>
+<td>Biaya worker; batasi test case per soal dan early-exit</td>
+</tr>
+</tbody>
+</table>
+<p>Bottleneck 10x: kapasitas worker (biaya) dan unduh test case (cache lokal, image bahasa pre-pulled). SPOF: queue (replikasi) dan leaderboard store (replika + rebuild dari DB).</p>
+<h2 id="8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</h2>
+<ul>
+<li>“Bagaimana menjalankan ‘run’ interaktif (REPL) atau notebook?” → Sesi sandbox berumur panjang dengan limit total dan idle timeout; jauh lebih mahal; batasi per user.</li>
+<li>“Bahasa yang butuh JIT warm-up atau GC (Java, Go)?” → Faktor limit per bahasa, ukuran heap eksplisit, dan pengukuran CPU time, bukan wall-clock.</li>
+<li>“Soal dengan test case 1 GB?” → Cache di node, streaming input, atau generator test di dalam sandbox dari seed.</li>
+<li>“Mencegah kebocoran test case tersembunyi lewat output/pesan error?” → Batasi output, sembunyikan stderr detail, checker message generik.</li>
+<li>“Menjalankan ulang semua submission bila test case diperbaiki (rejudge)?” → Job batch prioritas rendah, versi test case, verdict lama disimpan untuk audit.</li>
+<li>“Multi-region?” → Queue dan worker per region, submission dirutekan ke region user, test case direplikasi ke blob tiap region.</li>
+</ul></div><section class="sources"><h2>Sumber referensi</h2><ul><li><a href="https://gvisor.dev/docs/" target="_blank" rel="noopener noreferrer">gVisor docs — Architecture (sandbox syscall)</a></li><li><a href="https://github.com/firecracker-microvm/firecracker/blob/main/docs/design.md" target="_blank" rel="noopener noreferrer">Firecracker — Design (microVM)</a></li><li><a href="https://docs.kernel.org/admin-guide/cgroup-v2.html" target="_blank" rel="noopener noreferrer">Linux kernel docs — Control Groups v2 (cgroups)</a></li><li><a href="https://docs.docker.com/engine/security/seccomp/" target="_blank" rel="noopener noreferrer">Docker docs — Seccomp security profiles</a></li><li><a href="https://ce.judge0.com/" target="_blank" rel="noopener noreferrer">Judge0 — Open-source online code execution system (docs)</a></li></ul><p class="small muted">Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.</p></section><section class="quiz" id="quiz" data-lesson="bagian-3/online-judge" data-quiz="[{&quot;q&quot;:&quot;Kenapa kode submission TIDAK boleh dijalankan di proses yang sama atau container biasa tanpa pembatasan tambahan?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Karena kode user selalu lambat&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Kecepatan bukan alasannya.&quot;},{&quot;text&quot;:&quot;Karena kode tidak dipercaya: bisa membaca file lain, membuka jaringan, fork bomb, menghabiskan memori, atau mengeksploitasi kernel; dibutuhkan isolasi berlapis (namespace, cgroups, seccomp, tanpa jaringan, filesystem read-only) dan idealnya sandbox dengan batas kernel (gVisor/microVM)&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Ancaman utamanya adalah eskalasi dan DoS. Container biasa berbagi kernel host; sandbox dengan permukaan syscall terbatas atau microVM mengurangi risiko eksploit kernel.&quot;},{&quot;text&quot;:&quot;Karena bahasa pemrograman berbeda&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Bahasa dikelola oleh image per bahasa; bukan alasan keamanan.&quot;},{&quot;text&quot;:&quot;Karena output harus dibandingkan&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Perbandingan output tidak terkait isolasi.&quot;}]},{&quot;q&quot;:&quot;Dua submission identik mendapat waktu eksekusi berbeda (120 ms vs 190 ms) karena berjalan di mesin berbeda. Bagaimana membuat penilaian \&quot;Time Limit Exceeded\&quot; adil?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Pakai waktu dinding (wall-clock) apa adanya&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Wall-clock dipengaruhi beban mesin lain.&quot;},{&quot;text&quot;:&quot;Ukur CPU time proses (bukan wall-clock) di mesin dengan spesifikasi seragam, satu submission per core yang dipin (cpuset), batas memori lewat cgroups, dan kalibrasi limit per bahasa dengan solusi referensi; wall-clock hanya sebagai pengaman (mis. 2× limit)&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Konsistensi pengukuran adalah requirement keadilan. Worker homogen, isolasi core, dan limit per bahasa memperkecil variasi.&quot;},{&quot;text&quot;:&quot;Jalankan tiga kali dan ambil rata-rata&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Mengalikan biaya tiga kali; membantu sedikit tetapi bukan solusi utama.&quot;},{&quot;text&quot;:&quot;Naikkan limit menjadi 10 detik untuk semua&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Menghilangkan makna batas waktu.&quot;}]},{&quot;q&quot;:&quot;Contest dimulai: 50.000 peserta mengirim submission dalam menit pertama. Desain apa yang menjaga sistem tetap responsif?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Menjalankan submission secara sinkron di API server&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;API server akan jenuh dan user menunggu tanpa umpan balik.&quot;},{&quot;text&quot;:&quot;Submission masuk antrian durable dengan status \&quot;queued\&quot;; pool worker sandbox menarik sesuai kapasitas (autoscale dari lag); hasil dipublikasikan ke client lewat polling/push; rate limit per user; prioritas contest di atas latihan&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Queue menyerap lonjakan, worker menentukan laju; user melihat posisi antrian. Kapasitas dihitung dari lag dan waktu eksekusi rata-rata.&quot;},{&quot;text&quot;:&quot;Menolak submission setelah 1.000 per menit&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Merusak contest.&quot;},{&quot;text&quot;:&quot;Menjalankan semua submission di satu mesin besar&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak horizontal dan menjadi SPOF.&quot;}]},{&quot;q&quot;:&quot;Bagaimana memverifikasi output submission untuk soal dengan banyak jawaban benar (mis. \&quot;kembalikan urutan apa pun yang valid\&quot;)?&quot;,&quot;options&quot;:[{&quot;text&quot;:&quot;Bandingkan string output dengan jawaban kunci&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Menolak jawaban valid yang berbeda.&quot;},{&quot;text&quot;:&quot;Pakai checker khusus per soal: program (dari pembuat soal) yang menerima input, output peserta, dan jawaban referensi lalu memutuskan benar/salah; checker pun dijalankan tersandbox&quot;,&quot;correct&quot;:true,&quot;why&quot;:&quot;Soal dengan jawaban tidak unik membutuhkan validator; interaktif bahkan memerlukan interactor yang berkomunikasi dengan solusi.&quot;},{&quot;text&quot;:&quot;Terima semua output yang tidak kosong&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak menilai apa pun.&quot;},{&quot;text&quot;:&quot;Minta peserta memverifikasi sendiri&quot;,&quot;correct&quot;:false,&quot;why&quot;:&quot;Tidak dapat dipercaya.&quot;}]}]" aria-labelledby="quiz-title"><h2 id="quiz-title">Kuis</h2><p class="muted small">Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.</p><form id="quiz-form" novalidate><fieldset><legend>1. Kenapa kode submission TIDAK boleh dijalankan di proses yang sama atau container biasa tanpa pembatasan tambahan?</legend><div class="opt" data-q="0" data-o="0"><label><input type="radio" name="q0" value="0"><span>Karena kode user selalu lambat</span></label><div class="why">Kecepatan bukan alasannya.</div></div><div class="opt" data-q="0" data-o="1"><label><input type="radio" name="q0" value="1"><span>Karena kode tidak dipercaya: bisa membaca file lain, membuka jaringan, fork bomb, menghabiskan memori, atau mengeksploitasi kernel; dibutuhkan isolasi berlapis (namespace, cgroups, seccomp, tanpa jaringan, filesystem read-only) dan idealnya sandbox dengan batas kernel (gVisor/microVM)</span></label><div class="why">Ancaman utamanya adalah eskalasi dan DoS. Container biasa berbagi kernel host; sandbox dengan permukaan syscall terbatas atau microVM mengurangi risiko eksploit kernel.</div></div><div class="opt" data-q="0" data-o="2"><label><input type="radio" name="q0" value="2"><span>Karena bahasa pemrograman berbeda</span></label><div class="why">Bahasa dikelola oleh image per bahasa; bukan alasan keamanan.</div></div><div class="opt" data-q="0" data-o="3"><label><input type="radio" name="q0" value="3"><span>Karena output harus dibandingkan</span></label><div class="why">Perbandingan output tidak terkait isolasi.</div></div></fieldset><fieldset><legend>2. Dua submission identik mendapat waktu eksekusi berbeda (120 ms vs 190 ms) karena berjalan di mesin berbeda. Bagaimana membuat penilaian &quot;Time Limit Exceeded&quot; adil?</legend><div class="opt" data-q="1" data-o="0"><label><input type="radio" name="q1" value="0"><span>Pakai waktu dinding (wall-clock) apa adanya</span></label><div class="why">Wall-clock dipengaruhi beban mesin lain.</div></div><div class="opt" data-q="1" data-o="1"><label><input type="radio" name="q1" value="1"><span>Ukur CPU time proses (bukan wall-clock) di mesin dengan spesifikasi seragam, satu submission per core yang dipin (cpuset), batas memori lewat cgroups, dan kalibrasi limit per bahasa dengan solusi referensi; wall-clock hanya sebagai pengaman (mis. 2× limit)</span></label><div class="why">Konsistensi pengukuran adalah requirement keadilan. Worker homogen, isolasi core, dan limit per bahasa memperkecil variasi.</div></div><div class="opt" data-q="1" data-o="2"><label><input type="radio" name="q1" value="2"><span>Jalankan tiga kali dan ambil rata-rata</span></label><div class="why">Mengalikan biaya tiga kali; membantu sedikit tetapi bukan solusi utama.</div></div><div class="opt" data-q="1" data-o="3"><label><input type="radio" name="q1" value="3"><span>Naikkan limit menjadi 10 detik untuk semua</span></label><div class="why">Menghilangkan makna batas waktu.</div></div></fieldset><fieldset><legend>3. Contest dimulai: 50.000 peserta mengirim submission dalam menit pertama. Desain apa yang menjaga sistem tetap responsif?</legend><div class="opt" data-q="2" data-o="0"><label><input type="radio" name="q2" value="0"><span>Menjalankan submission secara sinkron di API server</span></label><div class="why">API server akan jenuh dan user menunggu tanpa umpan balik.</div></div><div class="opt" data-q="2" data-o="1"><label><input type="radio" name="q2" value="1"><span>Submission masuk antrian durable dengan status &quot;queued&quot;; pool worker sandbox menarik sesuai kapasitas (autoscale dari lag); hasil dipublikasikan ke client lewat polling/push; rate limit per user; prioritas contest di atas latihan</span></label><div class="why">Queue menyerap lonjakan, worker menentukan laju; user melihat posisi antrian. Kapasitas dihitung dari lag dan waktu eksekusi rata-rata.</div></div><div class="opt" data-q="2" data-o="2"><label><input type="radio" name="q2" value="2"><span>Menolak submission setelah 1.000 per menit</span></label><div class="why">Merusak contest.</div></div><div class="opt" data-q="2" data-o="3"><label><input type="radio" name="q2" value="3"><span>Menjalankan semua submission di satu mesin besar</span></label><div class="why">Tidak horizontal dan menjadi SPOF.</div></div></fieldset><fieldset><legend>4. Bagaimana memverifikasi output submission untuk soal dengan banyak jawaban benar (mis. &quot;kembalikan urutan apa pun yang valid&quot;)?</legend><div class="opt" data-q="3" data-o="0"><label><input type="radio" name="q3" value="0"><span>Bandingkan string output dengan jawaban kunci</span></label><div class="why">Menolak jawaban valid yang berbeda.</div></div><div class="opt" data-q="3" data-o="1"><label><input type="radio" name="q3" value="1"><span>Pakai checker khusus per soal: program (dari pembuat soal) yang menerima input, output peserta, dan jawaban referensi lalu memutuskan benar/salah; checker pun dijalankan tersandbox</span></label><div class="why">Soal dengan jawaban tidak unik membutuhkan validator; interaktif bahkan memerlukan interactor yang berkomunikasi dengan solusi.</div></div><div class="opt" data-q="3" data-o="2"><label><input type="radio" name="q3" value="2"><span>Terima semua output yang tidak kosong</span></label><div class="why">Tidak menilai apa pun.</div></div><div class="opt" data-q="3" data-o="3"><label><input type="radio" name="q3" value="3"><span>Minta peserta memverifikasi sendiri</span></label><div class="why">Tidak dapat dipercaya.</div></div></fieldset><div style="display:flex;gap:0.6rem;flex-wrap:wrap"><button type="submit" class="btn-primary">Periksa jawaban</button><button type="button" id="quiz-reset">Ulangi</button></div></form><div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div><p class="small muted" id="quiz-last" hidden></p></section><script type="module" src="/sysdesign-lab/_astro/Quiz.astro_astro_type_script_index_0_lang.BkQkr4sZ.js"></script><div class="done-bar" id="mark-done" data-lesson="bagian-3/online-judge"><span style="font-size:1.4rem" aria-hidden="true">🎯</span><button type="button" id="mark-done-btn" class="btn-primary">Tandai selesai</button><span class="small muted" id="mark-done-status">Belum ditandai selesai.</span></div><script type="module" src="/sysdesign-lab/_astro/MarkDone.astro_astro_type_script_index_0_lang.BRnpETEo.js"></script><nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah"><a class="prev" href="/sysdesign-lab/belajar/bagian-3/deployment-system"><span class="lbl">← Sebelumnya</span><span>Deployment system</span></a><a class="next" href="/sysdesign-lab/belajar/bagian-3/chatgpt-like"><span class="lbl">Berikutnya →</span><span>ChatGPT-like system</span></a></nav></article><aside class="toc" aria-label="Daftar isi"><h4>Di halaman ini</h4><ul id="toc-list"><li class="depth-2"><a href="#1-requirements">1. Requirements</a></li><li class="depth-3"><a href="#functional">Functional</a></li><li class="depth-3"><a href="#non-functional">Non-functional</a></li><li class="depth-2"><a href="#2-estimasi-kapasitas">2. Estimasi kapasitas</a></li><li class="depth-2"><a href="#3-api-design">3. API design</a></li><li class="depth-2"><a href="#4-skema-data">4. Skema data</a></li><li class="depth-2"><a href="#5-high-level-design">5. High-level design</a></li><li class="depth-2"><a href="#6-detailed-design">6. Detailed design</a></li><li class="depth-3"><a href="#61-sandbox-eksekusi">6.1 Sandbox eksekusi</a></li><li class="depth-3"><a href="#62-keadilan-pengukuran">6.2 Keadilan pengukuran</a></li><li class="depth-3"><a href="#63-antrian-prioritas-dan-skala">6.3 Antrian, prioritas, dan skala</a></li><li class="depth-3"><a href="#64-penilaian-perbandingan-output-dan-checker">6.4 Penilaian: perbandingan output dan checker</a></li><li class="depth-3"><a href="#65-contest-dan-leaderboard">6.5 Contest dan leaderboard</a></li><li class="depth-3"><a href="#66-pengelolaan-soal">6.6 Pengelolaan soal</a></li><li class="depth-2"><a href="#7-evaluasi-terhadap-non-functional-requirements">7. Evaluasi terhadap non-functional requirements</a></li><li class="depth-2"><a href="#8-pertanyaan-lanjutan-interviewer">8. Pertanyaan lanjutan interviewer</a></li><li class="depth-2"><a href="#quiz">Kuis</a></li></ul></aside><script type="module">var e=Array.from(document.querySelectorAll(`#toc-list a`));if(e.length){let t=new Map(e.map(e=>[e.getAttribute(`href`).slice(1),e])),n=Array.from(t.keys()).map(e=>document.getElementById(e)).filter(Boolean),r,i=e=>{let n=t.get(e);n&&n!==r&&(r?.classList.remove(`active`),n.classList.add(`active`),r=n)},a=new IntersectionObserver(e=>{let t=e.filter(e=>e.isIntersecting).sort((e,t)=>e.boundingClientRect.top-t.boundingClientRect.top);t[0]&&i(t[0].target.id)},{rootMargin:`-80px 0px -70% 0px`,threshold:0});n.forEach(e=>a.observe(e)),n[0]&&i(n[0].id)}</script></div></main></div><script type="module" src="/sysdesign-lab/_astro/Base.astro_astro_type_script_index_0_lang.Cz0yScMk.js"></script></body></html>
