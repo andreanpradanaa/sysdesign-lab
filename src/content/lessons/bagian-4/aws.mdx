@@ -6,7 +6,7 @@ minutes: 45
 type: postmortem
 prerequisites:
   ['bagian-1/abstraksi-distributed-system', 'bagian-2/distributed-monitoring', 'bagian-2/key-value-store']
-summary: 'Aktivitas scaling otomatis memicu badai koneksi di jaringan internal AWS us-east-1, melumpuhkan layanan inti dan, yang lebih buruk, alat pemantauan dan komunikasi yang dibutuhkan untuk memperbaikinya. Dibandingkan dengan outage S3 2017 (salah ketik) dan Kinesis 2020 (batas thread).'
+summary: 'Aktivitas scaling otomatis memicu badai koneksi di jaringan internal AWS us-east-1. Layanan inti lumpuh, dan yang lebih buruk, alat pemantauan ikut mati. Dibandingkan dengan outage S3 2017 dan Kinesis 2020.'
 sources:
   - title: 'AWS — Summary of the AWS Service Event in the Northern Virginia (US-EAST-1) Region, December 7, 2021 (laporan resmi)'
     url: 'https://aws.amazon.com/message/12721/'
@@ -17,59 +17,59 @@ sources:
   - title: 'Amazon Builders’ Library — Avoiding fallback in distributed systems'
     url: 'https://aws.amazon.com/builders-library/avoiding-fallback-in-distributed-systems/'
 quiz:
-  - q: 'Dalam insiden 7 Desember 2021, apa yang membuat pemulihan jauh lebih lama daripada sekadar "mengurangi beban jaringan"?'
+  - q: 'Pada 7 Desember 2021, apa yang membuat pemulihan jauh lebih lama daripada sekadar mengurangi beban jaringan?'
     options:
-      - text: 'Datacenter kehilangan daya'
+      - text: 'Datacenter kehilangan daya listrik'
         correct: false
-        why: 'Bukan insiden daya.'
-      - text: 'Sistem pemantauan internal dan alat deploy berjalan di atas jaringan internal yang sama yang sedang jenuh, sehingga tim kehilangan visibilitas dan kesulitan menerapkan perbaikan; status page pun lambat diperbarui'
+        why: 'Ini bukan insiden daya.'
+      - text: 'Alat pemantauan dan deploy berjalan di jaringan yang sedang jenuh'
         correct: true
-        why: 'Laporan resmi menyebut operator "kehilangan" dashboard dan harus mengandalkan log serta pemahaman manual. Pola klasik: observability yang berbagi nasib dengan sistem yang diamati.'
-      - text: 'Pelanggan terus menambah beban'
+        why: 'Laporan resmi menyebut operator kehilangan dashboard dan harus mengandalkan log manual. Pemantauan ikut sakit bersama sistem yang diamati.'
+      - text: 'Pelanggan terus menambah beban selama insiden'
         correct: false
-        why: 'Beban berasal dari retry internal, bukan pelanggan.'
-      - text: 'Tidak ada insinyur yang tersedia'
+        why: 'Beban berasal dari pengulangan request oleh client internal, bukan pelanggan.'
+      - text: 'Tidak ada insinyur yang tersedia saat itu'
         correct: false
-        why: 'Tidak dilaporkan.'
-  - q: 'Mekanisme apa yang mengubah "sedikit latency" menjadi "jaringan lumpuh" pada Desember 2021?'
+        why: 'Laporan tidak menyebut hal itu.'
+  - q: 'Mekanisme apa yang mengubah sedikit latency menjadi jaringan yang lumpuh pada Desember 2021?'
     options:
-      - text: 'Retry agresif dari banyak client internal saat latency naik, yang menggandakan koneksi dan memperparah kemacetan (retry storm/congestive collapse)'
+      - text: 'Pengulangan request yang agresif saat latency naik'
         correct: true
-        why: 'Umpan balik positif: latency → timeout → retry → lebih banyak koneksi → latency lebih tinggi. Backoff eksponensial dengan jitter, retry budget, dan circuit breaker memutus lingkaran ini.'
-      - text: 'Kabel jaringan putus'
+        why: 'Ini umpan balik positif: latency memicu timeout, timeout memicu pengulangan, pengulangan menambah koneksi, dan latency naik lagi.'
+      - text: 'Kabel jaringan putus di satu lokasi'
         correct: false
-        why: 'Bukan kegagalan fisik.'
-      - text: 'DNS berhenti bekerja'
+        why: 'Ini bukan kegagalan fisik.'
+      - text: 'DNS berhenti bekerja lebih dulu'
         correct: false
         why: 'DNS terdampak sebagai akibat, bukan sebab.'
       - text: 'Pembaruan perangkat lunak router'
         correct: false
         why: 'Pemicunya aktivitas scaling otomatis, bukan upgrade.'
-  - q: 'Outage S3 28 Februari 2017 dipicu salah ketik yang menghapus terlalu banyak server dari subsistem index. Pelajaran desain apa yang paling tepat?'
+  - q: 'Outage S3 pada 28 Februari 2017 dipicu salah ketik yang menghapus terlalu banyak server. Pelajaran mana yang paling tepat?'
     options:
       - text: 'Operator tidak boleh menjalankan perintah apa pun'
         correct: false
-        why: 'Operasi tetap diperlukan; yang diperbaiki adalah pengamannya.'
-      - text: 'Alat operasional harus menolak atau memperlambat tindakan yang menghapus kapasitas di bawah ambang aman, dan subsistem besar harus rutin "dilatih" restart karena waktu pemulihan di skala yang belum pernah diuji bisa berjam-jam'
+        why: 'Operasi tetap diperlukan. Yang diperbaiki adalah pengamannya.'
+      - text: 'Alat operasional butuh batas aman, dan restart besar harus rutin dilatih'
         correct: true
-        why: 'Dua pelajaran dari laporan: guardrail pada alat (minimum kapasitas, laju) dan restart penuh yang tidak pernah dilakukan bertahun-tahun ternyata memakan waktu lama.'
-      - text: 'S3 seharusnya tidak dipakai untuk status page'
+        why: 'Dua pelajaran dari laporan: alat harus menolak penghapusan kapasitas di bawah ambang, dan restart penuh yang tak pernah dilakukan ternyata memakan jam.'
+      - text: 'S3 seharusnya tidak dipakai untuk halaman status'
         correct: false
-        why: 'Memang disebut sebagai pelajaran sampingan, tetapi bukan yang utama.'
-      - text: 'Index sebaiknya dihapus'
+        why: 'Itu disebut sebagai pelajaran sampingan, bukan yang utama.'
+      - text: 'Subsistem index sebaiknya dihapus'
         correct: false
-        why: 'Tidak masuk akal.'
-  - q: 'Kinesis 25 November 2020: menambah kapasitas justru menjatuhkan layanan. Bagaimana itu mungkin?'
+        why: 'Tidak masuk akal. Index adalah bagian inti S3.'
+  - q: 'Kinesis pada 25 November 2020: menambah kapasitas justru menjatuhkan layanan. Bagaimana itu mungkin?'
     options:
-      - text: 'Server baru rusak'
+      - text: 'Server baru yang ditambahkan rusak'
         correct: false
-        why: 'Server sehat; batas sistem yang terlampaui.'
-      - text: 'Setiap server front-end membuat satu thread per server lain untuk berbagi state (fan-out penuh), sehingga menambah server menaikkan jumlah thread melewati batas OS, membuat server gagal membangun peta cluster; pemulihan butuh restart bertahap yang lambat'
+        why: 'Server sehat. Batas sistem yang terlampaui.'
+      - text: 'Tiap server membuka thread ke semua server lain, dan batas OS terlampaui'
         correct: true
-        why: 'Arsitektur yang skalanya O(N) per node punya batas tersembunyi; pelajaran: batas harus diketahui dan diuji, cellularization membatasi N, dan mengurangi ketergantungan pada komunikasi semua-ke-semua.'
-      - text: 'Pelanggan tiba-tiba mengirim 10x data'
+        why: 'Arsitektur yang tumbuh sebanding jumlah server punya batas tersembunyi. Batas harus diketahui, diuji, dan dibatasi dengan sel.'
+      - text: 'Pelanggan tiba-tiba mengirim data sepuluh kali lipat'
         correct: false
-        why: 'Bukan lonjakan pelanggan.'
+        why: 'Ini bukan lonjakan dari pelanggan.'
       - text: 'Sertifikat TLS kedaluwarsa'
         correct: false
         why: 'Tidak relevan dengan insiden ini.'
@@ -79,78 +79,84 @@ quiz:
 
 Setelah pelajaran ini kamu bisa:
 
-- Menjelaskan bagaimana retry storm dan dependensi internal mengubah gangguan kecil menjadi outage region selama berjam-jam.
-- Mengenali tiga pola dari tiga laporan AWS: observability yang berbagi nasib (2021), guardrail alat operasional dan restart yang tidak pernah dilatih (2017), batas tersembunyi pada arsitektur fan-out penuh (2020).
+- Menjelaskan bagaimana badai pengulangan request dan dependensi internal mengubah gangguan kecil menjadi outage berjam-jam.
+- Mengenali tiga pola dari tiga laporan AWS: pemantauan yang ikut sakit, alat operasional tanpa pengaman, dan batas tersembunyi pada arsitektur semua-ke-semua.
 - Memakai pola itu untuk menjawab "bagaimana sistemmu bertahan saat dependency internal sakit?".
 
-Catatan: ringkasan ditulis ulang dari laporan resmi AWS; baca laporan asli untuk kronologi menit demi menit.
+Catatan: ringkasan ditulis ulang dari laporan resmi AWS. Baca laporan asli untuk kronologi menit demi menit.
 
 ## Konteks sistem
 
-Region us-east-1 adalah region AWS terbesar dan tertua. Di dalamnya ada **jaringan utama** (tempat layanan pelanggan seperti EC2 berjalan) dan **jaringan internal** yang menampung layanan fondasi: pemantauan, DNS internal, otorisasi, control plane, dan bagian dari layanan seperti Kinesis. Keduanya dihubungkan perangkat jaringan dengan kapasitas tertentu. Banyak layanan AWS (dan pelanggan) bergantung secara transitif pada jaringan internal itu.
+Region us-east-1 adalah region AWS terbesar dan tertua. Di dalamnya ada dua jaringan. Jaringan utama menampung layanan pelanggan seperti EC2. Jaringan internal menampung layanan fondasi: pemantauan, DNS internal, otorisasi, control plane, dan bagian dari layanan seperti Kinesis.
 
-## Kronologi (7 Desember 2021, ringkas)
+Keduanya dihubungkan perangkat jaringan dengan kapasitas tertentu. Banyak layanan AWS bergantung secara tidak langsung pada jaringan internal itu.
+
+## Kronologi 7 Desember 2021
+
+1. Sekitar pukul 07:30 PST, aktivitas scaling otomatis untuk satu layanan berjalan di jaringan utama.
+2. Banyak client di jaringan internal berperilaku tak terduga dan membuka koneksi dalam jumlah besar.
+3. Perangkat penghubung antara jaringan internal dan utama menjadi jenuh. Latency dan error naik.
+4. Client melakukan pengulangan request, yang memperparah kemacetan.
+5. Pemantauan internal, DNS internal, control plane, dan sejumlah layanan pelanggan ikut terdampak.
+6. Tim kehilangan dashboard dan harus mendiagnosis lewat log manual. Halaman status lambat diperbarui.
+7. Tim menonaktifkan aktivitas scaling pemicu dan mengurangi beban. Trafik pulih sekitar pukul 14:22 PST.
+8. Backlog diproses dan layanan pulih bertahap.
 
 ```mermaid
 flowchart LR
-  A["~07:30 PST\nAktivitas scaling otomatis\ndi jaringan utama"] --> B["Perilaku tak terduga pada\nclient jaringan internal:\nlonjakan koneksi"]
-  B --> C["Perangkat penghubung\ninternal ↔ utama jenuh\nlatency & error naik"]
-  C --> D["Retry dari banyak client\nmemperparah kemacetan"]
-  D --> E["Dampak: monitoring internal,\nDNS internal, control plane,\nlayanan pelanggan terdampak"]
-  E --> F["Tim kehilangan dashboard,\ndiagnosis lewat log manual\nstatus page lambat diperbarui"]
-  F --> G["Mitigasi: menonaktifkan\nscaling pemicu, mengurangi beban\ntrafik dipulihkan ~14:22 PST"]
-  G --> H["Backlog diproses,\nlayanan pulih bertahap"]
+  A["Scaling otomatis\ndi jaringan utama"] --> B["Lonjakan koneksi\ndari client jaringan internal"]
+  B --> C["Perangkat penghubung jenuh\nlatency dan error naik"]
+  C --> D["Pengulangan request\nmemperparah kemacetan"]
+  D --> E["Pemantauan dan control plane\nikut terdampak"]
+  E --> F["Mitigasi: hentikan pemicu,\nkurangi beban, pulih ~14:22 PST"]
 ```
 
-- Pemicu: aktivitas scaling otomatis untuk satu layanan di jaringan utama membuat banyak client di jaringan internal berperilaku tak terduga dan membuka koneksi dalam jumlah besar.
-- Perangkat jaringan penghubung kewalahan; latency dan packet loss meningkat; client melakukan **retry**, menambah beban: congestive collapse.
-- Karena pemantauan dan alat internal ikut berjalan di jaringan internal, tim **kehilangan visibilitas** dan kesulitan menerapkan perbaikan; komunikasi ke pelanggan (status page) tertunda karena alatnya pun terdampak.
-- Pemulihan dengan menghentikan sumber beban dan membiarkan jaringan pulih, lalu backlog diproses.
+Istilah yang perlu kamu pegang. Congestive collapse adalah keadaan ketika pengulangan request justru membuat jaringan makin macet. Control plane adalah bagian yang mengatur dan mengonfigurasi, bukan yang melayani trafik pelanggan.
 
 ## Akar masalah
 
-| Lapisan                     | Apa yang terjadi                                              | Pelajaran                                                                                                       |
-| --------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Umpan balik positif         | Latency → timeout → retry → koneksi bertambah                 | Backoff eksponensial + jitter, retry budget, circuit breaker; retry harus menurun saat sistem sakit, bukan naik |
-| Kapasitas penghubung        | Perangkat antara dua jaringan menjadi bottleneck tunggal      | Kapasitas dan isolasi antar jaringan; pengujian beban skenario lonjakan koneksi                                 |
-| Dependensi tersembunyi      | Layanan pelanggan bergantung transitif pada jaringan internal | Peta dependensi; mengurangi hop ke jaringan internal di jalur kritis                                            |
-| Observability berbagi nasib | Dashboard/alat deploy di jaringan yang sakit                  | Pemantauan dan alat pemulihan di jalur terpisah (out-of-band)                                                   |
-| Komunikasi                  | Status page bergantung pada alat yang terdampak               | Jalur komunikasi insiden yang independen                                                                        |
+| Lapisan                | Apa yang terjadi                                                                 | Pelajaran                                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Umpan balik positif    | Latency memicu timeout, timeout memicu pengulangan, pengulangan menambah koneksi | Pengulangan harus memakai jeda yang membesar dengan unsur acak, punya jatah, dan berhenti saat sistem sakit |
+| Kapasitas penghubung   | Perangkat antara dua jaringan menjadi bottleneck tunggal                         | Kapasitas dan isolasi antar jaringan harus diuji untuk skenario lonjakan koneksi                            |
+| Dependensi tersembunyi | Layanan pelanggan bergantung tidak langsung pada jaringan internal               | Peta dependensi harus ada, dan jalur kritis mengurangi hop ke jaringan internal                             |
+| Pemantauan ikut sakit  | Dashboard dan alat deploy berada di jaringan yang sakit                          | Pemantauan dan alat pemulihan butuh jalur terpisah                                                          |
+| Komunikasi             | Halaman status bergantung pada alat yang terdampak                               | Kanal komunikasi insiden harus independen                                                                   |
 
 ## Dua insiden pembanding
 
-**S3, 28 Februari 2017.** Saat men-debug sistem billing, operator menjalankan perintah untuk menghapus sejumlah kecil server; input yang salah menghapus lebih banyak, termasuk server subsistem index dan placement S3 di region itu. Keduanya harus di-restart penuh, sesuatu yang belum pernah dilakukan selama bertahun-tahun di skala yang jauh lebih besar, sehingga pemulihan memakan jam. Dashboard status AWS sendiri bergantung pada S3 sehingga tidak bisa menampilkan status dengan benar. Perbaikan: alat yang membatasi laju dan minimum kapasitas, memecah subsistem menjadi sel lebih kecil agar restart lebih cepat, dan memisahkan dependensi status page.
+S3, 28 Februari 2017. Saat men-debug sistem billing, operator menjalankan perintah untuk menghapus sejumlah kecil server. Input yang salah menghapus lebih banyak, termasuk server subsistem index dan placement S3 di region itu. Keduanya harus di-restart penuh. Restart seperti itu belum pernah dilakukan selama bertahun-tahun di skala yang jauh lebih besar, sehingga pemulihan memakan jam. Dashboard status AWS sendiri bergantung pada S3 dan tidak bisa menampilkan status dengan benar. Perbaikannya: alat yang membatasi laju dan kapasitas minimum, subsistem dipecah menjadi sel kecil agar restart lebih cepat, dan dependensi halaman status dipisahkan.
 
-**Kinesis, 25 November 2020.** Penambahan kapasitas kecil ke armada front-end Kinesis membuat jumlah thread per server (satu per server lain, untuk berbagi informasi shard) melewati batas sistem operasi. Server gagal membangun peta cluster, request gagal, dan layanan yang bergantung (Cognito, CloudWatch, Lambda, dan lainnya) terdampak selama belasan jam karena pemulihan memerlukan restart bertahap yang lambat. Perbaikan: menaikkan batas, mengurangi thread per server, cellularization (membatasi jumlah server yang saling berkomunikasi), dan memindahkan fungsi pembangunan peta cluster keluar dari front-end.
+Kinesis, 25 November 2020. Penambahan kapasitas kecil ke armada front-end Kinesis membuat jumlah thread per server melewati batas sistem operasi. Setiap server membuka satu thread ke setiap server lain untuk berbagi informasi shard. Server gagal membangun peta cluster, request gagal, dan layanan yang bergantung seperti Cognito, CloudWatch, dan Lambda terdampak selama belasan jam. Pemulihan memerlukan restart bertahap yang lambat. Perbaikannya: batas dinaikkan, thread per server dikurangi, server dikelompokkan ke sel yang lebih kecil, dan fungsi pembangunan peta cluster dipindah keluar dari front-end.
 
 ## Pola yang bisa dipetik
 
-1. **Retry adalah bahan bakar outage.** Setiap client harus memakai backoff + jitter, membatasi retry (budget), dan berhenti saat sistem jelas sakit; server harus bisa load-shed.
-2. **Pemantauan dan alat pemulihan tidak boleh berbagi nasib dengan sistem yang diamati.** Jalur out-of-band untuk dashboard, deploy, dan komunikasi.
-3. **Batas tersembunyi ada di mana-mana** (thread, file descriptor, tabel koneksi). Ketahui, uji, dan rancang agar skala per node tidak O(N) terhadap ukuran armada.
-4. **Alat operasional butuh guardrail.** Minimum kapasitas, laju perubahan, konfirmasi untuk tindakan destruktif; salah ketik akan terjadi.
-5. **Latih pemulihan di skala nyata.** Restart penuh subsistem besar, failover region, dan game day; waktu pemulihan yang belum pernah diukur adalah risiko.
-6. **Cellularization dan isolasi.** Pecah layanan menjadi sel independen agar kegagalan dan pemulihan dibatasi; kurangi dependensi transitif pada layanan fondasi di jalur kritis.
-7. **Komunikasi insiden adalah bagian sistem.** Status page dan kanal pelanggan harus hidup saat produk mati.
+1. Pengulangan request adalah bahan bakar outage. Setiap client memakai jeda yang membesar dengan unsur acak, membatasi jumlah pengulangan, dan berhenti saat sistem jelas sakit.
+2. Pemantauan dan alat pemulihan tidak boleh ikut sakit bersama sistem yang diamati. Sediakan jalur terpisah untuk dashboard, deploy, dan komunikasi.
+3. Batas tersembunyi ada di mana-mana: thread, file descriptor, tabel koneksi. Ketahui, uji, dan rancang agar beban per node tidak tumbuh sebanding ukuran armada.
+4. Alat operasional butuh pengaman: kapasitas minimum, batas laju perubahan, dan konfirmasi untuk tindakan destruktif. Salah ketik pasti terjadi.
+5. Latih pemulihan di skala nyata. Restart penuh subsistem besar dan failover region harus pernah dicoba.
+6. Kelompokkan layanan ke sel independen agar kegagalan dan pemulihan dibatasi.
+7. Komunikasi insiden adalah bagian dari sistem. Halaman status harus hidup saat produk mati.
 
 ## Hubungannya dengan building block
 
-| Building block               | Pelajaran dari insiden                                                                               |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Abstraksi distributed system | Timeout dan retry yang benar; kegagalan abu-abu (latency tinggi) lebih berbahaya daripada mati total |
-| Monitoring                   | Meta-monitoring dan dashboard di jalur terpisah; alert "no data"                                     |
-| Key-value store / cluster    | Komunikasi semua-ke-semua tidak skalabel; gossip terbatas, sel                                       |
-| Deployment / operasi         | Guardrail alat, scaling bertahap, pengujian batas                                                    |
+| Building block               | Pelajaran dari insiden                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------- |
+| Abstraksi distributed system | Timeout dan pengulangan yang benar. Node yang lambat lebih berbahaya daripada node yang mati  |
+| Monitoring                   | Pemantauan untuk pemantauan, dashboard di jalur terpisah, dan alert saat data berhenti datang |
+| Key-value store dan cluster  | Komunikasi semua-ke-semua tidak skalabel. Pakai gossip terbatas dan sel                       |
+| Deployment dan operasi       | Pengaman pada alat, scaling bertahap, dan pengujian batas                                     |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Dependency kamu mulai lambat, bukan mati. Apa yang terjadi di sistemmu?" → Timeout singkat, circuit breaker, load shedding, fallback terbatas; retry dengan budget.
-- "Bagaimana kamu memantau sistem bila jaringan internal sakit?" → Pemantauan out-of-band, agregasi di region lain, sinyal sintetis dari luar.
-- "Apa batas tersembunyi di desainmu?" → Sebut koneksi/thread per node, ukuran tabel routing, kuota API penyedia, dan cara mengujinya.
-- "Bagaimana melindungi dari kesalahan operator?" → Guardrail alat, dry-run, two-person rule untuk tindakan destruktif, rollback cepat.
+- "Dependency kamu mulai lambat, bukan mati. Apa yang terjadi?" Jawab dengan timeout singkat, circuit breaker, penolakan sebagian beban, dan pengulangan yang berjatah.
+- "Bagaimana kamu memantau sistem bila jaringan internal sakit?" Jawab dengan pemantauan di jalur terpisah, agregasi di region lain, dan sinyal dari luar.
+- "Apa batas tersembunyi di desainmu?" Sebut koneksi per node, ukuran tabel routing, kuota API penyedia, dan cara mengujinya.
+- "Bagaimana melindungi dari kesalahan operator?" Jawab dengan pengaman pada alat, dry-run, persetujuan dua orang, dan rollback cepat.
 
 ## Ringkasan
 
-1. Desember 2021: badai koneksi dan retry menjenuhkan penghubung jaringan internal us-east-1; pemantauan dan alat pemulihan ikut mati sehingga pemulihan memakan jam.
-2. S3 2017 dan Kinesis 2020 menambahkan guardrail alat operasional, restart yang dilatih, dan batas tersembunyi pada arsitektur fan-out penuh.
-3. Pola: retry yang disiplin, observability dan komunikasi out-of-band, batas yang diketahui dan diuji, cellularization, serta latihan pemulihan di skala nyata.
+1. Pada Desember 2021, badai koneksi dan pengulangan request menjenuhkan penghubung jaringan internal us-east-1. Pemantauan ikut mati, sehingga pemulihan memakan jam.
+2. S3 2017 dan Kinesis 2020 menambahkan pelajaran tentang pengaman alat operasional, restart yang dilatih, dan batas tersembunyi pada arsitektur semua-ke-semua.
+3. Polanya: pengulangan yang disiplin, pemantauan di jalur terpisah, batas yang diketahui, sel yang independen, dan latihan pemulihan di skala nyata.

@@ -5,21 +5,23 @@ minutes: 45
 relatedCase: 'bagian-3/llm-customer-support'
 difficulty: 'sulit'
 hints:
-  - 'Tanyakan: sumber pengetahuan, tindakan yang boleh dilakukan bot, eskalasi, data pelanggan, regulasi.'
-  - 'RAG: pipeline indexing (chunk, embed, versi, ACL) dan retrieval hybrid + rerank dengan ambang "tidak tahu".'
-  - 'Tool layer di luar model: identitas dari sesi, kebijakan deterministik, konfirmasi untuk tindakan berdampak, audit.'
-  - 'Prompt injection dan kebocoran data sebagai requirement keamanan, bukan catatan kaki.'
-  - 'Evaluasi offline (suite dari tiket nyata) dan online (eskalasi, CSAT) sebagai komponen sistem.'
+  - 'Tanyakan sumber pengetahuan, tindakan apa yang boleh dilakukan bot, cara eskalasi, data pelanggan apa yang diakses, dan regulasi yang berlaku.'
+  - 'RAG: pipeline indexing dengan chunk, embedding, versi, dan ACL, lalu retrieval gabungan vektor dan leksikal dengan reranker dan ambang untuk menjawab tidak tahu.'
+  - 'Tool layer berada di luar model: identitas dari sesi, kebijakan deterministik, konfirmasi untuk tindakan berdampak, dan audit.'
+  - 'Perlakukan prompt injection dan kebocoran data sebagai requirement keamanan, bukan catatan kaki.'
+  - 'Evaluasi offline dari tiket nyata dan evaluasi online dari rasio eskalasi dan kepuasan adalah komponen sistem.'
 ---
 
-**Soal.** Rancang bot customer support untuk e-commerce yang menjawab dari pusat bantuan dan kebijakan resmi, bisa memeriksa status pesanan pelanggan yang login, mengusulkan refund dalam batas tertentu, dan mengeskalasi ke agen manusia dengan konteks, tanpa mengarang jawaban atau membocorkan data.
+**Soal.** Rancang bot customer support untuk e-commerce. Bot menjawab dari pusat bantuan dan kebijakan resmi, bisa memeriksa status pesanan pelanggan yang login, mengusulkan refund dalam batas tertentu, dan mengeskalasi ke agen manusia dengan konteks. Bot tidak boleh mengarang jawaban atau membocorkan data.
 
-**Yang diharapkan dalam 45 menit:**
+**Yang diharapkan interviewer dalam 45 menit:**
 
-1. Requirements dan NFR (grounding, keamanan, latency, kesegaran, biaya).
-2. Estimasi request/detik, ukuran index, token per request, biaya.
-3. API sesi/pesan (stream dengan event retrieval/tool), konfirmasi, eskalasi, KB, eval.
-4. Skema dokumen/chunk ber-versi dengan ACL, sesi, audit tool, eval.
-5. High-level design dengan alur satu giliran (guardrail → retrieval → LLM → guardrail → simpan/eskalasi).
-6. Deep dive: indexing + retrieval hybrid; orchestrator + tool layer + guardrail.
-7. Evaluasi: LLM down, dokumen salah, injeksi, bottleneck 10x; cara mengukur kualitas.
+1. Tulis requirement dan target non-fungsional untuk grounding, keamanan, latency, kesegaran, dan biaya.
+2. Hitung request per detik, ukuran index, token per request, dan biaya.
+3. Rancang API sesi dan pesan dengan stream yang memuat event retrieval dan tool, lalu konfirmasi, eskalasi, basis pengetahuan, dan evaluasi.
+4. Rancang skema dokumen dan chunk ber-versi dengan ACL, sesi, audit tool, dan data evaluasi.
+5. Gambar high-level design dengan alur satu giliran dari guardrail, retrieval, LLM, guardrail, sampai simpan atau eskalasi.
+6. Dalami indexing dan retrieval gabungan, lalu orchestrator, tool layer, dan guardrail.
+7. Evaluasi LLM yang mati, dokumen yang salah, serangan injeksi, bottleneck saat beban 10 kali, dan cara mengukur kualitas.
+
+Kerjakan di kertas atau whiteboard sambil bicara seolah ada interviewer. Setelah selesai, buka studi kasus terkait dan bandingkan.

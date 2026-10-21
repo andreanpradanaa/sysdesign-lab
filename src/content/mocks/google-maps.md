@@ -5,20 +5,22 @@ minutes: 45
 relatedCase: 'bagian-3/google-maps'
 difficulty: 'sulit'
 hints:
-  - 'Tanyakan fokusnya: peta, pencarian tempat, rute, atau ETA; interviewer biasanya memilih satu untuk deep dive.'
-  - 'Peta = tile statis (z/x/y) di blob + CDN dengan versi di URL; vector vs raster.'
-  - 'Rute = graf jalan terprakomputasi (contraction hierarchies) di memori; bidirectional search; bobot dinamis untuk lalu lintas.'
-  - 'ETA = bobot per segmen dari probe teragregasi + prediksi; jelaskan pipeline stream-nya.'
+  - 'Tanyakan fokusnya: peta, pencarian tempat, rute, atau ETA. Interviewer biasanya memilih satu untuk didalami.'
+  - 'Peta adalah tile statis dengan skema zoom, x, y di blob store dan CDN, dengan versi di URL. Bandingkan vector dan raster.'
+  - 'Rute memakai graf jalan yang diproses di muka dengan contraction hierarchies di memori, pencarian dua arah, dan bobot dinamis untuk lalu lintas.'
+  - 'ETA memakai bobot per segmen dari probe yang diagregasi ditambah prediksi. Jelaskan pipeline stream-nya.'
 ---
 
-**Soal.** Rancang layanan peta: menampilkan peta dunia yang bisa di-pan/zoom, mencari tempat, menghitung rute mobil dengan ETA yang memperhitungkan lalu lintas, dan navigasi.
+**Soal.** Rancang layanan peta. Pengguna bisa menggeser dan memperbesar peta dunia, mencari tempat, menghitung rute mobil dengan ETA yang memperhitungkan lalu lintas, dan memakai navigasi.
 
-**Yang diharapkan dalam 45 menit:**
+**Yang diharapkan interviewer dalam 45 menit:**
 
-1. Requirements dan NFR (latency tile, latency rute, akurasi ETA, kesegaran).
-2. Estimasi jumlah/ukuran tile, ukuran graf, QPS rute, ingest probe.
-3. API tile, geocode, route, eta, navigation.
-4. Skema data sumber vs turunan (graf, tile, index tempat, traffic store) dan versi rilis.
-5. High-level design: pipeline batch rilis + jalur online tile/rute/lalu lintas.
-6. Deep dive: routing (prapemrosesan dan query) dan lapisan lalu lintas/ETA.
-7. Evaluasi: availability saat traffic store mati, rilis graf, bottleneck 10x.
+1. Tulis requirement dan target non-fungsional untuk latency tile, latency rute, akurasi ETA, dan kesegaran data.
+2. Hitung jumlah dan ukuran tile, ukuran graf jalan, QPS rute, dan laju probe lalu lintas yang masuk.
+3. Rancang API tile, geocode, route, eta, dan navigation.
+4. Rancang skema data sumber dan data turunan: graf, tile, index tempat, dan traffic store, dengan versi rilis.
+5. Gambar high-level design yang memisahkan pipeline batch rilis dari jalur online untuk tile, rute, dan lalu lintas.
+6. Dalami routing dari pemrosesan di muka sampai query, lalu lapisan lalu lintas dan ETA.
+7. Evaluasi availability saat traffic store mati, risiko rilis graf, dan bottleneck saat beban 10 kali.
+
+Kerjakan di kertas atau whiteboard sambil bicara seolah ada interviewer. Setelah selesai, buka studi kasus terkait dan bandingkan.

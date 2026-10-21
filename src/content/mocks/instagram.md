@@ -5,20 +5,22 @@ minutes: 45
 relatedCase: 'bagian-3/instagram'
 difficulty: 'sedang'
 hints:
-  - 'Tanyakan: foto saja atau video? feed kronologis? ada akun besar? apakah Stories termasuk?'
-  - 'Bandwidth keluar dari estimasi harus membawa kamu ke CDN; storage PB ke blob store.'
-  - 'Jalur upload: presigned URL, pemrosesan async, status processing → ready; fan-out setelah ready.'
-  - 'Feed mewarisi hybrid dari newsfeed; yang baru adalah hydrate URL varian dan prefetch.'
+  - 'Tanyakan apakah hanya foto atau juga video, apakah feed kronologis, apakah ada akun besar, dan apakah Stories termasuk.'
+  - 'Bandwidth keluar dari estimasi harus membawa kamu ke CDN. Storage dalam petabyte harus membawa kamu ke blob store.'
+  - 'Jelaskan jalur upload: presigned URL, pemrosesan async, status processing lalu ready, dan fan-out setelah ready.'
+  - 'Feed mewarisi pendekatan campuran dari newsfeed. Yang baru adalah melengkapi URL varian gambar dan prefetch di client.'
 ---
 
-**Soal.** Rancang Instagram: user mengunggah foto dengan caption, mengikuti user lain, dan melihat feed foto dari yang diikuti. Like dan komentar termasuk.
+**Soal.** Rancang Instagram. Pengguna mengunggah foto dengan caption, mengikuti pengguna lain, dan melihat feed foto dari akun yang diikuti. Like dan komentar termasuk dalam cakupan.
 
-**Yang diharapkan dalam 45 menit:**
+**Yang diharapkan interviewer dalam 45 menit:**
 
-1. Requirements dan NFR (latency gambar pertama, durability media).
-2. Estimasi upload/detik, tampilan/detik, bandwidth keluar, storage 5 tahun.
-3. API upload dua langkah, post, feed dengan URL varian.
-4. Skema post, media, follows, likes; tata letak blob store.
-5. High-level design dengan alur upload (async) dan alur feed.
-6. Deep dive: pipeline media dan penyajian via CDN; feed hybrid.
-7. Evaluasi: apa yang terdegradasi saat pipeline media tertunda; bottleneck 10x.
+1. Tulis requirement dan target non-fungsional, termasuk latency gambar pertama dan durability media.
+2. Hitung unggahan per detik, tampilan per detik, bandwidth keluar, dan storage untuk 5 tahun.
+3. Rancang API upload dua langkah, pembuatan post, dan feed yang mengembalikan URL varian gambar.
+4. Rancang skema post, media, follows, dan likes, lalu tata letak objek di blob store.
+5. Gambar high-level design dengan alur upload yang asinkron dan alur feed.
+6. Dalami pipeline media dan penyajian lewat CDN, lalu feed dengan pendekatan campuran.
+7. Evaluasi apa yang menurun saat pipeline media tertunda dan di mana bottleneck saat beban 10 kali.
+
+Kerjakan di kertas atau whiteboard sambil bicara seolah ada interviewer. Setelah selesai, buka studi kasus terkait dan bandingkan.

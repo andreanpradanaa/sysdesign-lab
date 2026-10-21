@@ -5,20 +5,22 @@ minutes: 45
 relatedCase: 'bagian-3/payment-system'
 difficulty: 'sulit'
 hints:
-  - 'Tanyakan: pedagang atau platform? memproses kartu sendiri atau lewat PSP? refund, payout, mata uang?'
-  - 'Throughput kecil; yang dinilai adalah correctness: idempotency di setiap batas dan ledger double-entry.'
-  - 'Timeout ke PSP = tidak diketahui, bukan gagal; state pending + status-check + webhook + rekonsiliasi.'
-  - 'Webhook at-least-once dan tidak berurutan: dedup by event id, tarik status dari sumber.'
+  - 'Tanyakan apakah kita pedagang atau platform, apakah memproses kartu sendiri atau lewat penyedia pembayaran, dan apakah refund, payout, serta mata uang termasuk.'
+  - 'Throughput kecil. Yang dinilai adalah kebenaran: idempotency di setiap batas dan ledger double-entry.'
+  - 'Timeout ke penyedia pembayaran berarti tidak diketahui, bukan gagal. Pakai status pending, pengecekan ulang, webhook, dan rekonsiliasi.'
+  - 'Webhook bisa datang dua kali dan tidak berurutan. Dedup berdasarkan id event dan tarik status dari sumbernya.'
 ---
 
-**Soal.** Rancang sistem pembayaran untuk marketplace: pembeli membayar pesanan lewat kartu/e-wallet (via payment service provider), platform memotong fee, penjual dibayar terjadwal, refund didukung, dan tidak boleh ada tagihan ganda atau uang yang hilang.
+**Soal.** Rancang sistem pembayaran untuk marketplace. Pembeli membayar pesanan dengan kartu atau e-wallet lewat penyedia pembayaran, platform memotong fee, dan penjual dibayar secara terjadwal. Refund didukung, dan tidak boleh ada tagihan ganda atau uang yang hilang.
 
-**Yang diharapkan dalam 45 menit:**
+**Yang diharapkan interviewer dalam 45 menit:**
 
-1. Requirements dan NFR (correctness, konsistensi, keamanan/PCI).
-2. Estimasi transaksi, ledger, panggilan PSP, webhook.
-3. API pay-in dengan idempotency key, refund, webhook, saldo.
-4. Skema payments, idempotency store, ledger double-entry, event.
-5. High-level design dengan alur pay-in termasuk jalur timeout.
-6. Deep dive: idempotency end-to-end (sequence diagram) dan ledger; integrasi PSP dan rekonsiliasi.
-7. Evaluasi: tagihan ganda, PSP down, failover DB, skala 100x.
+1. Tulis requirement dan target non-fungsional untuk kebenaran, konsistensi, dan keamanan termasuk PCI.
+2. Hitung transaksi per detik, ukuran ledger, panggilan ke penyedia pembayaran, dan webhook yang masuk.
+3. Rancang API pay-in dengan idempotency key, refund, penerima webhook, dan saldo.
+4. Rancang skema pembayaran, penyimpanan idempotency key, ledger double-entry, dan event.
+5. Gambar high-level design dengan alur pay-in, termasuk jalur saat timeout.
+6. Dalami idempotency dari client sampai penyedia pembayaran dan ledger, lalu integrasi penyedia dan rekonsiliasi.
+7. Evaluasi tagihan ganda, penyedia pembayaran yang mati, failover database, dan skala 100 kali.
+
+Kerjakan di kertas atau whiteboard sambil bicara seolah ada interviewer. Setelah selesai, buka studi kasus terkait dan bandingkan.

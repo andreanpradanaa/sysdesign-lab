@@ -69,7 +69,7 @@ function mermaidLint(body: string): string[] {
 }
 
 /** Pemeriksaan gaya bahasa (docs/features/gaya-bahasa.md). Hanya untuk file yang sudah ditulis ulang. */
-export const STYLE_CHECKED = ['bagian-1/', 'bagian-2/', 'bagian-3/'];
+export const STYLE_CHECKED = ['bagian-1/', 'bagian-2/', 'bagian-3/', 'bagian-4/'];
 const MAX_SENTENCE_WORDS = 30;
 const MAX_OPTION_WORDS = 20;
 const MAX_QUESTION_WORDS = 30;
@@ -170,6 +170,40 @@ describe('konten pelajaran', () => {
       it('tidak merujuk sumber berbayar', () => {
         expect(content).not.toMatch(/educative\.io/i);
         for (const s of data.sources) expect(s.url).not.toMatch(/educative\.io/i);
+      });
+    });
+  }
+});
+
+const MOCK_ROOT = join(process.cwd(), 'src/content/mocks');
+const MAX_HINT_WORDS = 30;
+
+describe('soal mock interview', () => {
+  const mockFiles = walk(MOCK_ROOT);
+  it('ada minimal satu soal mock', () => expect(mockFiles.length).toBeGreaterThan(0));
+
+  for (const file of mockFiles) {
+    const id = relative(MOCK_ROOT, file).replace(/\.mdx?$/, '');
+    const { data, content } = matter(readFileSync(file, 'utf8'));
+    describe(id, () => {
+      it('frontmatter wajib', () => {
+        expect(typeof data.title).toBe('string');
+        expect(data.order).toBeGreaterThan(0);
+        expect(Array.isArray(data.hints) && data.hints.length >= 3).toBe(true);
+        if (data.relatedCase) expect(planned.has(data.relatedCase)).toBe(true);
+      });
+      it('petunjuk pendek dan jelas', () => {
+        const long = (data.hints as string[]).filter((h) => h.split(/\s+/).length > MAX_HINT_WORDS);
+        expect(long).toEqual([]);
+      });
+      it('body berisi soal dan daftar yang diharapkan', () => {
+        expect(content).toMatch(/\*\*Soal\.\*\*/);
+        expect((content.match(/^\d+\. /gm) ?? []).length).toBeGreaterThanOrEqual(5);
+      });
+      it('mengikuti pedoman gaya bahasa', () => {
+        expect(styleLint(content)).toEqual([]);
+        const hintErrors = (data.hints as string[]).filter((h) => h.includes('→') || /;\s/.test(h));
+        expect(hintErrors).toEqual([]);
       });
     });
   }

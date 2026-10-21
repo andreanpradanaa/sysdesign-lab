@@ -5,21 +5,23 @@ minutes: 45
 relatedCase: 'bagian-3/youtube'
 difficulty: 'sulit'
 hints:
-  - 'Tanyakan: VOD saja atau live? resolusi maksimum? apakah rekomendasi termasuk?'
-  - 'Estimasi bandwidth keluar harus menghasilkan angka yang mustahil dilayani origin; itu argumen CDN tingkat ISP.'
-  - 'Pipeline transcoding sebagai DAG: chunk paralel, rendition bertahap, idempotent, prioritas.'
-  - 'Penyajian: manifest + segmen (HLS/DASH), adaptive bitrate, URL bertanda tangan; semua statis.'
-  - 'View count lewat stream + agregasi, bukan update per tontonan.'
+  - 'Tanyakan apakah hanya video on demand atau juga live, berapa resolusi maksimum, dan apakah rekomendasi termasuk.'
+  - 'Estimasi bandwidth keluar harus menghasilkan angka yang mustahil dilayani origin. Itu argumenmu untuk CDN di dalam ISP.'
+  - 'Rancang pipeline transcoding sebagai DAG: potongan paralel, kualitas yang terbit bertahap, aman diulang, dan punya prioritas.'
+  - 'Penyajian memakai manifest dan segmen HLS atau DASH dengan bitrate adaptif dan URL bertanda tangan. Semuanya file statis.'
+  - 'Hitung view count lewat stream dan agregasi, bukan update database per tontonan.'
 ---
 
-**Soal.** Rancang platform video on demand seperti YouTube: kreator mengunggah video berukuran GB, penonton di seluruh dunia menonton dengan startup cepat dan tanpa buffering, skala miliaran jam tonton per hari.
+**Soal.** Rancang platform video on demand seperti YouTube. Kreator mengunggah video berukuran gigabyte, dan penonton di seluruh dunia menontonnya dengan waktu mulai cepat dan tanpa buffering. Skalanya miliaran jam tonton per hari.
 
-**Yang diharapkan dalam 45 menit:**
+**Yang diharapkan interviewer dalam 45 menit:**
 
-1. Requirements dan NFR (startup, rebuffer, durability, biaya).
-2. Estimasi: jam tonton → stream bersamaan → bandwidth; upload → storage; transcoding → CPU.
-3. API upload, metadata, playback statis, view events.
-4. Skema video, rendition, stats, event stream; tata letak blob.
-5. High-level design dengan alur upload (DAG) dan alur tonton (CDN).
-6. Deep dive: pipeline transcoding; adaptive bitrate dan CDN.
-7. Evaluasi: startup dan rebuffer, availability, bottleneck 10x, biaya.
+1. Tulis requirement dan target non-fungsional untuk waktu mulai, rebuffer, durability, dan biaya.
+2. Hitung dari jam tonton ke stream bersamaan lalu bandwidth, dari upload ke storage, dan dari transcoding ke CPU.
+3. Rancang API upload, metadata, playback statis, dan event tontonan.
+4. Rancang skema video, rendition, statistik, dan event stream, lalu tata letak objek di blob store.
+5. Gambar high-level design dengan alur upload yang melewati DAG dan alur tonton yang melewati CDN.
+6. Dalami pipeline transcoding, lalu bitrate adaptif dan CDN.
+7. Evaluasi waktu mulai dan rebuffer, availability, bottleneck saat beban 10 kali, dan biaya.
+
+Kerjakan di kertas atau whiteboard sambil bicara seolah ada interviewer. Setelah selesai, buka studi kasus terkait dan bandingkan.

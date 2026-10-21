@@ -2,7 +2,7 @@
 
 Tujuan: setiap teks di situs, dari tombol sampai studi kasus, bisa dipahami backend engineer yang baru belajar system design, tanpa harus membaca dua kali. Istilah teknis tetap bahasa Inggris; kalimat yang membungkusnya bahasa Indonesia yang wajar.
 
-Pedoman ini dipaksakan sebagian oleh `src/test/content.test.ts` (lihat bagian "Pemeriksaan otomatis"). Konten yang sudah mengikuti pedoman didaftar di konstanta `STYLE_CHECKED` di test itu; tambahkan bagian baru ke daftar setelah ditulis ulang.
+Pedoman ini dipaksakan sebagian oleh `src/test/content.test.ts` (lihat bagian "Pemeriksaan otomatis"). Sejak 21 Oktober 2026 seluruh konten (42 pelajaran lewat `STYLE_CHECKED` dan 16 soal mock lewat describe "soal mock interview") sudah mengikuti pedoman, jadi setiap konten baru langsung diperiksa.
 
 ## 1. Kalimat
 
