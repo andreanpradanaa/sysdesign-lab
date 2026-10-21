@@ -21,6 +21,8 @@ export interface SidebarItem {
   available: boolean;
   type?: Lesson['data']['type'];
   minutes?: number;
+  difficulty?: Lesson['data']['difficulty'];
+  tags?: string[];
 }
 
 export interface SidebarModule {
@@ -40,7 +42,15 @@ export function sidebarModel(lessons: Lesson[]): SidebarModule[] {
       const id = `${m.id}/${pl.slug}`;
       const entry = byId.get(id);
       return entry
-        ? { id, title: entry.data.title, available: true, type: entry.data.type, minutes: entry.data.minutes }
+        ? {
+            id,
+            title: entry.data.title,
+            available: true,
+            type: entry.data.type,
+            minutes: entry.data.minutes,
+            difficulty: entry.data.difficulty,
+            tags: entry.data.tags,
+          }
         : { id, title: pl.title, available: false };
     }),
   }));

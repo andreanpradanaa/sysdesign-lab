@@ -1,0 +1,39 @@
+---
+interface Props {
+  lessonId: string;
+}
+const { lessonId } = Astro.props;
+---
+
+<button
+  type="button"
+  id="bookmark-btn"
+  class="badge"
+  data-lesson={lessonId}
+  aria-pressed="false"
+  style="cursor:pointer"
+>
+  ☆ Simpan
+</button>
+
+<script>
+  import { browserStorage, loadProgress, saveProgress, PROGRESS_EVENT } from '../lib/storage';
+  import { toggleBookmark, isBookmarked } from '../lib/progress';
+  const btn = document.getElementById('bookmark-btn');
+  if (btn) {
+    const id = btn.dataset.lesson!;
+    const kv = browserStorage();
+    const paint = () => {
+      const on = isBookmarked(loadProgress(kv), id);
+      btn.textContent = on ? '★ Tersimpan' : '☆ Simpan';
+      btn.setAttribute('aria-pressed', String(on));
+      btn.classList.toggle('badge-accent', on);
+    };
+    paint();
+    btn.addEventListener('click', () => {
+      saveProgress(kv, toggleBookmark(loadProgress(kv), id));
+      document.dispatchEvent(new CustomEvent(PROGRESS_EVENT));
+      paint();
+    });
+  }
+</script>

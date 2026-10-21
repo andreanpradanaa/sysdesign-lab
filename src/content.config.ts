@@ -30,6 +30,9 @@ const lessons = defineCollection({
     order: z.number().int().nonnegative(),
     minutes: z.number().int().positive(),
     type: z.enum(['lesson', 'case', 'postmortem']).default('lesson'),
+    /** Kesulitan dan tag pola, terutama untuk studi kasus (ditampilkan sebagai badge dan filter). */
+    difficulty: z.enum(['mudah', 'sedang', 'sulit']).optional(),
+    tags: z.array(z.string()).default([]),
     prerequisites: z.array(z.string()).default([]),
     sources: z.array(source).min(1),
     summary: z.string().optional(),

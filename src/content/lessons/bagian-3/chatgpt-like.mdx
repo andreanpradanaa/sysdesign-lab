@@ -4,6 +4,8 @@ module: bagian-3
 order: 15
 minutes: 65
 type: case
+difficulty: sulit
+tags: ['GPU capacity', 'Streaming', 'Admission control']
 prerequisites:
   ['bagian-2/message-queue', 'bagian-2/rate-limiter', 'bagian-2/distributed-cache', 'bagian-3/whatsapp']
 summary: 'Melayani percakapan dengan LLM ke jutaan pengguna. GPU adalah sumber daya langka, jawaban di-stream token per token, inference server memakai batching dan KV cache, antrian punya prioritas dan kuota, dan percakapan disimpan terpisah dari model yang tidak menyimpan apa pun.'

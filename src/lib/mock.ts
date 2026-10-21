@@ -59,6 +59,49 @@ export const RUBRIC: Criterion[] = [
   },
 ];
 
+/** Pertanyaan pemandu per tahap, ditampilkan di bawah checklist supaya latihan terasa terpandu. */
+export const STAGE_PROMPTS: Record<string, string[]> = {
+  requirements: [
+    'Siapa penggunanya dan apa 3 sampai 5 fitur intinya?',
+    'Apa yang sengaja kamu keluarkan dari cakupan?',
+    'Berapa skalanya, dan mana yang lebih penting: konsistensi atau ketersediaan?',
+  ],
+  estimation: [
+    'Berapa QPS baca dan tulis, termasuk puncaknya?',
+    'Berapa storage untuk 5 tahun dan bandwidth keluar?',
+    'Keputusan apa yang langsung mengikuti dari angka itu?',
+  ],
+  api: [
+    'Endpoint apa saja yang dipakai client?',
+    'Bagaimana request tulis dibuat aman diulang?',
+    'Bagaimana paginasi dan error utama ditangani?',
+  ],
+  data: [
+    'Entitas apa saja dan apa kunci aksesnya?',
+    'Database jenis apa dan kenapa?',
+    'Apa kandidat shard key-nya?',
+  ],
+  hld: [
+    'Bisakah kamu menjelaskan satu alur baca dan satu alur tulis dari awal sampai akhir?',
+    'Di mana cache, queue, dan blob store berperan?',
+    'Angka estimasi mana yang mendukung tiap komponen?',
+  ],
+  detail: [
+    'Dua atau tiga komponen mana yang paling berisiko?',
+    'Bagaimana komponen itu gagal, dan apa yang kamu lakukan?',
+    'Alternatif apa yang kamu tolak, dan kenapa?',
+  ],
+  evaluation: [
+    'Apakah tiap target non-fungsional terpenuhi?',
+    'Apa yang pecah duluan saat beban naik 10 kali?',
+    'Komponen mana yang menjadi single point of failure?',
+  ],
+  followup: [
+    'Apa kelemahan desainmu yang paling kamu khawatirkan?',
+    'Apa yang kamu ubah kalau ada waktu lebih?',
+  ],
+};
+
 export const SCALE_MIN = 1;
 export const SCALE_MAX = 4;
 
@@ -111,6 +154,37 @@ export function stageAt(elapsedSec: number, stages: Stage[] = STAGES): Stage | u
     if (elapsedSec < acc) return st;
   }
   return undefined;
+}
+
+export interface SessionReport {
+  average: number;
+  previousAverage?: number;
+  delta?: number; // selisih rata-rata vs sesi sebelumnya
+  stagesDone: number;
+  stagesTotal: number;
+  weakest: string[]; // criterionId dengan skor terendah (maks 2)
+  bestCount: number; // kriteria bernilai maksimal
+}
+
+/** Laporan singkat setelah sesi disimpan, dibandingkan dengan sesi sebelumnya untuk soal yang sama. */
+export function sessionReport(session: MockSession, previous?: MockSession): SessionReport {
+  const average = averageScore(session.scores);
+  const previousAverage = previous ? averageScore(previous.scores) : undefined;
+  const entries = Object.entries(session.scores);
+  const min = entries.length ? Math.min(...entries.map(([, v]) => v)) : 0;
+  const weakest = entries
+    .filter(([, v]) => v === min && v < SCALE_MAX)
+    .map(([k]) => k)
+    .slice(0, 2);
+  return {
+    average,
+    previousAverage,
+    delta: previousAverage === undefined ? undefined : Math.round((average - previousAverage) * 100) / 100,
+    stagesDone: session.stagesDone.length,
+    stagesTotal: STAGES.length,
+    weakest,
+    bestCount: entries.filter(([, v]) => v === SCALE_MAX).length,
+  };
 }
 
 export function coerceMockStore(raw: unknown): MockStore {

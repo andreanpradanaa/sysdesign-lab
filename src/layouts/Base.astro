@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Sidebar from '../components/Sidebar.astro';
 import { publishedLessons, availableIds, sidebarModel } from '../lib/content';
 import { href } from '../lib/url';
+import Search from '../components/Search.astro';
 
 interface Props {
   title: string;
@@ -32,6 +33,7 @@ const navLinks = [
   { label: 'Mock Interview', to: href('/mock'), match: (p: string) => p.startsWith(href('/mock')) },
   { label: 'Kuis', to: href('/kuis'), match: (p: string) => p.startsWith(href('/kuis')) },
   { label: 'Cheat Sheet', to: href('/cheatsheet'), match: (p: string) => p.startsWith(href('/cheatsheet')) },
+  { label: 'Dashboard', to: href('/dashboard'), match: (p: string) => p.startsWith(href('/dashboard')) },
 ];
 const contentClass = width === 'wide' ? 'content-wide' : width === 'lesson' ? 'lesson-layout' : 'content';
 ---
@@ -92,6 +94,7 @@ const contentClass = width === 'wide' ? 'content-wide' : width === 'lesson' ? 'l
             <div data-progress-bar></div>
           </div>
         </div>
+        <Search />
         <button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">
           ☾
         </button>

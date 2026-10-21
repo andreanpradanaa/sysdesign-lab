@@ -63,10 +63,31 @@ const typeBadge: Record<string, string> = { case: 'studi kasus', postmortem: 'po
         </div>
         <span class="muted small">{m.description}</span>
       </div>
+      {m.id === 'bagian-3' && (
+        <div class="btn-row filter-chips" data-filter-group style="margin:-0.3rem 0 0.9rem">
+          <button type="button" class="badge" data-filter="semua" aria-pressed="true">
+            Semua
+          </button>
+          <button type="button" class="badge" data-filter="mudah" aria-pressed="false">
+            Mudah
+          </button>
+          <button type="button" class="badge" data-filter="sedang" aria-pressed="false">
+            Sedang
+          </button>
+          <button type="button" class="badge" data-filter="sulit" aria-pressed="false">
+            Sulit
+          </button>
+        </div>
+      )}
       <div class="lesson-cards">
         {m.items.map((it, j) =>
           it.available ? (
-            <a class="lesson-card card-hover" href={lessonHref(it.id)} data-lesson-id={it.id}>
+            <a
+              class="lesson-card card-hover"
+              href={lessonHref(it.id)}
+              data-lesson-id={it.id}
+              data-difficulty={it.difficulty ?? ''}
+            >
               <span class="num">
                 <span class="check" aria-hidden="true">
                   ✓
@@ -81,6 +102,10 @@ const typeBadge: Record<string, string> = { case: 'studi kasus', postmortem: 'po
                 {it.type && typeBadge[it.type] && (
                   <span class="badge badge-accent">{typeBadge[it.type]}</span>
                 )}
+                {it.difficulty && <span class="badge">{it.difficulty}</span>}
+                {it.tags?.slice(0, 1).map((t) => (
+                  <span class="badge">{t}</span>
+                ))}
               </span>
             </a>
           ) : (
@@ -102,6 +127,20 @@ const typeBadge: Record<string, string> = { case: 'studi kasus', postmortem: 'po
     </section>
   ))}
 
+  <script>
+    document.querySelectorAll<HTMLElement>('[data-filter-group]').forEach((group) => {
+      const cards = group.parentElement!.querySelectorAll<HTMLElement>('.lesson-card');
+      group.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const f = btn.dataset.filter!;
+          group.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+          cards.forEach((c) => {
+            c.hidden = f !== 'semua' && c.dataset.difficulty !== f;
+          });
+        });
+      });
+    });
+  </script>
   <section class="card" style="margin-top:2.6rem">
     <span class="eyebrow">Cara belajar yang disarankan</span>
     <ol style="margin-bottom:0">

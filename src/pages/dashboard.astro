@@ -1,0 +1,191 @@
+---
+import Base from '../layouts/Base.astro';
+import { publishedLessons } from '../lib/content';
+import { CURRICULUM } from '../data/curriculum';
+import { getCollection } from 'astro:content';
+import { href } from '../lib/url';
+import { RUBRIC } from '../lib/mock';
+
+const lessons = await publishedLessons();
+const mocks = await getCollection('mocks');
+const titles = Object.fromEntries(lessons.map((l) => [l.id, l.data.title]));
+const mockTitles = Object.fromEntries(mocks.map((m) => [m.id, m.data.title]));
+const rubricLabels = Object.fromEntries(RUBRIC.map((c) => [c.id, c.label]));
+const modules = CURRICULUM.map((m) => ({ id: m.id, title: m.title }));
+---
+
+<Base title="Dashboard" width="wide">
+  <div
+    id="dash"
+    data-titles={JSON.stringify(titles)}
+    data-mocks={JSON.stringify(mockTitles)}
+    data-rubric={JSON.stringify(rubricLabels)}
+    data-modules={JSON.stringify(modules)}
+    data-lesson-base={href('/belajar')}
+    data-mock-base={href('/mock')}
+  >
+    <section class="hero" style="padding:2rem 2.2rem 1.8rem">
+      <span class="eyebrow">Dashboard</span>
+      <h1 id="dash-greeting" style="font-size:1.9rem">
+        Selamat datang kembali.
+      </h1>
+      <p class="lead" id="dash-sub">
+        Ringkasan progres, kebiasaan belajar, dan hal yang perlu diulang. Semua dari browser ini.
+      </p>
+      <div class="btn-row">
+        <a class="btn btn-primary" data-continue-link href="#">
+          Lanjutkan belajar
+        </a>
+        <a class="btn" href={href('/mock')}>
+          Mock interview
+        </a>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <b data-progress-percent>0%</b>
+          <span>kurikulum selesai</span>
+        </div>
+        <div class="stat">
+          <b id="dash-streak">0</b>
+          <span>hari berturut-turut belajar</span>
+        </div>
+        <div class="stat">
+          <b id="dash-quiz-avg">–</b>
+          <span>rata-rata skor kuis</span>
+        </div>
+        <div class="stat">
+          <b id="dash-mock-count">0</b>
+          <span>sesi mock tersimpan</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="dash-grid">
+      <section class="card">
+        <span class="eyebrow">Progress per bagian</span>
+        <div id="dash-modules" class="dash-modules"></div>
+      </section>
+
+      <section class="card">
+        <span class="eyebrow">Perlu diulang</span>
+        <p class="small muted" style="margin:0.2rem 0 0.6rem">
+          Pelajaran dengan skor kuis terendah. Baca lagi, lalu ulangi kuisnya.
+        </p>
+        <ul id="dash-weak" class="dash-list">
+          <li class="muted small">Belum ada kuis yang dikerjakan.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <span class="eyebrow">Sesi mock terakhir</span>
+        <ul id="dash-mocks" class="dash-list">
+          <li class="muted small">
+            Belum ada sesi mock. <a href={href('/mock')}>Mulai satu</a>.
+          </li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <span class="eyebrow">Tersimpan</span>
+        <ul id="dash-bookmarks" class="dash-list">
+          <li class="muted small">Tekan "Simpan" di halaman pelajaran untuk menaruhnya di sini.</li>
+        </ul>
+      </section>
+
+      <section class="card" style="grid-column:1 / -1">
+        <span class="eyebrow">Catatan belajar</span>
+        <ul id="dash-notes" class="dash-list">
+          <li class="muted small">Catatan yang kamu tulis di halaman pelajaran muncul di sini.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    import { browserStorage, loadProgress, loadMocks, PROGRESS_EVENT } from '../lib/storage';
+    import { streak, summarizeByModule, weakestAreas } from '../lib/progress';
+    import { averageScore } from '../lib/mock';
+
+    const root = document.getElementById('dash')!;
+    const titles: Record<string, string> = JSON.parse(root.dataset.titles!);
+    const mockTitles: Record<string, string> = JSON.parse(root.dataset.mocks!);
+    const rubric: Record<string, string> = JSON.parse(root.dataset.rubric!);
+    const modules: { id: string; title: string }[] = JSON.parse(root.dataset.modules!);
+    const lessonBase = root.dataset.lessonBase!;
+    const mockBase = root.dataset.mockBase!;
+    const esc = (s: string) =>
+      s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const link = (id: string) => `<a href="${lessonBase}/${id}">${esc(titles[id] ?? id)}</a>`;
+
+    const paint = () => {
+      const kv = browserStorage();
+      const state = loadProgress(kv);
+      const available: string[] = JSON.parse(document.body.dataset.available ?? '[]');
+
+      const h = new Date().getHours();
+      const greet =
+        h < 11 ? 'Selamat pagi' : h < 15 ? 'Selamat siang' : h < 18 ? 'Selamat sore' : 'Selamat malam';
+      const s = streak(state);
+      document.getElementById('dash-greeting')!.textContent =
+        `${greet}. ${s > 0 ? `Streak ${s} hari, pertahankan.` : 'Satu modul malam ini?'}`;
+      document.getElementById('dash-streak')!.textContent = String(s);
+
+      const results = Object.values(state.quiz);
+      const avg = results.length
+        ? Math.round((results.reduce((a, r) => a + r.score / r.total, 0) / results.length) * 100)
+        : null;
+      document.getElementById('dash-quiz-avg')!.textContent = avg === null ? '–' : `${avg}%`;
+
+      const by = summarizeByModule(state, available);
+      document.getElementById('dash-modules')!.innerHTML = modules
+        .map((m) => {
+          const r = by[m.id] ?? { done: 0, total: 0, percent: 0 };
+          return `<div class="dash-module"><div class="dash-module-head"><span>${esc(m.title)}</span><span class="small muted">${r.done}/${r.total} · ${r.percent}%</span></div><div class="progress"><div style="width:${r.percent}%"></div></div></div>`;
+        })
+        .join('');
+
+      const weak = weakestAreas(state, 5);
+      if (weak.length) {
+        document.getElementById('dash-weak')!.innerHTML = weak
+          .map(
+            (w) =>
+              `<li>${link(w.id)}<span class="badge ${w.percent < 50 ? '' : 'badge-ok'}">${w.percent}%</span></li>`,
+          )
+          .join('');
+      }
+
+      const mocks = loadMocks(kv).sessions;
+      const sessions = Object.entries(mocks).flatMap(([id, list]) => list.map((sess) => ({ id, sess })));
+      document.getElementById('dash-mock-count')!.textContent = String(sessions.length);
+      if (sessions.length) {
+        sessions.sort((a, b) => b.sess.at.localeCompare(a.sess.at));
+        document.getElementById('dash-mocks')!.innerHTML = sessions
+          .slice(0, 5)
+          .map(({ id, sess }) => {
+            const avgS = averageScore(sess.scores);
+            const low = Object.entries(sess.scores).sort((a, b) => a[1] - b[1])[0];
+            return `<li><a href="${mockBase}/${id}">${esc(mockTitles[id] ?? id)}</a><span class="small muted">${new Date(sess.at).toLocaleDateString('id-ID')} · rata-rata ${avgS || '–'}${low ? ` · terlemah: ${esc(rubric[low[0]] ?? low[0])}` : ''}</span></li>`;
+          })
+          .join('');
+      }
+
+      if (state.bookmarks.length) {
+        document.getElementById('dash-bookmarks')!.innerHTML = state.bookmarks
+          .map((id) => `<li>${link(id)}</li>`)
+          .join('');
+      }
+
+      const notes = Object.entries(state.notes);
+      if (notes.length) {
+        document.getElementById('dash-notes')!.innerHTML = notes
+          .map(
+            ([id, text]) =>
+              `<li><div>${link(id)}</div><p class="small" style="margin:0.2rem 0 0;white-space:pre-wrap">${esc(text).slice(0, 400)}</p></li>`,
+          )
+          .join('');
+      }
+    };
+    paint();
+    document.addEventListener(PROGRESS_EVENT, paint);
+  </script>
+</Base>

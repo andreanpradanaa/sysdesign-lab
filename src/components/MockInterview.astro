@@ -1,6 +1,6 @@
 ---
 /** Mode mock interview: timer, checklist tahap, rubrik 1-4, catatan, riwayat sesi (localStorage). */
-import { STAGES, RUBRIC, SCALE_MIN, SCALE_MAX } from '../lib/mock';
+import { STAGES, RUBRIC, SCALE_MIN, SCALE_MAX, STAGE_PROMPTS } from '../lib/mock';
 
 interface Props {
   mockId: string;
@@ -20,11 +20,20 @@ const scale = Array.from({ length: SCALE_MAX - SCALE_MIN + 1 }, (_, i) => SCALE_
       </p>
       <div class="stages" id="stages">
         {STAGES.map((s) => (
-          <label data-stage={s.id}>
-            <input type="checkbox" value={s.id} />
-            <span>{s.label}</span>
-            <span class="budget">{s.minutes}m</span>
-          </label>
+          <details class="stage" data-stage-wrap={s.id}>
+            <summary>
+              <label data-stage={s.id}>
+                <input type="checkbox" value={s.id} />
+                <span>{s.label}</span>
+                <span class="budget">{s.minutes}m</span>
+              </label>
+            </summary>
+            <ul class="small muted stage-prompts">
+              {(STAGE_PROMPTS[s.id] ?? []).map((q) => (
+                <li>{q}</li>
+              ))}
+            </ul>
+          </details>
         ))}
       </div>
     </section>
@@ -64,6 +73,7 @@ const scale = Array.from({ length: SCALE_MAX - SCALE_MIN + 1 }, (_, i) => SCALE_
         rows="5"
         placeholder="Contoh: lupa membahas idempotency di API, estimasi storage meleset 10x…"
       ></textarea>
+      <div id="mock-report" class="quiz-result" hidden aria-live="polite"></div>
       <div style="display:flex;gap:0.6rem;margin-top:0.8rem;flex-wrap:wrap">
         <button type="button" class="btn-primary" id="mock-save">
           Simpan sesi
@@ -115,6 +125,7 @@ const scale = Array.from({ length: SCALE_MAX - SCALE_MIN + 1 }, (_, i) => SCALE_
     averageScore,
     clampScore,
     addSession,
+    sessionReport,
     type MockSession,
   } from '../lib/mock';
   import { browserStorage, loadMocks, saveMocks } from '../lib/storage';
@@ -230,8 +241,26 @@ const scale = Array.from({ length: SCALE_MAX - SCALE_MIN + 1 }, (_, i) => SCALE_
         scores: { ...scores },
         notes: notes.value.trim(),
       };
+      const previous = (loadMocks(kv).sessions[mockId] ?? []).slice(-1)[0];
       saveMocks(kv, addSession(loadMocks(kv), mockId, session));
       savedMsg.textContent = 'Tersimpan di browser ini.';
+      const r = sessionReport(session, previous);
+      const parts = [
+        `Rata-rata ${r.average || '–'} dari 4`,
+        `${r.stagesDone}/${r.stagesTotal} tahap dibahas`,
+      ];
+      if (r.delta !== undefined)
+        parts.push(
+          r.delta > 0
+            ? `naik ${r.delta} dari sesi sebelumnya`
+            : r.delta < 0
+              ? `turun ${Math.abs(r.delta)} dari sesi sebelumnya`
+              : 'sama dengan sesi sebelumnya',
+        );
+      if (r.weakest.length) parts.push(`fokus berikutnya: ${r.weakest.map(labelOf).join(', ')}`);
+      const report = document.getElementById('mock-report')!;
+      report.textContent = `Laporan sesi: ${parts.join(' · ')}.`;
+      report.hidden = false;
       paintHistory();
     });
     document.getElementById('mock-clear')!.addEventListener('click', () => {

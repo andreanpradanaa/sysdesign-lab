@@ -1,0 +1,102 @@
+---
+/** Modal pencarian global. Indeks diambil dari search.json saat pertama dibuka. Shortcut: Cmd/Ctrl+K atau "/". */
+import { href } from '../lib/url';
+const indexUrl = href('/search.json');
+---
+
+<button id="search-open" class="icon-btn" aria-label="Cari (Ctrl+K)" title="Cari · Ctrl+K">
+  ⌕
+</button>
+<div id="search-modal" class="search-modal" hidden data-index={indexUrl}>
+  <div class="search-backdrop" data-close></div>
+  <div class="search-panel" role="dialog" aria-modal="true" aria-label="Pencarian">
+    <input
+      id="search-input"
+      type="text"
+      placeholder="Cari pelajaran, studi kasus, mock…"
+      autocomplete="off"
+    />
+    <ul id="search-results" class="search-results" role="listbox"></ul>
+    <p class="small muted" style="margin:0.4rem 0 0">
+      Enter untuk membuka · Esc untuk menutup
+    </p>
+  </div>
+</div>
+
+<script>
+  import { searchDocs, type SearchDoc } from '../lib/search';
+  const modal = document.getElementById('search-modal')!;
+  const input = document.getElementById('search-input') as HTMLInputElement;
+  const list = document.getElementById('search-results')!;
+  let docs: SearchDoc[] | null = null;
+  let active = 0;
+  const typeLabel: Record<string, string> = {
+    lesson: 'pelajaran',
+    case: 'studi kasus',
+    postmortem: 'postmortem',
+    mock: 'mock',
+    page: 'halaman',
+  };
+
+  const open = async () => {
+    modal.hidden = false;
+    input.value = '';
+    list.innerHTML = '<li class="muted small">Memuat indeks…</li>';
+    input.focus();
+    if (!docs) {
+      try {
+        docs = (await (await fetch(modal.dataset.index!)).json()) as SearchDoc[];
+      } catch {
+        docs = [];
+      }
+    }
+    list.innerHTML =
+      '<li class="muted small">Ketik untuk mencari di semua pelajaran, studi kasus, dan mock.</li>';
+  };
+  const close = () => {
+    modal.hidden = true;
+  };
+  const render = () => {
+    const hits = searchDocs(docs ?? [], input.value);
+    active = 0;
+    if (!input.value.trim()) return;
+    list.innerHTML = hits.length
+      ? hits
+          .map(
+            (h, i) =>
+              `<li role="option" aria-selected="${i === 0}"><a href="${h.doc.url}"><span class="badge">${typeLabel[h.doc.type] ?? h.doc.type}</span><span>${h.doc.title}</span></a></li>`,
+          )
+          .join('')
+      : '<li class="muted small">Tidak ada hasil.</li>';
+  };
+
+  document.getElementById('search-open')?.addEventListener('click', open);
+  modal.querySelector('[data-close]')?.addEventListener('click', close);
+  input.addEventListener('input', render);
+  input.addEventListener('keydown', (e) => {
+    const items = Array.from(list.querySelectorAll<HTMLElement>('li[role=option]'));
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!items.length) return;
+      active = (active + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length;
+      items.forEach((li, i) => li.setAttribute('aria-selected', String(i === active)));
+    }
+    if (e.key === 'Enter') {
+      const a = items[active]?.querySelector('a');
+      if (a) window.location.href = a.href;
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    const typing =
+      (e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA';
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (modal.hidden) open();
+      else close();
+    } else if (e.key === '/' && !typing && modal.hidden) {
+      e.preventDefault();
+      open();
+    }
+  });
+</script>

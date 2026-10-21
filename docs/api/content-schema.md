@@ -14,6 +14,8 @@ ID entri = `<bagian>/<slug>` dan **harus** terdaftar di `src/data/curriculum.ts`
 | `minutes`       | int > 0                            | ya                       | Estimasi menit belajar                                    |
 | `type`          | `lesson` \| `case` \| `postmortem` | tidak (default `lesson`) | `case` memaksa 8 section berurutan                        |
 | `prerequisites` | string[] (id pelajaran)            | tidak                    | Ditampilkan sebagai link bila tersedia                    |
+| `difficulty`    | `mudah` \| `sedang` \| `sulit`     | tidak                    | Badge dan filter; diisi untuk studi kasus                 |
+| `tags`          | string[]                           | tidak (default [])       | Tag pola, mis. "Scaling reads"; ikut diindeks pencarian   |
 | `sources`       | `{title, url}[]` min 1             | ya                       | Hanya sumber gratis; `educative.io` ditolak test          |
 | `summary`       | string                             | tidak                    | Satu kalimat, dipakai meta description                    |
 | `quiz`          | QuizQuestion[] 3–5                 | ya (lewat test)          | Lihat di bawah                                            |

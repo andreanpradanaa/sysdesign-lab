@@ -1,0 +1,48 @@
+---
+/** Catatan belajar per pelajaran, tersimpan di localStorage; tampil juga di dashboard. */
+interface Props {
+  lessonId: string;
+}
+const { lessonId } = Astro.props;
+---
+
+<section class="card" id="notes" data-lesson={lessonId} style="margin-top:2rem">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
+    <div>
+      <span class="eyebrow">Catatan belajar</span>
+      <p class="small muted" style="margin:0.2rem 0 0">
+        Tulis dengan kata-katamu sendiri. Tersimpan otomatis di browser ini.
+      </p>
+    </div>
+    <span class="small muted" id="notes-status" aria-live="polite"></span>
+  </div>
+  <textarea
+    id="notes-text"
+    rows="4"
+    placeholder="Contoh: yang baru saya sadari, pertanyaan yang belum terjawab, hal yang mau diulang…"
+    style="margin-top:0.8rem"
+  ></textarea>
+</section>
+
+<script>
+  import { browserStorage, loadProgress, saveProgress, PROGRESS_EVENT } from '../lib/storage';
+  import { setNote } from '../lib/progress';
+  const root = document.getElementById('notes');
+  if (root) {
+    const id = root.dataset.lesson!;
+    const kv = browserStorage();
+    const ta = document.getElementById('notes-text') as HTMLTextAreaElement;
+    const status = document.getElementById('notes-status')!;
+    ta.value = loadProgress(kv).notes[id] ?? '';
+    let timer: number | undefined;
+    ta.addEventListener('input', () => {
+      status.textContent = 'Menyimpan…';
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        saveProgress(kv, setNote(loadProgress(kv), id, ta.value));
+        document.dispatchEvent(new CustomEvent(PROGRESS_EVENT));
+        status.textContent = ta.value.trim() ? 'Tersimpan' : '';
+      }, 400);
+    });
+  }
+</script>

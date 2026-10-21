@@ -14,6 +14,9 @@ interface ProgressState {
   completed: Record<lessonId, isoDate>;
   quiz: Record<lessonId, { score: number; total: number; at: isoDate }>;
   lastVisited?: lessonId;
+  activity: Record<'YYYY-MM-DD', number>; // aksi belajar per hari, untuk streak
+  notes: Record<lessonId, string>; // catatan belajar
+  bookmarks: lessonId[]; // pelajaran tersimpan
 }
 interface MockStore {
   version: 1;

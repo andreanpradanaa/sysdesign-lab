@@ -35,6 +35,7 @@ Legenda: Belum mulai · Berjalan · Selesai · Terblokir. Bar = 10 blok, tiap bl
 - [x] Dark mode, responsif (drawer mobile), mermaid client-side
 - [x] Pedoman gaya bahasa (docs/features/gaya-bahasa.md) + lint gaya di test konten; diterapkan ke teks UI, semua 42 pelajaran (STYLE_CHECKED bagian-1..4), dan 16 soal mock (test "soal mock interview")
 - [x] Redesign "premium": Inter + JetBrains Mono, token warna + gradasi aksen, header kaca dengan progress, hero + statistik + kartu kurikulum, TOC di halaman pelajaran, kartu navigasi prev/next, kuis & mock bergaya kartu
+- [x] Enhancement ala HelloInterview: dashboard (streak, progress per bagian, area lemah, sesi mock, bookmark, catatan), pencarian global (Ctrl+K), catatan dan bookmark per pelajaran, kesulitan + tag pola di studi kasus dengan filter, sisipan "coba dulu" ke mock terkait, pertanyaan pemandu per tahap dan laporan sesi mock
 - [ ] (opsional) Ekspor/impor progress JSON
 
 ## Bagian 1 — Fondasi

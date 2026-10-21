@@ -3,6 +3,10 @@ import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Quiz from '../../components/Quiz.astro';
 import MarkDone from '../../components/MarkDone.astro';
+import Notes from '../../components/Notes.astro';
+import Bookmark from '../../components/Bookmark.astro';
+import { getCollection } from 'astro:content';
+import { mockHref } from '../../lib/url';
 import { publishedLessons, prevNext } from '../../lib/content';
 import { moduleOf, CURRICULUM } from '../../data/curriculum';
 import { lessonHref } from '../../lib/url';
@@ -21,6 +25,7 @@ const { prev, next } = prevNext(lessons, entry.id);
 const byId = new Map(lessons.map((l) => [l.id, l]));
 const typeLabel = { lesson: 'Pelajaran', case: 'Studi kasus', postmortem: 'Postmortem' }[data.type];
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const relatedMock = (await getCollection('mocks')).find((m) => m.data.relatedCase === entry.id);
 ---
 
 <Base title={data.title} description={data.summary} currentId={entry.id} width="lesson">
@@ -32,6 +37,11 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
     <div class="lesson-meta">
       <span class="badge">⏱ ±{data.minutes} menit</span>
       {data.quiz.length > 0 && <span class="badge">✎ {data.quiz.length} soal kuis</span>}
+      {data.difficulty && <span class="badge badge-accent">{data.difficulty}</span>}
+      {data.tags.map((t) => (
+        <span class="badge">{t}</span>
+      ))}
+      <Bookmark lessonId={entry.id} />
       {data.prerequisites.length > 0 && (
         <span class="badge" style="white-space:normal">
           Prasyarat:{' '}
@@ -49,6 +59,18 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
       )}
     </div>
     {data.summary && <p class="lesson-summary">{data.summary}</p>}
+    {data.type === 'case' && relatedMock && (
+      <aside class="try-first">
+        <strong>Coba jawab sendiri dulu.</strong>
+        <span>
+          Sebelum membaca pembahasan, kerjakan soalnya 45 menit dengan timer dan rubrik. Nanti bandingkan
+          jawabanmu dengan pembahasan ini.
+        </span>
+        <a class="btn btn-primary small" href={mockHref(relatedMock.id)}>
+          Mulai mock: {relatedMock.data.title}
+        </a>
+      </aside>
+    )}
 
     <div class="prose">
       <Content />
@@ -72,6 +94,7 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 
     <Quiz lessonId={entry.id} questions={data.quiz} />
     <MarkDone lessonId={entry.id} />
+    <Notes lessonId={entry.id} />
 
     <nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah">
       {prev ? (

@@ -73,7 +73,15 @@ describe('progress', () => {
     });
     it('membersihkan field yang salah tipe', () => {
       const s = coerceState({ version: 1, completed: { a: 1 }, quiz: 'bad', lastVisited: 5 });
-      expect(s).toEqual({ version: 1, completed: {}, quiz: {}, lastVisited: undefined });
+      expect(s).toEqual({
+        version: 1,
+        completed: {},
+        quiz: {},
+        lastVisited: undefined,
+        activity: {},
+        notes: {},
+        bookmarks: [],
+      });
     });
     it('mempertahankan data valid', () => {
       const good = {
@@ -82,7 +90,7 @@ describe('progress', () => {
         quiz: { a: { score: 1, total: 2, at: 'd' } },
         lastVisited: 'a',
       };
-      expect(coerceState(good)).toEqual(good);
+      expect(coerceState(good)).toMatchObject(good);
     });
   });
 });
