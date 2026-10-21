@@ -1,0 +1,217 @@
+---
+title: 'Database: replication, partitioning, SQL vs NoSQL'
+module: bagian-2
+order: 3
+minutes: 55
+type: lesson
+prerequisites: ['bagian-1/abstraksi-distributed-system', 'bagian-1/estimasi-kapasitas']
+summary: 'Komponen yang paling sering menjadi bottleneck dan paling sering ditanya di deep dive: cara menggandakan data agar tahan gagal dan terbaca cepat, cara membelahnya agar muat, dan kapan memilih relasional atau bukan.'
+sources:
+  - title: 'Designing Data-Intensive Applications — bab 5 (Replication) & 6 (Partitioning), ringkasan konsep'
+    url: 'https://dataintensive.net/'
+  - title: 'System Design Primer — Database (replication, federation, sharding, SQL vs NoSQL)'
+    url: 'https://github.com/donnemartin/system-design-primer#database'
+  - title: 'PostgreSQL docs — High Availability, Load Balancing, and Replication'
+    url: 'https://www.postgresql.org/docs/current/high-availability.html'
+  - title: 'Vitess docs — Sharding (contoh sharding MySQL di skala besar)'
+    url: 'https://vitess.io/docs/concepts/shard/'
+  - title: 'MongoDB docs — Sharding'
+    url: 'https://www.mongodb.com/docs/manual/sharding/'
+quiz:
+  - q: 'Replikasi async dari primary ke dua replica. Primary mati tepat setelah mengonfirmasi sebuah tulisan ke client. Apa yang bisa terjadi?'
+    options:
+      - text: 'Tidak ada masalah; replica pasti sudah menerima tulisan itu'
+        correct: false
+        why: 'Async berarti primary mengonfirmasi sebelum replica menerima. Tulisan terakhir bisa belum sampai.'
+      - text: 'Tulisan yang sudah dikonfirmasi bisa hilang bila replica yang dipromosikan belum menerimanya'
+        correct: true
+        why: 'Inilah harga replikasi async: durability tulisan terakhir tidak terjamin saat failover. Semi-sync (minimal satu replica mengonfirmasi) menutup celah ini dengan latency sedikit lebih tinggi.'
+      - text: 'Client otomatis mengulang tulisan ke replica'
+        correct: false
+        why: 'Client tidak tahu status replika; retry tanpa idempotency bahkan bisa menggandakan data.'
+      - text: 'Replica menolak dipromosikan sampai primary kembali'
+        correct: false
+        why: 'Failover justru mempromosikan replica; tanpa itu sistem down.'
+  - q: 'Tabel pesanan di-shard berdasarkan user_id. Query "semua pesanan dengan status = pending di seluruh sistem" menjadi lambat. Kenapa?'
+    options:
+      - text: 'Karena user_id bukan kolom yang terindeks'
+        correct: false
+        why: 'Masalahnya bukan index, melainkan query yang tidak membawa shard key.'
+      - text: 'Karena query tidak membawa shard key sehingga harus dikirim ke semua shard (scatter-gather) lalu digabung'
+        correct: true
+        why: 'Sharding membuat query by shard key cepat dan query lain mahal. Solusi: index global/sekunder asinkron, tabel agregat, atau pilih shard key sesuai pola akses dominan.'
+      - text: 'Karena status adalah kolom teks'
+        correct: false
+        why: 'Tipe kolom tidak relevan dengan penyebaran ke shard.'
+      - text: 'Karena sharding tidak mendukung filter'
+        correct: false
+        why: 'Filter didukung; yang tidak efisien adalah filter tanpa shard key.'
+  - q: 'Mana pernyataan yang paling tepat tentang SQL vs NoSQL?'
+    options:
+      - text: 'NoSQL selalu lebih scalable daripada SQL'
+        correct: false
+        why: 'SQL bisa di-shard (Vitess, Citus) dan NoSQL bisa punya hot shard. Scalability bergantung pada model data dan pola akses, bukan label.'
+      - text: 'Pilih berdasarkan pola akses: join dan transaksi multi-baris condong ke relasional; akses by key dengan skala tulis horizontal condong ke KV/wide-column; dokumen bersarang condong ke document store'
+        correct: true
+        why: 'Pertanyaan interview sebenarnya adalah "bagaimana data diakses?", bukan "SQL atau NoSQL?".'
+      - text: 'SQL tidak bisa menyimpan JSON'
+        correct: false
+        why: 'PostgreSQL dan MySQL punya tipe JSON yang bisa diindeks.'
+      - text: 'NoSQL tidak punya skema sehingga tidak perlu dirancang'
+        correct: false
+        why: 'Skema berpindah ke aplikasi; desain query-first justru lebih ketat di wide-column store.'
+  - q: 'Setelah menambah read replica, user mengeluh: setelah mengirim komentar, komentarnya hilang saat halaman di-refresh, lalu muncul beberapa detik kemudian. Solusi paling tepat?'
+    options:
+      - text: 'Hapus semua read replica'
+        correct: false
+        why: 'Mengorbankan skalabilitas baca untuk masalah yang bisa diselesaikan lebih murah.'
+      - text: 'Terapkan read-your-writes: baca dari primary (atau replica yang sudah mengejar) untuk user yang baru menulis, mis. selama N detik atau sampai replica mencapai LSN tulisan itu'
+        correct: true
+        why: 'Replication lag wajar; yang dibutuhkan hanya jaminan read-your-writes untuk penulis. Teknik umum: routing berbasis waktu tulis terakhir atau menunggu replica mencapai posisi log tertentu.'
+      - text: 'Naikkan TTL cache'
+        correct: false
+        why: 'Masalahnya di lag replika, bukan cache.'
+      - text: 'Pindah ke NoSQL'
+        correct: false
+        why: 'Replikasi async di NoSQL punya masalah yang sama.'
+  - q: 'Kapan sharding sebaiknya dilakukan?'
+    options:
+      - text: 'Sejak hari pertama, supaya tidak perlu migrasi'
+        correct: false
+        why: 'Sharding membawa kompleksitas permanen (tanpa join lintas shard, transaksi sulit, rebalancing). Dilakukan terlalu dini adalah over-engineering.'
+      - text: 'Setelah vertical scaling, cache, dan read replica tidak lagi cukup untuk beban tulis atau ukuran data'
+        correct: true
+        why: 'Urutan yang lazim: optimasi query dan index → scale up → cache → read replica → pisahkan per domain (federation) → sharding. Sharding adalah langkah terakhir karena paling mahal.'
+      - text: 'Hanya kalau memakai NoSQL'
+        correct: false
+        why: 'Relasional juga bisa di-shard, manual atau lewat Vitess/Citus.'
+      - text: 'Saat tabel melebihi 1 juta baris'
+        correct: false
+        why: 'Jutaan baris masih ringan untuk satu database modern; angka saja bukan pemicu.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan replikasi (single-leader, multi-leader, leaderless), sinkron vs async, dan apa yang terjadi saat failover.
+- Memilih strategi partitioning (range vs hash) dan shard key, serta tahu query mana yang menjadi mahal.
+- Menjawab "SQL atau NoSQL?" dengan pola akses, bukan dengan ideologi.
+- Menyusun jalur scale database dari satu node sampai sharding.
+
+## Database adalah tempat bottleneck berakhir
+
+Service stateless bisa digandakan sesuka hati; data tidak. Hampir setiap pertanyaan "kalau trafik 10x, apa yang pecah?" berujung pada database. Dua alat utamanya: **replication** (salinan yang sama di banyak node, untuk availability dan skala baca) dan **partitioning/sharding** (data dibelah ke banyak node, untuk skala tulis dan ukuran).
+
+## Replication
+
+### Topologi
+
+| Topologi      | Tulis ke                               | Kelebihan                                              | Kekurangan                                       | Contoh                                             |
+| ------------- | -------------------------------------- | ------------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
+| Single-leader | Satu primary; replica hanya baca       | Sederhana, tidak ada konflik tulis                     | Primary = batas tulis; failover butuh koordinasi | PostgreSQL, MySQL, MongoDB replica set             |
+| Multi-leader  | Beberapa primary (biasanya per region) | Tulis lokal di tiap region; tahan partisi antar region | Konflik tulis harus direkonsiliasi               | Replikasi antar-datacenter, aplikasi offline-first |
+| Leaderless    | Node mana pun; quorum W + R &gt; N     | Availability tinggi, tanpa failover                    | Konsistensi lemah, read repair/anti-entropy      | Dynamo-style: Cassandra, Riak                      |
+
+### Sinkron vs asinkron
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant P as Primary
+  participant R1 as Replica (sync)
+  participant R2 as Replica (async)
+  C->>P: INSERT
+  P->>R1: replikasi
+  R1-->>P: ack
+  P-->>C: OK (setelah R1 ack)
+  P->>R2: replikasi (tidak ditunggu)
+  Note over R2: tertinggal beberapa ms–detik
+```
+
+- **Async**: tulis cepat; tulisan terakhir bisa hilang saat primary mati sebelum replica menerimanya.
+- **Sync**: durable, tapi satu replica lambat memperlambat semua tulisan.
+- **Semi-sync**: satu replica sync, sisanya async; kompromi yang paling sering dipilih di produksi.
+
+### Replication lag dan jaminan baca
+
+Replica async selalu tertinggal. Dampaknya terlihat pada: _read-your-writes_ (user tidak melihat tulisannya sendiri), _monotonic reads_ (timeline "mundur" saat berganti replica), dan _causal_ (balasan muncul sebelum pertanyaannya). Solusi praktis: baca dari primary untuk data yang baru ditulis user, sticky replica per user, atau menunggu replica mencapai posisi log (LSN) tertentu.
+
+### Failover
+
+Deteksi primary mati (timeout heartbeat) → pilih replica paling mutakhir → alihkan client. Risiko: **split brain** (primary lama hidup lagi dan menerima tulisan) dan **kehilangan tulisan** yang belum tereplikasi. Mitigasi: fencing (primary lama dimatikan paksa), lease, quorum, dan menerima bahwa failover otomatis punya jeda puluhan detik.
+
+## Partitioning (sharding)
+
+Membelah data ke beberapa node agar setiap node memegang sebagian. Semua query harus tahu **shard mana** yang dituju; itulah peran _shard key_.
+
+| Strategi  | Cara                                     | Kelebihan                    | Kekurangan                                            |
+| --------- | ---------------------------------------- | ---------------------------- | ----------------------------------------------------- |
+| Range     | Key terurut dibagi rentang (A–F, G–M, …) | Range scan efisien           | Hot spot bila key monoton (timestamp, ID urut)        |
+| Hash      | hash(key) mod N atau consistent hashing  | Sebaran merata               | Range scan harus ke semua shard                       |
+| Directory | Tabel lookup key → shard                 | Fleksibel, rebalancing mudah | Lookup = komponen tambahan yang harus sangat tersedia |
+
+Memilih shard key: harus ada di **hampir semua query**, tersebar **merata**, dan **jarang berubah**. `user_id` sering cocok untuk aplikasi konsumer; `tenant_id` untuk SaaS; `created_at` hampir selalu buruk karena menimbulkan hot shard.
+
+Yang menjadi mahal setelah sharding: join lintas shard, transaksi lintas shard, query tanpa shard key (scatter-gather), unique constraint global, auto-increment. Jawaban interview: denormalisasi, index sekunder asinkron, ID generator terdistribusi, dan memilih batas transaksi di dalam satu shard.
+
+```mermaid
+flowchart LR
+  A[App] --> R[Router / proxy\nhash user_id]
+  R --> S1[(Shard 1\nuser 0-33%)]
+  R --> S2[(Shard 2\nuser 33-66%)]
+  R --> S3[(Shard 3\nuser 66-100%)]
+  S1 --> S1r[(replica)]
+  S2 --> S2r[(replica)]
+  S3 --> S3r[(replica)]
+```
+
+Rebalancing (menambah shard) memindahkan data; consistent hashing atau partisi virtual (banyak partisi kecil per node) membuat perpindahan minimal.
+
+## SQL vs NoSQL: tanya pola aksesnya
+
+| Kebutuhan dominan                                            | Condong ke                                    | Alasan                           |
+| ------------------------------------------------------------ | --------------------------------------------- | -------------------------------- |
+| Join, transaksi multi-baris, integritas referensial          | Relasional (PostgreSQL, MySQL)                | ACID, optimizer, skema eksplisit |
+| Akses by key, tulis sangat tinggi, skala horizontal otomatis | Key-value / wide-column (DynamoDB, Cassandra) | Partisi bawaan, tanpa join       |
+| Dokumen bersarang, skema berubah cepat                       | Document (MongoDB)                            | Satu dokumen = satu unit atomik  |
+| Relasi banyak-hop                                            | Graph (Neo4j)                                 | Traversal native                 |
+| Analitik agregat besar                                       | Column store (ClickHouse, BigQuery)           | Kompresi kolom, scan cepat       |
+
+Catatan jujur untuk interview: relasional modern menangani JSON, replikasi, dan bisa di-shard; NoSQL punya hot partition dan tetap butuh desain skema (query-first). Pilih yang kamu bisa jelaskan trade-off-nya.
+
+## Jalur scale yang disarankan
+
+1. Optimasi query dan index; ukur dulu.
+2. Scale up mesin.
+3. Cache di depan (cache-aside) untuk beban baca.
+4. Read replica; tangani replication lag.
+5. Federation: pisahkan tabel per domain ke database berbeda (users, orders, catalog).
+6. Sharding, dengan shard key yang dipilih dari pola akses.
+7. Pisahkan beban analitik (OLAP) lewat CDC/ETL agar tidak mengganggu OLTP.
+
+Urutan ini adalah jawaban untuk "kenapa tidak sharding dari awal?": tiap langkah lebih murah dari langkah berikutnya.
+
+## Trade-off ringkas
+
+| Keputusan                             | Pilih A bila                                     | Pilih B bila                                            |
+| ------------------------------------- | ------------------------------------------------ | ------------------------------------------------------- |
+| Sync (A) vs async (B) replikasi       | Kehilangan tulisan terakhir tidak dapat diterima | Latency tulis lebih penting; toleransi lag              |
+| Single-leader (A) vs multi-leader (B) | Satu region utama, ingin tanpa konflik           | Tulis lintas region harus lokal; siap menangani konflik |
+| Range (A) vs hash (B) sharding        | Range query dominan dan key tidak monoton        | Akses by key, ingin sebaran merata                      |
+| Relasional (A) vs NoSQL (B)           | Join dan transaksi nyata dibutuhkan              | Pola akses sederhana dengan skala tulis besar           |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Apa yang terjadi saat primary mati?" → Deteksi, promosi, risiko kehilangan tulisan dan split brain, fencing.
+- "Shard key apa dan kenapa?" → Ada di hampir semua query, merata, stabil; sebutkan query yang jadi mahal.
+- "Bagaimana transaksi lintas shard?" → Hindari lewat desain batas; bila terpaksa: saga atau 2PC dengan biaya.
+- "Kenapa Postgres, bukan Cassandra?" → Jawab dengan pola akses dan skala tulis saat ini; sebutkan titik pindah.
+- "Replica tertinggal, user komplain" → Read-your-writes.
+- "Bagaimana menambah shard tanpa downtime?" → Partisi virtual / consistent hashing, dual-write sementara, backfill, cutover.
+
+## Ringkasan
+
+1. Replikasi memberi availability dan skala baca; async cepat tapi bisa kehilangan tulisan terakhir saat failover, dan lag memaksa kamu memikirkan read-your-writes.
+2. Sharding memberi skala tulis dan ukuran; shard key dipilih dari pola akses, dan query tanpa shard key, join, serta transaksi lintas shard menjadi mahal.
+3. SQL vs NoSQL diputuskan oleh pola akses, bukan label; jalur scale berjenjang (index → scale up → cache → replica → federation → sharding) adalah alasan kenapa sharding bukan langkah pertama.

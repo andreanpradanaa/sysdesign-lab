@@ -1,0 +1,49 @@
+---
+interface Props {
+  lessonId: string;
+}
+const { lessonId } = Astro.props;
+---
+
+<div class="done-bar" id="mark-done" data-lesson={lessonId}>
+  <button type="button" id="mark-done-btn" class="btn-primary">
+    Tandai selesai
+  </button>
+  <span class="small muted" id="mark-done-status">
+    Belum ditandai selesai.
+  </span>
+</div>
+
+<script>
+  import { browserStorage, loadProgress, saveProgress, PROGRESS_EVENT } from '../lib/storage';
+  import { toggleDone, isDone, visit } from '../lib/progress';
+
+  const root = document.getElementById('mark-done');
+  if (root) {
+    const id = root.dataset.lesson!;
+    const kv = browserStorage();
+    const btn = document.getElementById('mark-done-btn')!;
+    const status = document.getElementById('mark-done-status')!;
+
+    // Catat kunjungan untuk "lanjutkan belajar".
+    saveProgress(kv, visit(loadProgress(kv), id));
+    document.dispatchEvent(new CustomEvent(PROGRESS_EVENT));
+
+    const paint = () => {
+      const s = loadProgress(kv);
+      const done = isDone(s, id);
+      btn.textContent = done ? 'Batalkan tanda selesai' : 'Tandai selesai';
+      btn.classList.toggle('btn-primary', !done);
+      btn.classList.toggle('btn-ok', done);
+      status.textContent = done
+        ? `Selesai pada ${new Date(s.completed[id]).toLocaleDateString('id-ID')}.`
+        : 'Belum ditandai selesai.';
+    };
+    paint();
+    btn.addEventListener('click', () => {
+      saveProgress(kv, toggleDone(loadProgress(kv), id));
+      document.dispatchEvent(new CustomEvent(PROGRESS_EVENT));
+      paint();
+    });
+  }
+</script>

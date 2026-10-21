@@ -1,0 +1,166 @@
+---
+title: 'Unique ID generator'
+module: bagian-2
+order: 6
+minutes: 35
+type: lesson
+prerequisites: ['bagian-2/database', 'bagian-1/abstraksi-distributed-system']
+summary: 'Masalah kecil dengan jawaban yang menyingkap banyak hal: bagaimana ribuan server membuat ID unik, terurut kira-kira menurut waktu, tanpa saling bertanya.'
+sources:
+  - title: 'Twitter Engineering — Announcing Snowflake (arsip)'
+    url: 'https://blog.x.com/engineering/en_us/a/2010/announcing-snowflake'
+  - title: 'Instagram Engineering — Sharding & IDs at Instagram'
+    url: 'https://instagram-engineering.com/sharding-ids-at-instagram-1cf5a71e5a5c'
+  - title: 'Flickr Engineering — Ticket Servers: Distributed Unique Primary Keys on the Cheap'
+    url: 'https://code.flickr.net/2010/02/08/ticket-servers-distributed-unique-primary-keys-on-the-cheap/'
+  - title: 'RFC 9562 — Universally Unique IDentifiers (UUID), termasuk versi 7'
+    url: 'https://www.rfc-editor.org/rfc/rfc9562'
+quiz:
+  - q: 'Kenapa UUID v4 (acak) sering dihindari sebagai primary key di tabel yang besar?'
+    options:
+      - text: 'Karena bisa bertabrakan dengan mudah'
+        correct: false
+        why: '122 bit acak membuat tabrakan praktis mustahil; itu bukan masalahnya.'
+      - text: 'Karena 128 bit lebih besar dari 64 bit dan urutannya acak sehingga index B-tree menerima sisipan di posisi acak, memecah halaman dan merusak cache locality'
+        correct: true
+        why: 'Dua biaya: ukuran index dua kali lipat, dan sisipan acak membuat setiap INSERT menyentuh halaman index yang berbeda. ID yang terurut menurut waktu (Snowflake, UUID v7) selalu menyisip di ujung.'
+      - text: 'Karena UUID tidak bisa disimpan di database'
+        correct: false
+        why: 'Semua database punya tipe UUID atau bisa menyimpannya sebagai 16 byte.'
+      - text: 'Karena UUID hanya bisa dibuat oleh satu server'
+        correct: false
+        why: 'Justru kebalikannya: UUID bisa dibuat di mana saja tanpa koordinasi.'
+  - q: 'Snowflake memakai 41 bit timestamp dalam milidetik. Kira-kira berapa lama ruang ID itu bertahan dari epoch kustom?'
+    options:
+      - text: 'Sekitar 69 tahun'
+        correct: true
+        why: '2^41 ms ≈ 2.2 × 10^12 ms ≈ 69.7 tahun. Dengan epoch kustom (mis. 2020), aman sampai ~2089.'
+      - text: 'Sekitar 7 tahun'
+        correct: false
+        why: 'Kurang satu orde; 2^41 ms jauh lebih dari itu.'
+      - text: 'Sekitar 690 tahun'
+        correct: false
+        why: 'Kelebihan satu orde.'
+      - text: 'Tidak terbatas karena timestamp berputar'
+        correct: false
+        why: 'Timestamp yang berputar akan menghasilkan ID yang tidak lagi terurut dan bisa bertabrakan dengan ID lama.'
+  - q: 'Jam sebuah node Snowflake melompat mundur 2 detik karena sinkronisasi NTP. Apa risiko dan penanganannya?'
+    options:
+      - text: 'Tidak ada risiko; sequence number menjamin keunikan'
+        correct: false
+        why: 'Sequence hanya unik dalam satu milidetik yang sama; timestamp yang mundur bisa mengulang kombinasi timestamp+sequence yang pernah dipakai.'
+      - text: 'ID duplikat mungkin terjadi; node harus menolak membuat ID (atau menunggu) sampai jam melewati timestamp terakhir yang dipakai'
+        correct: true
+        why: 'Implementasi Snowflake menyimpan timestamp terakhir dan menolak bila jam mundur. Alternatif: menaikkan logical clock sendiri sampai wall-clock mengejar.'
+      - text: 'Node harus restart dengan machine ID baru'
+        correct: false
+        why: 'Machine ID baru memang menghindari duplikat, tapi menguras ruang ID dan tidak perlu; cukup menunggu.'
+      - text: 'Jam mundur tidak mungkin terjadi di produksi'
+        correct: false
+        why: 'NTP step, migrasi VM, dan leap second membuatnya nyata.'
+  - q: 'Pendekatan mana yang memberi ID unik global, terurut kasar menurut waktu, dan bisa dibuat secara lokal tanpa memanggil layanan lain?'
+    options:
+      - text: 'Auto-increment di satu database pusat'
+        correct: false
+        why: 'Unik dan terurut, tapi setiap pembuatan ID adalah round trip ke satu titik yang menjadi bottleneck dan SPOF.'
+      - text: 'Ticket server ganjil/genap'
+        correct: false
+        why: 'Menghilangkan SPOF tapi tetap memerlukan panggilan jaringan untuk tiap ID (atau batch).'
+      - text: 'ID ala Snowflake (timestamp + machine id + sequence) yang dibuat di dalam proses'
+        correct: true
+        why: 'Tiap proses memegang machine id unik; sisanya dihitung lokal. Tidak ada round trip, terurut kasar menurut waktu, 64 bit.'
+      - text: 'Hash dari isi record'
+        correct: false
+        why: 'Deterministik dan tidak terurut menurut waktu; dua record identik menghasilkan ID sama.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menyebut sifat ID yang biasanya diminta (unik, 64-bit, terurut kasar, tanpa koordinasi) dan kenapa masing-masing penting.
+- Membandingkan auto-increment, ticket server, UUID, dan Snowflake-style dengan trade-off yang jelas.
+- Menjelaskan tata letak bit Snowflake, masalah jam, dan cara membagikan machine ID.
+
+## Kenapa ini sulit
+
+Di satu database, `AUTO_INCREMENT` sudah cukup. Begitu data di-shard atau tulisan datang dari banyak service, tidak ada lagi satu counter. Kita butuh ID yang:
+
+| Sifat                                    | Alasan                                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| Unik global                              | Primary key, dedup, referensi antar service                                          |
+| Muat 64 bit                              | Index kecil, join cepat, cocok dengan `BIGINT`                                       |
+| Terurut kasar menurut waktu              | Sisipan index di ujung (B-tree ramah), `ORDER BY id` ≈ urutan waktu, paginasi cursor |
+| Dibuat tanpa koordinasi                  | Latency tulis tidak boleh menunggu round trip ke "layanan ID"                        |
+| Tidak mudah ditebak berurutan (opsional) | Mencegah enumerasi dan membocorkan volume bisnis                                     |
+
+## Pilihan yang biasa dibandingkan
+
+| Pendekatan                    | Cara                                           | Unik       | Terurut | Koordinasi               | Catatan                                                                               |
+| ----------------------------- | ---------------------------------------------- | ---------- | ------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| Auto-increment DB pusat       | Satu DB memberi ID                             | ya         | ya      | setiap ID                | SPOF dan bottleneck tulis                                                             |
+| Multi-master increment        | DB ke-k mulai dari k, step N                   | ya         | kasar   | tidak                    | Sulit menambah DB (N berubah); Flickr ticket server adalah varian dua DB ganjil/genap |
+| UUID v4                       | 122 bit acak                                   | praktis ya | tidak   | tidak                    | 128 bit, index acak, tidak informatif                                                 |
+| UUID v7                       | 48 bit timestamp ms + acak                     | praktis ya | ya      | tidak                    | 128 bit, standar (RFC 9562), ramah index                                              |
+| Snowflake-style               | timestamp + machine id + sequence              | ya         | ya      | sekali, untuk machine id | 64 bit, cepat, butuh jam yang tidak mundur                                            |
+| DB-side Snowflake (Instagram) | ID dibuat oleh fungsi di tiap shard PostgreSQL | ya         | ya      | tidak                    | Shard id tertanam di ID; tanpa layanan tambahan                                       |
+| Range dari KV/etcd            | Service mengambil blok 1.000 ID                | ya         | kasar   | per blok                 | Lubang ID saat crash; urutan antar service tidak terjaga                              |
+
+## Snowflake: tata letak bit
+
+```mermaid
+flowchart LR
+  S[1 bit\ntanda, selalu 0] --- T[41 bit\ntimestamp ms\nsejak epoch kustom] --- M[10 bit\nmachine id\n1024 node] --- Q[12 bit\nsequence\n4096 per ms per node]
+```
+
+- 41 bit ms ≈ 69 tahun dari epoch kustom; pilih epoch saat sistem lahir, bukan 1970.
+- 10 bit machine id bisa dibagi (5 bit datacenter + 5 bit worker).
+- 12 bit sequence = 4.096 ID/ms/node ≈ 4 juta ID/detik/node. Bila habis dalam satu ms, tunggu ms berikutnya.
+- Hasilnya terurut menurut waktu **antar node hanya kira-kira** (jam tiap node berbeda beberapa ms); di dalam satu node terurut ketat.
+
+```mermaid
+sequenceDiagram
+  participant App as Service (worker id 17)
+  participant Clk as Jam lokal
+  App->>Clk: now()
+  Clk-->>App: t = 1.700.000.000.123 ms
+  alt t == timestamp terakhir
+    App->>App: sequence++ (bila 4096 → tunggu ms berikut)
+  else t > timestamp terakhir
+    App->>App: sequence = 0
+  else t < timestamp terakhir (jam mundur)
+    App->>App: tolak / tunggu sampai jam mengejar
+  end
+  App->>App: id = (t - epoch) << 22 | 17 << 12 | sequence
+```
+
+### Dua masalah operasional
+
+1. **Jam mundur** (NTP step, migrasi VM): bisa mengulang timestamp. Simpan timestamp terakhir; tolak atau tunggu bila jam mundur. Alternatif: pakai monotonic/logical clock yang hanya naik.
+2. **Membagikan machine id**: harus unik di antara node yang hidup. Cara: konfigurasi statis, lease dari ZooKeeper/etcd saat start (dilepas saat mati), atau diturunkan dari identitas pod/host. Dua node dengan id sama = ID duplikat yang senyap.
+
+## Menyembunyikan volume
+
+ID terurut membocorkan laju pembuatan (selisih dua ID = jumlah objek di antaranya). Bila itu masalah, tampilkan ID publik yang di-encode (base62 dengan bit-shuffle atau enkripsi format-preserving) sementara ID internal tetap terurut.
+
+## Trade-off ringkas
+
+| Keputusan                                           | Pilih A bila                                     | Pilih B bila                                                |
+| --------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------- |
+| 64-bit Snowflake (A) vs 128-bit UUID v7 (B)         | Index kecil penting, kontrol machine id tersedia | Tidak ingin mengelola machine id; interoperabilitas standar |
+| Dibuat di aplikasi (A) vs di database per shard (B) | Banyak service menulis, ingin ID sebelum INSERT  | Satu jalur tulis lewat DB; ingin shard id tertanam          |
+| Terurut (A) vs acak (B)                             | Paginasi cursor, index ramah                     | Harus tidak tertebak dan volume rahasia                     |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Kenapa tidak UUID saja?" → Ukuran, urutan acak di index, tidak informatif; UUID v7 memperbaiki urutannya.
+- "Bagaimana memastikan dua node tidak memakai machine id yang sama?" → Lease terkoordinasi saat start, atau alokasi statis yang diaudit.
+- "Jam server mundur, apa yang terjadi?" → Duplikat; tolak/tunggu; sebutkan monotonic clock.
+- "Berapa ID per detik yang bisa dibuat?" → 4.096/ms/node; 1.024 node → jutaan per detik.
+- "Bagaimana kalau butuh ID terurut ketat secara global?" → Tidak bisa tanpa koordinasi; pakai satu sequencer (Raft log) dan terima latency-nya.
+
+## Ringkasan
+
+1. ID terdistribusi yang baik: unik, 64-bit, terurut kasar menurut waktu, dibuat tanpa round trip; auto-increment pusat gagal di koordinasi, UUID v4 gagal di urutan dan ukuran.
+2. Snowflake membagi 64 bit menjadi timestamp (41), machine id (10), sequence (12); dua risikonya adalah jam mundur dan machine id ganda.
+3. Bila tidak ingin mengelola machine id, UUID v7 adalah standar yang terurut; bila volume harus rahasia, encode ID untuk konsumsi publik.

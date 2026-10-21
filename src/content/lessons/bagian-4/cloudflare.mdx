@@ -1,0 +1,153 @@
+---
+title: 'Cloudflare: regex yang menghentikan internet selama 27 menit (2019)'
+module: bagian-4
+order: 1
+minutes: 40
+type: postmortem
+prerequisites: ['bagian-3/deployment-system', 'bagian-2/load-balancer']
+summary: 'Satu aturan WAF dengan regex yang backtracking, dideploy global dalam detik, memakan 100% CPU di seluruh edge. Pelajaran tentang konfigurasi sebagai kode, rollout bertahap, dan kill switch yang bisa diakses saat sistem sakit. Ditambah dua insiden Cloudflare lain sebagai pembanding.'
+sources:
+  - title: 'Cloudflare Blog — Details of the Cloudflare outage on July 2, 2019 (postmortem resmi)'
+    url: 'https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/'
+  - title: 'Cloudflare Blog — Cloudflare outage on June 21, 2022 (postmortem resmi)'
+    url: 'https://blog.cloudflare.com/cloudflare-outage-on-june-21-2022/'
+  - title: 'Cloudflare Blog — Post Mortem on Cloudflare Control Plane and Analytics Outage (November 2, 2023)'
+    url: 'https://blog.cloudflare.com/post-mortem-on-cloudflare-control-plane-and-analytics-outage/'
+  - title: 'Regular expression denial of service (ReDoS) — Wikipedia'
+    url: 'https://en.wikipedia.org/wiki/ReDoS'
+quiz:
+  - q: 'Dalam insiden 2 Juli 2019, kenapa satu aturan WAF yang salah bisa menjatuhkan hampir seluruh layanan Cloudflare sekaligus?'
+    options:
+      - text: 'Karena aturan itu memblokir semua request'
+        correct: false
+        why: 'Aturan tidak memblokir; ia membuat proses proxy menghabiskan CPU sehingga tidak bisa melayani apa pun.'
+      - text: 'Karena regex-nya memicu catastrophic backtracking yang memakan 100% CPU, dan aturan WAF dideploy ke seluruh edge global dalam detik lewat jalur "quick release" tanpa rollout bertahap'
+        correct: true
+        why: 'Dua faktor bertemu: cacat yang memakan sumber daya tanpa batas dan mekanisme distribusi yang tidak memberi kesempatan mendeteksi dampak di sebagian kecil armada dulu.'
+      - text: 'Karena serangan DDoS bersamaan'
+        correct: false
+        why: 'Laporan resmi menegaskan ini bukan serangan.'
+      - text: 'Karena datacenter utama kehilangan daya'
+        correct: false
+        why: 'Itu insiden berbeda (November 2023), dan dampaknya ke control plane, bukan edge.'
+  - q: 'Apa pelajaran utama tentang "konfigurasi" dari insiden ini?'
+    options:
+      - text: 'Konfigurasi tidak perlu diuji karena bukan kode'
+        correct: false
+        why: 'Justru kebalikannya.'
+      - text: 'Perubahan konfigurasi (aturan WAF, regex) harus diperlakukan seperti kode: diuji terhadap beban/waktu eksekusi, dideploy bertahap dengan pemantauan, dan bisa dibatalkan cepat, karena dampaknya bisa setara bug kode'
+        correct: true
+        why: 'Di sistem edge, aturan adalah program yang berjalan pada setiap request. Jalur rilis cepat untuk aturan darurat harus tetap punya pengaman (mis. batas CPU, canary singkat).'
+      - text: 'Konfigurasi harus diubah manual di tiap server'
+        correct: false
+        why: 'Tidak skalabel dan rawan.'
+      - text: 'Semua konfigurasi harus dideploy serentak agar konsisten'
+        correct: false
+        why: 'Konsistensi global seketika adalah yang memperbesar blast radius.'
+  - q: 'Saat tim ingin menonaktifkan aturan, prosesnya lebih lama dari seharusnya. Kenapa, dan apa polanya?'
+    options:
+      - text: 'Karena tidak ada yang tahu aturan mana yang salah'
+        correct: false
+        why: 'Penyebab cukup cepat diduga dari grafik CPU dan deploy terakhir.'
+      - text: 'Karena jalur akses ke alat internal untuk menerapkan kill switch ikut terdampak/terhambat oleh outage dan kebijakan akses, sehingga "rem darurat" tidak langsung bisa ditekan; polanya: alat pemulihan harus independen dari sistem yang dipulihkan'
+        correct: true
+        why: 'Pola yang muncul di hampir semua outage besar: sistem untuk memperbaiki bergantung pada sistem yang rusak. Kill switch, akses out-of-band, dan kredensial darurat harus diuji secara berkala.'
+      - text: 'Karena rollback memerlukan persetujuan direksi'
+        correct: false
+        why: 'Bukan itu yang dilaporkan.'
+      - text: 'Karena aturan tidak bisa dinonaktifkan sama sekali'
+        correct: false
+        why: 'Ada global kill switch; masalahnya waktu untuk mencapainya.'
+  - q: 'Insiden 21 Juni 2022 (perubahan BGP di 19 datacenter tersibuk) dan 2 November 2023 (daya di datacenter core) menambah pelajaran apa?'
+    options:
+      - text: 'Bahwa outage selalu disebabkan regex'
+        correct: false
+        why: 'Penyebabnya berbeda-beda; polanya yang berulang.'
+      - text: '2022: perubahan jaringan pun butuh rollout bertahap dan urutan yang aman, karena datacenter "modern" yang diubah justru melayani sebagian besar trafik; 2023: control plane yang dianggap high-availability ternyata punya dependensi tersembunyi pada satu lokasi, dan disaster recovery harus diuji dengan mematikan lokasi sungguhan'
+        correct: true
+        why: 'Tiga insiden, satu tema: blast radius dan asumsi ketersediaan yang tidak diuji. Rollout bertahap, dependensi terpetakan, DR drill.'
+      - text: 'Bahwa datacenter harus dimiliki sendiri'
+        correct: false
+        why: 'Kepemilikan tidak menyelesaikan dependensi tersembunyi.'
+      - text: 'Bahwa BGP sebaiknya tidak dipakai'
+        correct: false
+        why: 'BGP adalah fondasi internet; cara mengubahnya yang perlu pengaman.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menceritakan kronologi insiden 2 Juli 2019 dan mengidentifikasi dua faktor yang saling memperkuat (cacat + mekanisme distribusi).
+- Menjelaskan kenapa konfigurasi harus diperlakukan sebagai kode, dan apa itu catastrophic backtracking.
+- Menyebut pola yang berulang di tiga insiden Cloudflare (2019, 2022, 2023) dan memakainya sebagai jawaban "apa yang bisa salah?" di interview.
+
+Catatan: ringkasan di bawah ditulis ulang dari postmortem resmi Cloudflare yang tercantum di sumber. Untuk detail waktu dan angka, baca laporan aslinya.
+
+## Konteks sistem
+
+Cloudflare adalah reverse proxy global: request pengguna ke jutaan situs melewati edge Cloudflare di ratusan kota. Di setiap edge, proxy HTTP menjalankan Web Application Firewall (WAF) yang mencocokkan request terhadap ribuan aturan, banyak di antaranya berbasis regex. Aturan WAF adalah konfigurasi yang sering diperbarui untuk merespons ancaman baru, sehingga ada jalur deploy cepat ke seluruh dunia.
+
+## Kronologi (2 Juli 2019, ringkas)
+
+```mermaid
+flowchart LR
+  A["13:42 UTC\nAturan WAF baru dideploy global\n(jalur quick release)"] --> B["Dalam menit\nCPU proxy 100% di seluruh edge\n502 untuk hampir semua trafik"]
+  B --> C["Deteksi: alert CPU & error global\nDugaan awal: serangan"]
+  C --> D["Korelasi dengan deploy terakhir\nKeputusan: kill switch WAF global"]
+  D --> E["Hambatan akses ke alat internal\nmemperlambat eksekusi"]
+  E --> F["14:09 UTC\nWAF dinonaktifkan global\ntrafik pulih (~27 menit)"]
+  F --> G["Aturan diperbaiki, WAF diaktifkan lagi\nbertahap; postmortem publik"]
+```
+
+- Aturan baru berisi regex yang, pada input tertentu, melakukan **catastrophic backtracking**: mesin regex mencoba kombinasi eksponensial sebelum menyerah. Pada mesin regex yang backtracking, pola seperti `(.*.*=.*)` dapat memakan waktu super-linear terhadap panjang input.
+- Karena WAF berjalan pada setiap request di setiap mesin, dan aturan disebarkan global dalam detik, seluruh armada kehabisan CPU hampir bersamaan.
+- Pemulihan dilakukan dengan mematikan WAF secara global, lalu memperbaiki aturan dan menyalakan kembali.
+
+## Akar masalah
+
+| Lapisan              | Apa yang terjadi                             | Kenapa bisa                                                                            |
+| -------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Cacat                | Regex dengan backtracking eksponensial       | Tidak ada uji kinerja/waktu eksekusi untuk aturan; mesin regex tanpa batas langkah     |
+| Distribusi           | Deploy global seketika                       | Jalur "quick release" untuk aturan darurat melewati rollout bertahap yang dipakai kode |
+| Perlindungan runtime | Proxy tidak membatasi CPU per aturan/request | Tidak ada pengaman sumber daya per komponen                                            |
+| Pemulihan            | Kill switch lambat dicapai                   | Alat internal/akses terdampak; prosedur darurat tidak cukup dilatih                    |
+
+Catatan dari laporan: beberapa tahun sebelumnya ada lapisan proteksi CPU yang sudah dihapus karena dianggap tidak diperlukan lagi; hilangnya pengaman lama adalah faktor yang sering tidak terlihat sampai dibutuhkan.
+
+## Dua insiden pembanding
+
+**21 Juni 2022.** Perubahan konfigurasi BGP untuk kebijakan prefix dideploy ke 19 datacenter dengan arsitektur jaringan baru yang kebetulan melayani sebagian besar trafik. Urutan perubahan membuat prefix ditarik sebelum diiklankan kembali, sehingga datacenter itu "menghilang" dari internet sekitar 1.5 jam sampai perubahan dibatalkan. Pelajaran: perubahan jaringan pun perlu rollout bertahap dan dry-run; datacenter "kecil" lebih dulu, bukan yang tersibuk.
+
+**2 November 2023.** Kegagalan daya di satu datacenter core (dioperasikan pihak ketiga) menjatuhkan control plane, dashboard, API, dan analitik selama hampir dua hari, meskipun data plane (edge) terus melayani trafik. Control plane dirancang high-availability lintas tiga datacenter, tetapi sejumlah layanan dan dependensinya ternyata hanya hidup di satu lokasi, dan proses disaster recovery belum pernah diuji dengan skenario kehilangan satu lokasi penuh. Pelajaran: dependensi tersembunyi dan DR yang tidak dilatih.
+
+## Pola yang bisa dipetik
+
+1. **Konfigurasi adalah kode.** Aturan, regex, kebijakan BGP, flag: semuanya mengubah perilaku produksi dan butuh uji, canary, dan rollback.
+2. **Blast radius dibatasi oleh mekanisme, bukan niat.** Rollout bertahap (persentase, datacenter kecil dulu) harus menjadi satu-satunya jalur, termasuk untuk perubahan "darurat"; jalur cepat tetap melewati canary singkat.
+3. **Batasi sumber daya per komponen.** Timeout/langkah maksimum untuk regex, CPU budget per modul, sehingga satu cacat mendegradasi satu fitur, bukan seluruh proses.
+4. **Rem darurat harus independen dan dilatih.** Kill switch, akses out-of-band, kredensial break-glass, diuji berkala saat tidak ada insiden.
+5. **Pengaman lama jangan dihapus tanpa pengganti.** Lapisan proteksi yang "tidak pernah terpakai" mungkin justru sedang bekerja.
+6. **Asumsi ketersediaan harus diuji dengan mematikan sesuatu.** Game day: matikan satu datacenter/lokasi dan lihat apa yang ikut mati.
+
+## Hubungannya dengan building block
+
+| Building block                | Pelajaran dari insiden                                                             |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| Deployment system             | Canary dengan analisis otomatis (CPU, error) untuk konfigurasi, bukan hanya binary |
+| Load balancer / edge          | Health check yang mendeteksi "hidup tapi sakit" (CPU jenuh) dan mengeluarkan node  |
+| Monitoring                    | Korelasi alert dengan deploy terakhir; dashboard yang tetap hidup saat produk mati |
+| Rate limiter / resource limit | Batas eksekusi per aturan sebagai rate limiter sumber daya                         |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Bagaimana kamu mencegah satu perubahan konfigurasi menjatuhkan semuanya?" → Rollout bertahap wajib, canary, batas sumber daya per komponen.
+- "Bagaimana mendeteksi bahwa deploy yang menyebabkan masalah?" → Korelasi otomatis event deploy dengan metrik; rollback otomatis saat gate gagal.
+- "Alat pemulihanmu bergantung pada apa?" → Petakan dependensi; sediakan jalur out-of-band.
+- "Apa yang akan kamu lakukan dalam 5 menit pertama outage global?" → Hentikan perubahan terbaru (rollback dulu, tanya kemudian), komunikasi, lalu diagnosis.
+
+## Ringkasan
+
+1. Insiden 2019: regex backtracking memakan 100% CPU dan deploy global seketika membuat seluruh edge jatuh dalam menit; pemulihan 27 menit lewat kill switch yang sulit dicapai.
+2. Akar masalahnya bukan satu bug, melainkan bug + distribusi tanpa tahap + tanpa batas sumber daya + rem darurat yang tidak independen.
+3. Pola lintas tiga insiden Cloudflare: konfigurasi adalah kode, blast radius dibatasi mekanisme, dependensi dan DR harus diuji dengan mematikan sesuatu.

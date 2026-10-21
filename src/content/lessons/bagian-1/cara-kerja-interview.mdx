@@ -1,0 +1,152 @@
+---
+title: 'Cara kerja system design interview'
+module: bagian-1
+order: 1
+minutes: 30
+type: lesson
+prerequisites: []
+summary: 'Apa yang sebenarnya dinilai interviewer, bagaimana 45 menit biasanya dibagi, dan kenapa "jawaban benar" bukan tujuannya.'
+sources:
+  - title: 'System Design Primer — How to approach a system design interview question'
+    url: 'https://github.com/donnemartin/system-design-primer#how-to-approach-a-system-design-interview-question'
+  - title: 'Jackson Gabbard — Intro to Architecture and Systems Design Interviews (video, gratis)'
+    url: 'https://www.youtube.com/watch?v=ZgdS0EUmn70'
+  - title: 'interviewing.io — A senior engineer’s guide to the system design interview'
+    url: 'https://interviewing.io/guides/system-design-interview'
+  - title: 'checkcheckzz/system-design-interview — kumpulan sumber gratis'
+    url: 'https://github.com/checkcheckzz/system-design-interview'
+quiz:
+  - q: 'Interviewer memberi soal "rancang sistem notifikasi". Langkah pertama yang paling tepat?'
+    options:
+      - text: 'Menggambar load balancer, service, dan database di papan'
+        correct: false
+        why: 'Menggambar sebelum tahu scope adalah kesalahan paling umum. Kamu bisa merancang sistem yang salah dengan sangat rapi.'
+      - text: 'Mengajukan pertanyaan klarifikasi untuk mempersempit scope dan skala'
+        correct: true
+        why: 'Soal sengaja dibuat kabur. Interviewer menilai apakah kamu bisa mengubah masalah terbuka menjadi requirements yang bisa dirancang.'
+      - text: 'Menjelaskan semua jenis database yang kamu tahu'
+        correct: false
+        why: 'Pamer pengetahuan tanpa konteks tidak dinilai; yang dinilai adalah keputusan yang terikat pada requirements.'
+      - text: 'Meminta interviewer menentukan arsitekturnya'
+        correct: false
+        why: 'Kamu yang memimpin. Interviewer hanya memberi batasan dan sesekali mengarahkan.'
+  - q: 'Mana yang paling menggambarkan apa yang dinilai dalam system design interview?'
+    options:
+      - text: 'Apakah kandidat menghasilkan arsitektur yang sama dengan kunci jawaban'
+        correct: false
+        why: 'Tidak ada kunci jawaban tunggal. Dua kandidat bisa lulus dengan desain berbeda bila keduanya beralasan.'
+      - text: 'Apakah kandidat bisa mengambil keputusan beralasan di bawah ketidakpastian dan mengomunikasikannya'
+        correct: true
+        why: 'Inti penilaian: proses berpikir, trade-off yang disadari, dan komunikasi. Desain hanyalah bukti dari proses itu.'
+      - text: 'Berapa banyak teknologi yang disebut dalam 45 menit'
+        correct: false
+        why: 'Menyebut Kafka tanpa bisa menjelaskan kenapa justru menjadi sinyal negatif saat ditanya lebih dalam.'
+      - text: 'Seberapa cepat kandidat selesai menggambar'
+        correct: false
+        why: 'Kecepatan tidak dinilai; kelengkapan dan kedalaman yang proporsional dengan waktu yang dinilai.'
+  - q: 'Kamu sudah 25 menit dan masih membahas requirements. Apa yang sebaiknya dilakukan?'
+    options:
+      - text: 'Tetap teliti sampai semua requirement jelas'
+        correct: false
+        why: 'Tidak ada waktu tersisa untuk desain; interviewer tidak punya bukti kemampuan merancangmu.'
+      - text: 'Kunci asumsi yang ada, sebutkan apa yang di-skip, lalu pindah ke high-level design'
+        correct: true
+        why: 'Manajemen waktu adalah bagian dari penilaian. Menyatakan asumsi secara eksplisit lebih baik daripada ketelitian yang tidak selesai.'
+      - text: 'Minta tambahan waktu ke interviewer'
+        correct: false
+        why: 'Jarang diberikan, dan menandakan kamu tidak mengelola waktu sendiri.'
+      - text: 'Langsung lompat ke deep dive database'
+        correct: false
+        why: 'Deep dive tanpa high-level design membuat interviewer kehilangan gambaran utuh sistemmu.'
+  - q: 'Interviewer bertanya "kenapa pilih message queue di sini?" Jawaban yang paling baik?'
+    options:
+      - text: '"Karena sistem besar selalu pakai queue"'
+        correct: false
+        why: 'Generalisasi tanpa kaitan ke masalah ini. Interviewer sedang menguji apakah pilihanmu beralasan.'
+      - text: '"Untuk memisahkan request path dari pekerjaan lambat, menyerap lonjakan trafik, dan memungkinkan retry; alternatifnya memanggil langsung, tapi itu membuat latency user bergantung pada service hilir"'
+        correct: true
+        why: 'Menyebut masalah yang diselesaikan, manfaat konkret, dan alternatif yang ditolak beserta alasannya. Itulah pola jawaban yang dicari.'
+      - text: '"Saya pernah pakai di kantor"'
+        correct: false
+        why: 'Pengalaman bagus, tapi bukan alasan teknis untuk konteks soal ini.'
+      - text: '"Kalau tidak cocok, bisa saya ganti"'
+        correct: false
+        why: 'Menghindar. Interviewer ingin melihat kamu membela keputusan dengan argumen, atau mengubahnya dengan argumen.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan apa yang **sebenarnya dinilai** dalam system design interview dan kenapa tidak ada "jawaban benar".
+- Membagi 45 menit ke dalam tahap dengan anggaran waktu yang realistis.
+- Mengenali sinyal yang membuat interviewer yakin, dan sinyal yang membuat mereka ragu.
+
+## Interview ini bukan ujian arsitektur
+
+Soalnya hampir selalu kabur: "rancang Twitter", "rancang sistem notifikasi". Kekaburan itu disengaja. Interviewer ingin melihat bagaimana kamu **mengubah masalah terbuka menjadi sistem yang bisa dibangun**, bukan apakah kamu hafal arsitektur Twitter.
+
+Yang dinilai, kira-kira dengan bobot setara:
+
+| Dimensi             | Yang dicari interviewer                                       | Bukti yang bisa kamu tunjukkan                                       |
+| ------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Pemahaman masalah   | Bertanya sebelum merancang, membedakan yang penting dan tidak | Daftar functional/non-functional requirements + yang sengaja di-skip |
+| Keputusan beralasan | Tiap komponen punya "kenapa" dan "apa alternatifnya"          | Angka estimasi yang dipakai untuk memilih; tabel trade-off kecil     |
+| Kedalaman teknis    | Bisa turun ke detail komponen kritis                          | Deep dive 2-3 komponen: internal, failure mode, scaling              |
+| Komunikasi          | Interviewer selalu tahu kamu sedang di mana                   | Narasi runtut, diagram yang diberi nama, rangkuman tiap tahap        |
+| Manajemen waktu     | Selesai dengan gambaran utuh                                  | Tidak tenggelam di satu komponen; menyatakan asumsi untuk maju       |
+
+Konsekuensinya: dua kandidat dengan desain berbeda bisa sama-sama lulus, dan kandidat dengan desain "benar" bisa gagal kalau tidak bisa menjelaskan kenapa.
+
+## Bentuk sesi yang umum
+
+```mermaid
+flowchart TD
+  A[Soal kabur dari interviewer] --> B[Klarifikasi & requirements\n~5 menit]
+  B --> C[Estimasi kapasitas\n~4 menit]
+  C --> D[API & skema data\n~8 menit]
+  D --> E[High-level design\n~10 menit]
+  E --> F[Deep dive komponen kritis\n~12 menit]
+  F --> G[Evaluasi NFR, bottleneck, SPOF\n~4 menit]
+  G --> H[Wrap-up & pertanyaan\n~2 menit]
+  F -. interviewer mengarahkan .-> F
+```
+
+Pembagian waktu ini bukan aturan, tapi dua pola kegagalan paling sering adalah **menggambar sebelum bertanya** dan **tenggelam di deep dive pertama** sehingga 40% sistem tidak pernah dibahas. Rubrik di mode Mock Interview platform ini memakai pembagian yang sama.
+
+Peran interviewer: memberi batasan ("asumsikan 100 juta DAU"), mengarahkan ke area yang ingin mereka uji ("bagaimana kalau region ini mati?"), dan sesekali menantang keputusanmu. Tantangan bukan tanda kamu salah; itu cara mereka mengukur kedalaman.
+
+## Level yang diharapkan
+
+Ekspektasi berbeda menurut level yang dilamar:
+
+| Level        | Yang cukup                                                                                           | Yang membedakan                                |
+| ------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Junior / mid | Memahami komponen dasar, bisa merangkai alur end-to-end dengan arahan                                | Bertanya requirement yang tepat                |
+| Senior       | Memimpin sesi, estimasi dipakai untuk keputusan, deep dive mandiri, menyebut trade-off tanpa diminta | Mengenali failure mode dan cara operasionalnya |
+| Staff+       | Semua di atas, plus menimbang biaya, evolusi sistem, dan dampak organisasi                           | Menolak kompleksitas yang tidak perlu          |
+
+Sebagai backend engineer, keunggulanmu ada di deep dive: database, konsistensi, antrian, idempotency. Pastikan bagian high-level tidak dikorbankan karena terlalu nyaman di sana.
+
+## Trade-off: cara menjalani sesi
+
+| Pilihan                                       | Kelebihan                             | Kekurangan                                   | Saran                                                          |
+| --------------------------------------------- | ------------------------------------- | -------------------------------------------- | -------------------------------------------------------------- |
+| Lebar dulu (seluruh sistem), baru dalam       | Interviewer dapat gambaran utuh cepat | Risiko dangkal bila waktu habis              | Default: lebar dulu, lalu tanya "mau saya dalami bagian mana?" |
+| Dalam dulu di komponen favorit                | Menunjukkan keahlian                  | Bisa dianggap tidak bisa melihat sistem utuh | Hanya bila interviewer memintanya                              |
+| Banyak bertanya sepanjang sesi                | Requirement akurat                    | Terkesan tidak bisa memutuskan               | Tanya di awal; setelah itu nyatakan asumsi dan lanjut          |
+| Memakai teknologi spesifik (Kafka, Cassandra) | Konkret                               | Akan ditanya internalnya                     | Sebut hanya yang bisa kamu jelaskan cara kerjanya              |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Apa yang ingin kamu klarifikasi dulu?" → Ini undangan; jangan langsung menggambar.
+- "Berapa skala yang kita bicarakan?" → Bila tidak diberi, usulkan asumsi dan minta konfirmasi.
+- "Kenapa komponen ini?" → Jawab dengan masalah yang diselesaikan, alternatif, dan alasan menolaknya.
+- "Apa yang terjadi kalau X mati?" → Mereka menguji failure mode; jawab dengan dampak ke user, deteksi, dan pemulihan.
+- "Kalau ada waktu lagi, apa yang kamu ubah?" → Sebutkan bagian yang paling kamu tidak yakin; kejujuran dinilai positif.
+
+## Ringkasan
+
+1. Yang dinilai adalah proses: memahami masalah, memutuskan dengan alasan, dan mengomunikasikannya; bukan kecocokan dengan kunci jawaban.
+2. Anggaran waktu: klarifikasi → estimasi → API/data → high-level → deep dive → evaluasi; dua kegagalan tersering adalah menggambar terlalu cepat dan tenggelam di satu komponen.
+3. Setiap komponen yang kamu sebut harus bisa dijawab dengan "kenapa ini, bukan itu".

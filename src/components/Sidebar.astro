@@ -1,0 +1,77 @@
+---
+import type { SidebarModule } from '../lib/content';
+import { lessonHref } from '../lib/url';
+
+interface Props {
+  modules: SidebarModule[];
+  currentId?: string;
+  navLinks: { label: string; to: string }[];
+}
+const { modules, currentId, navLinks } = Astro.props;
+const typeBadge: Record<string, string> = { case: 'kasus', postmortem: 'outage' };
+---
+
+<aside id="sidebar" class="sidebar" aria-label="Navigasi kurikulum">
+  <div class="progress-wrap">
+    <div class="small muted" data-progress-text>
+      0/0 selesai · 0%
+    </div>
+    <div class="progress" role="progressbar" aria-label="Progress belajar">
+      <div data-progress-bar></div>
+    </div>
+    <p style="margin:0.6rem 0 0">
+      <a class="btn btn-primary small" data-continue-link href="#">
+        Mulai belajar
+      </a>
+    </p>
+  </div>
+  <nav class="mobile-nav" aria-label="Halaman">
+    <h2>Halaman</h2>
+    <ul>
+      {navLinks.map((l) => (
+        <li>
+          <a href={l.to}>{l.label}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+  {modules.map((m) => (
+    <section>
+      <h2 title={m.description}>{m.title}</h2>
+      <ul>
+        {m.items.map((it) =>
+          it.available ? (
+            <li data-lesson-id={it.id}>
+              <a href={lessonHref(it.id)} aria-current={it.id === currentId ? 'page' : undefined}>
+                <span class="check" aria-hidden="true">
+                  ✓
+                </span>
+                <span data-title>{it.title}</span>
+                {it.type && typeBadge[it.type] && <span class="badge">{typeBadge[it.type]}</span>}
+              </a>
+            </li>
+          ) : (
+            <li>
+              <span class="soon" title="Belum ditulis">
+                <span class="check" aria-hidden="true"></span>
+                <span data-title>{it.title}</span>
+                <span class="badge">segera</span>
+              </span>
+            </li>
+          ),
+        )}
+      </ul>
+    </section>
+  ))}
+</aside>
+
+<style>
+  .mobile-nav {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .mobile-nav {
+      display: block;
+    }
+  }
+</style>

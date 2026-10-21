@@ -1,0 +1,160 @@
+---
+title: 'Sharded counter'
+module: bagian-2
+order: 16
+minutes: 35
+type: lesson
+prerequisites: ['bagian-2/distributed-cache', 'bagian-2/database']
+summary: 'Menghitung like, view, dan follower di skala jutaan tulis per detik tanpa satu baris menjadi hot spot: membelah counter, mengagregasi, dan tahu kapan "kira-kira" sudah cukup.'
+sources:
+  - title: 'Google Cloud Firestore docs — Distributed counters'
+    url: 'https://firebase.google.com/docs/firestore/solutions/counters'
+  - title: 'Redis docs — INCR, HyperLogLog (PFADD/PFCOUNT)'
+    url: 'https://redis.io/docs/latest/develop/data-types/probabilistic/hyperloglogs/'
+  - title: 'Conflict-free replicated data type (G-Counter, PN-Counter) — Wikipedia'
+    url: 'https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type'
+  - title: 'System Design Primer — Caching & write-behind'
+    url: 'https://github.com/donnemartin/system-design-primer#cache'
+quiz:
+  - q: 'Satu video viral menerima 50.000 like/detik. UPDATE videos SET likes = likes + 1 WHERE id = 42 menjadi lambat dan gagal. Kenapa?'
+    options:
+      - text: 'Karena kolom likes bertipe integer'
+        correct: false
+        why: 'Tipe tidak relevan; masalahnya kontensi.'
+      - text: 'Karena semua tulisan bersaing memperebutkan lock baris yang sama; throughput dibatasi serialisasi satu baris (ribuan/detik), bukan kapasitas DB'
+        correct: true
+        why: 'Hot row: tiap update harus menunggu lock dan menulis WAL untuk baris yang sama. Sharding counter ke N baris atau mengagregasi di memori menyebarkan kontensi.'
+      - text: 'Karena DB tidak mendukung increment atomik'
+        correct: false
+        why: 'Didukung; justru atomiknya yang menyerialkan.'
+      - text: 'Karena index pada id hilang'
+        correct: false
+        why: 'Lookup cepat; penulisan yang bersaing.'
+  - q: 'Counter dibagi menjadi 100 shard. Bagaimana menampilkan total, dan apa trade-off-nya?'
+    options:
+      - text: 'Baca 100 shard dan jumlahkan setiap kali ditampilkan; murah karena 100 baca kecil'
+        correct: false
+        why: 'Bisa untuk tampilan jarang, tetapi pada halaman yang dibuka jutaan kali per detik 100 baca per tampilan terlalu mahal.'
+      - text: 'Jumlahkan 100 shard secara berkala (atau saat tulis, secara async) ke nilai agregat yang di-cache; tampilan membaca agregat yang sedikit basi'
+        correct: true
+        why: 'Pisahkan jalur tulis (tersebar ke shard) dari jalur baca (satu nilai agregat). Harganya: total tertinggal beberapa detik, yang untuk like/view dapat diterima.'
+      - text: 'Hanya tampilkan shard pertama'
+        correct: false
+        why: 'Nilai salah.'
+      - text: 'Kembalikan ke satu baris saat membaca'
+        correct: false
+        why: 'Mengembalikan hot spot.'
+  - q: 'Kamu butuh jumlah pengunjung UNIK per hari untuk 10 juta halaman, dengan memori terbatas. Pendekatan yang tepat?'
+    options:
+      - text: 'Set user_id per halaman di Redis'
+        correct: false
+        why: 'Set eksak memakan memori sebanding jumlah pengunjung unik: terlalu besar untuk 10 juta halaman.'
+      - text: 'HyperLogLog per halaman (≈12 KB per counter, error ~0.8%), karena untuk analitik perkiraan sudah cukup'
+        correct: true
+        why: 'Struktur probabilistik menukar akurasi kecil dengan memori konstan, dan bisa digabung (union) antar hari/halaman.'
+      - text: 'Counter biasa yang dinaikkan setiap kunjungan'
+        correct: false
+        why: 'Menghitung kunjungan, bukan pengunjung unik.'
+      - text: 'Tabel log semua kunjungan lalu COUNT DISTINCT tiap kali'
+        correct: false
+        why: 'Akurat tapi mahal; cocok hanya untuk batch offline.'
+  - q: 'Counter saldo poin yang dipakai untuk menukar hadiah: bolehkah memakai pola sharded counter dengan agregat basi?'
+    options:
+      - text: 'Boleh, sama seperti like'
+        correct: false
+        why: 'Saldo dipakai untuk keputusan (cukup/tidak); nilai basi bisa membuat pengguna menukar lebih dari yang dimiliki.'
+      - text: 'Tidak; saldo yang menjadi dasar keputusan butuh konsistensi kuat: satu baris per akun dengan transaksi (kontensi per akun kecil), atau ledger append-only dengan saldo terhitung di transaksi yang sama'
+        correct: true
+        why: 'Pilih pola berdasarkan kebutuhan konsistensi. Hot spot pada saldo per akun jarang terjadi karena satu akun tidak menerima 50.000 tulisan/detik.'
+      - text: 'Boleh asal shard-nya 1.000'
+        correct: false
+        why: 'Jumlah shard tidak menyelesaikan masalah konsistensi.'
+      - text: 'Saldo harus disimpan di cache saja'
+        correct: false
+        why: 'Cache bukan sumber kebenaran untuk data keuangan.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan kenapa satu counter menjadi hot spot dan cara membelahnya (sharded counter).
+- Memisahkan jalur tulis (tersebar) dan jalur baca (agregat) dengan toleransi kebasian yang disengaja.
+- Memilih antara eksak dan perkiraan (HyperLogLog), dan tahu kapan counter butuh konsistensi kuat.
+
+## Masalah yang diselesaikan
+
+Like, view, follower, jumlah komentar: angka sederhana dengan laju tulis yang bisa meledak untuk satu objek (viral). `UPDATE ... SET n = n + 1` pada satu baris menyerialkan semua tulisan: lock baris, WAL, replikasi. Satu baris sanggup ribuan update/detik, bukan puluhan ribu. **Hot row** adalah bentuk hot spot yang paling sering muncul di interview.
+
+## Sharded counter
+
+Ide: satu counter logis = N baris/key fisik; tulis ke salah satu secara acak; total = jumlah semuanya.
+
+```mermaid
+flowchart LR
+  W[Tulis like video 42] --> R{pilih shard\nacak 0..N-1}
+  R --> S0[(video:42:0 = 1.203)]
+  R --> S1[(video:42:1 = 1.187)]
+  R --> S2[(video:42:… )]
+  R --> SN[(video:42:N-1 = 1.210)]
+  AGG[Agregator\nberkala / async] --> S0
+  AGG --> S1
+  AGG --> SN
+  AGG --> T[(video:42:total = 119.950\ncache, TTL/refresh)]
+  V[Tampilkan] --> T
+```
+
+- **N** dipilih dari laju tulis puncak dibagi kapasitas satu baris (mis. 50.000/s ÷ 1.000/s ≈ 50, bulatkan 64). N bisa adaptif: objek biasa N=1, naik saat terdeteksi panas.
+- **Tulis**: `INCR` pada shard acak; di Redis ini O(1) tanpa lock; di DB, kontensi tersebar ke N baris.
+- **Baca**: jangan menjumlahkan N shard setiap tampilan. Agregator menjumlahkan berkala (tiap 1–5 detik untuk objek panas) atau pembaca menjumlahkan lalu meng-cache dengan TTL. Total yang ditampilkan **sedikit basi**, dan itu diterima untuk like/view.
+
+## Pola alternatif dan pelengkap
+
+| Pola                                      | Cara                                                                              | Cocok untuk                                               | Catatan                                                              |
+| ----------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------- |
+| Agregasi di memori + flush (write-behind) | Service menghitung di memori lokal per objek, menulis delta ke store tiap ~1 s    | Laju sangat tinggi, toleransi kehilangan ≤ 1 s saat crash | Mengurangi tulisan 1.000x; gabungkan dengan sharded counter di store |
+| Event stream + agregator                  | Setiap like = event di Kafka; consumer mengagregasi per jendela dan menulis total | Perlu audit, replay, analitik turunan                     | Latency detik; total eksak akhirnya                                  |
+| CRDT counter (G/PN-Counter)               | Tiap replica menaikkan counternya sendiri; total = jumlah vector                  | Multi-region aktif-aktif, offline-first                   | Tanpa koordinasi, konvergen                                          |
+| HyperLogLog                               | Sketsa probabilistik untuk hitung unik                                            | Pengunjung unik, memori konstan                           | Error ~1%, bisa di-union                                             |
+| Count-Min Sketch / top-k                  | Sketsa frekuensi                                                                  | Item terpopuler, trending                                 | Perkiraan, memori kecil                                              |
+
+## Konsistensi: eksak atau kira-kira?
+
+| Kebutuhan                   | Contoh                                       | Pola                                                                                 |
+| --------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Perkiraan, boleh basi detik | Like, view, follower untuk tampilan          | Sharded counter + agregat cache, atau in-memory flush                                |
+| Eksak akhirnya (eventual)   | Statistik harian, billing usage              | Event stream + agregator idempotent, rekonsiliasi batch                              |
+| Eksak sekarang (strong)     | Saldo, stok, kuota yang menentukan keputusan | Satu baris per entitas + transaksi, atau ledger; kontensi per entitas biasanya kecil |
+
+Aturan praktis: angka yang hanya **ditampilkan** boleh kira-kira; angka yang menjadi dasar **keputusan** harus eksak di tempat keputusan dibuat. Stok produk flash sale adalah kasus sulit: eksak dibutuhkan tetapi hot; jawabannya adalah reservasi via queue terurut atau membagi stok ke bucket dengan alokasi per bucket.
+
+## Hal operasional
+
+- **Idempotency** untuk like: user yang sama tidak boleh menambah dua kali; simpan relasi `(user, objek)` (set/tabel) sebagai sumber kebenaran, counter hanyalah turunan. Unlike = kurangi.
+- **Rekonsiliasi**: job berkala menghitung ulang total dari sumber kebenaran untuk memperbaiki drift (crash saat flush, duplikat event).
+- **Deteksi objek panas**: naikkan N atau aktifkan agregasi memori saat laju melewati ambang; turunkan kembali saat dingin.
+- **Cache hot key**: total objek viral dibaca jutaan kali; replikasi key atau L1 cache (lihat modul distributed cache).
+
+## Trade-off ringkas
+
+| Keputusan                                                       | Pilih A bila                               | Pilih B bila                                      |
+| --------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------- |
+| Sharded counter di store (A) vs agregasi di memori (B)          | Setiap tulisan harus durable               | Boleh kehilangan ≤ 1 s saat crash demi throughput |
+| Agregat berkala (A) vs jumlahkan saat baca (B)                  | Objek dibaca sering                        | Objek dibaca jarang, tulis sering                 |
+| Eksak (A) vs probabilistik (B)                                  | Angka dipakai untuk keputusan atau tagihan | Analitik, hitung unik skala besar                 |
+| Counter sebagai sumber kebenaran (A) vs turunan dari relasi (B) | Tidak ada relasi (view anonim)             | Ada relasi (like per user): rekonsiliasi mudah    |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Video viral 50.000 like/detik, bagaimana counternya?" → Hot row; sharded counter + agregat; atau in-memory flush.
+- "Bagaimana menampilkan total tanpa membaca semua shard?" → Agregat cache dengan refresh berkala.
+- "User like dua kali?" → Relasi (user, objek) sebagai sumber kebenaran; counter turunan.
+- "Jumlah pengunjung unik?" → HyperLogLog.
+- "Kalau prosesnya crash sebelum flush?" → Kehilangan ≤ interval flush; rekonsiliasi batch; atau durable per tulis bila tidak boleh hilang.
+- "Stok flash sale?" → Bukan kasus kira-kira; reservasi terurut atau bucket stok.
+
+## Ringkasan
+
+1. Satu baris counter adalah hot spot; sharded counter membagi tulisan ke N baris dan agregat berkala menyediakan satu nilai baca yang sedikit basi.
+2. Untuk laju ekstrem, agregasi di memori dengan flush berkala atau event stream + agregator mengurangi tulisan ribuan kali; HyperLogLog untuk hitung unik.
+3. Pilih pola dari kebutuhan konsistensi: tampilan boleh kira-kira, keputusan (saldo, stok) butuh eksak; counter sebaiknya turunan dari relasi yang bisa direkonsiliasi.

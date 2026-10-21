@@ -1,0 +1,173 @@
+---
+title: 'Load balancer'
+module: bagian-2
+order: 2
+minutes: 40
+type: lesson
+prerequisites: ['bagian-2/dns', 'bagian-1/karakteristik-non-fungsional']
+summary: 'Komponen yang membuat horizontal scaling mungkin: membagi trafik, menyembunyikan server yang mati, dan menjadi tempat alami untuk TLS, routing, dan rate limit. Juga: bagaimana load balancer itu sendiri tidak menjadi single point of failure.'
+sources:
+  - title: 'System Design Primer — Load balancer'
+    url: 'https://github.com/donnemartin/system-design-primer#load-balancer'
+  - title: 'Cloudflare Learning Center — What is load balancing?'
+    url: 'https://www.cloudflare.com/learning/performance/what-is-load-balancing/'
+  - title: 'NGINX docs — HTTP load balancing methods'
+    url: 'https://docs.nginx.com/nginx/admin-guide/load-balancer/http-load-balancer/'
+  - title: 'Maglev: A Fast and Reliable Software Network Load Balancer (Google, NSDI 2016, akses terbuka)'
+    url: 'https://research.google/pubs/maglev-a-fast-and-reliable-software-network-load-balancer/'
+  - title: 'Envoy docs — Load balancing (algoritma, outlier detection)'
+    url: 'https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/load_balancing'
+quiz:
+  - q: 'Aplikasi WebSocket dengan koneksi berumur panjang. Algoritma load balancing mana yang paling masuk akal?'
+    options:
+      - text: 'Round robin'
+        correct: false
+        why: 'Round robin menghitung request masuk, bukan koneksi aktif; server yang kebetulan memegang koneksi lama akan menumpuk.'
+      - text: 'Least connections'
+        correct: true
+        why: 'Untuk koneksi berumur panjang, yang relevan adalah berapa koneksi yang sedang dipegang tiap server, bukan berapa yang pernah diterima.'
+      - text: 'IP hash'
+        correct: false
+        why: 'IP hash memberi stickiness, tapi tidak menyeimbangkan beban dan rawan hot spot dari NAT besar.'
+      - text: 'Random'
+        correct: false
+        why: 'Random cukup baik untuk request pendek yang seragam, tidak untuk koneksi panjang dengan durasi bervariasi.'
+  - q: 'Apa perbedaan utama load balancer L4 dan L7?'
+    options:
+      - text: 'L4 hanya untuk HTTP, L7 untuk semua protokol'
+        correct: false
+        why: 'Terbalik: L4 bekerja pada TCP/UDP sehingga protokol-agnostik; L7 memahami HTTP/gRPC.'
+      - text: 'L4 meneruskan berdasarkan IP/port tanpa membaca isi, cepat dan protokol-agnostik; L7 membaca HTTP sehingga bisa routing per path/header, TLS termination, dan rate limit, dengan biaya CPU lebih besar'
+        correct: true
+        why: 'Inilah trade-off intinya: kecerdasan vs throughput. Banyak arsitektur memakai keduanya berlapis.'
+      - text: 'L7 tidak bisa melakukan health check'
+        correct: false
+        why: 'L7 justru bisa health check yang lebih kaya (cek endpoint /health dan isi responsnya).'
+      - text: 'L4 selalu software, L7 selalu hardware'
+        correct: false
+        why: 'Keduanya tersedia sebagai software (NGINX, Envoy, HAProxy, IPVS) maupun hardware.'
+  - q: 'Bagaimana load balancer itu sendiri dibuat agar bukan single point of failure?'
+    options:
+      - text: 'Dengan menaruhnya di server yang sangat besar'
+        correct: false
+        why: 'Mesin besar tetap satu mesin; crash, maintenance, atau partisi tetap menjatuhkannya.'
+      - text: 'Dengan menjalankan beberapa instance di belakang anycast/ECMP atau pasangan aktif-pasif dengan virtual IP, plus DNS yang mengembalikan beberapa IP'
+        correct: true
+        why: 'Redundansi di lapisan network (anycast, ECMP, VRRP/VIP) membuat kegagalan satu instance tidak terlihat client; DNS multi-IP menambah lapisan lagi.'
+      - text: 'Dengan menonaktifkan health check'
+        correct: false
+        why: 'Health check justru mekanisme untuk menyembunyikan server yang mati.'
+      - text: 'Tidak mungkin; load balancer selalu SPOF'
+        correct: false
+        why: 'Hampir semua penyedia cloud menjalankan LB sebagai layanan terdistribusi yang tahan kegagalan node.'
+  - q: 'Server A merespons 500 pada 30% request tetapi masih menjawab health check. Fitur apa yang membantu?'
+    options:
+      - text: 'Sticky session'
+        correct: false
+        why: 'Stickiness justru mengunci user ke server yang sakit.'
+      - text: 'Outlier detection / passive health check yang mengeluarkan server dengan error rate atau latency menyimpang'
+        correct: true
+        why: 'Health check aktif hanya menguji endpoint sederhana. Passive check mengamati respons nyata dan mengeluarkan server "abu-abu" sementara.'
+      - text: 'Menambah TTL DNS'
+        correct: false
+        why: 'DNS tidak melihat error per request.'
+      - text: 'Mengganti ke round robin'
+        correct: false
+        why: 'Algoritma pembagian tidak menyelesaikan server yang mengembalikan error.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan apa yang dilakukan load balancer selain "membagi trafik": health check, TLS termination, routing, dan perlindungan.
+- Memilih antara L4 dan L7, serta algoritma pembagian yang cocok untuk pola trafik tertentu.
+- Menjawab "bagaimana load balancer-nya sendiri tidak menjadi SPOF?" dan menempatkannya di tiga lapisan arsitektur.
+
+## Kenapa ada load balancer
+
+Begitu satu server tidak cukup, kamu menambah server. Dua masalah langsung muncul: siapa yang membagi request, dan bagaimana client tidak perlu tahu server mana yang hidup. Load balancer (LB) menjawab keduanya dan sekaligus menjadi **titik kendali** tempat kamu menaruh hal-hal lintas-server: TLS, routing, rate limit, observability.
+
+## Di mana LB berada
+
+```mermaid
+flowchart LR
+  U[Client] --> DNS[DNS geo/weighted]
+  DNS --> GLB[Global / edge LB\nanycast, L4-L7]
+  GLB --> RLB[Regional LB L7\nTLS, routing per path]
+  RLB --> API[API service x N]
+  RLB --> WEB[Web service x N]
+  API --> ILB[Internal LB / service mesh]
+  ILB --> DB[(DB / cache / service lain)]
+```
+
+Tiga lapisan yang lazim disebut di interview:
+
+1. **Global**: memilih region (DNS atau anycast).
+2. **Edge/regional**: menerima trafik publik, TLS termination, routing per path atau host ke kelompok service.
+3. **Internal**: antar service di dalam datacenter, sering berupa sidecar/service mesh atau client-side load balancing.
+
+## L4 vs L7
+
+|           | L4 (transport)                             | L7 (application)                                                     |
+| --------- | ------------------------------------------ | -------------------------------------------------------------------- |
+| Melihat   | IP, port, (SNI)                            | HTTP method, path, header, cookie, gRPC                              |
+| Keputusan | Per koneksi                                | Per request                                                          |
+| Bisa      | Throughput sangat tinggi, protokol apa pun | Routing cerdas, TLS termination, kompresi, rate limit, retry, canary |
+| Biaya     | CPU rendah                                 | CPU lebih tinggi; harus memahami protokol                            |
+| Contoh    | IPVS, Maglev, cloud NLB                    | NGINX, Envoy, HAProxy (bisa keduanya), cloud ALB                     |
+
+Pola umum: L4 di depan untuk menyerap volume dan DDoS, L7 di belakangnya untuk kecerdasan.
+
+## Algoritma pembagian
+
+| Algoritma                        | Cara                                          | Cocok untuk                             | Jebakan                                                               |
+| -------------------------------- | --------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------- |
+| Round robin                      | Bergiliran                                    | Request pendek, server seragam          | Buta terhadap beban nyata dan koneksi panjang                         |
+| Weighted round robin             | Bergiliran dengan bobot                       | Server berbeda kapasitas; canary (95/5) | Bobot statis tidak mengikuti kondisi                                  |
+| Least connections                | Ke server dengan koneksi aktif paling sedikit | Koneksi panjang (WebSocket, DB)         | Butuh state per server di LB                                          |
+| Least response time / least load | Ke server tercepat/termurah                   | Beban heterogen                         | Perlu pengukuran kontinu                                              |
+| Hash (IP, cookie, key)           | Deterministik per kunci                       | Stickiness, cache lokal per server      | Hot spot; perubahan jumlah server mengacak (pakai consistent hashing) |
+| Power of two choices             | Pilih 2 acak, ambil yang lebih ringan         | Skala besar, LB terdistribusi           | — (hampir selalu bagus)                                               |
+
+## Fitur yang membuat LB "pintar"
+
+- **Health check aktif**: memanggil `/health` berkala, mengeluarkan server yang gagal N kali, memasukkan kembali setelah sehat. Buat endpoint health memeriksa dependency kritis secukupnya, jangan sampai health check sendiri memberatkan.
+- **Passive health / outlier detection**: mengamati error dan latency respons nyata; mengeluarkan server "abu-abu" yang lulus health check tapi sakit.
+- **TLS termination**: sertifikat dikelola di satu tempat; backend bicara HTTP biasa atau mTLS internal.
+- **Session affinity (sticky)**: mengunci user ke server yang sama lewat cookie. Hindari bila bisa; buat service **stateless** dan simpan sesi di cache bersama.
+- **Connection draining**: saat deploy, server berhenti menerima koneksi baru tetapi menyelesaikan yang ada.
+- **Rate limiting, WAF, retry dengan budget, timeout per route**: pengaman lintas service.
+
+## LB sendiri bukan SPOF
+
+Pertanyaan ini hampir selalu muncul. Jawaban berlapis:
+
+- **Beberapa instance LB** di belakang **anycast** (satu IP diiklankan dari banyak mesin, router memilih yang terdekat) atau **ECMP** (router membagi ke beberapa next-hop); Maglev adalah contoh desain seperti ini.
+- **Aktif-pasif dengan virtual IP** (VRRP/keepalived): IP berpindah ke pasangan bila yang aktif mati.
+- **DNS mengembalikan beberapa IP** LB sebagai lapisan tambahan.
+- **Stateless**: LB L4 modern memakai consistent hashing agar koneksi tetap ke backend yang sama meski instance LB berganti, tanpa sinkronisasi state.
+
+## Trade-off saat memilih
+
+| Keputusan                                        | Pilih A bila                                                | Pilih B bila                                                             |
+| ------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| L4 (A) vs L7 (B)                                 | Volume sangat tinggi, protokol non-HTTP, cukup bagi koneksi | Butuh routing per path/header, TLS termination, retry, canary            |
+| LB terpusat (A) vs client-side/service mesh (B)  | Client heterogen, kendali terpusat                          | Antar service internal, ingin menghindari hop ekstra dan punya discovery |
+| Sticky session (A) vs stateless + cache sesi (B) | Legacy yang menyimpan state di memori                       | Hampir selalu: scaling dan failover jauh lebih mudah                     |
+| Managed cloud LB (A) vs self-hosted (B)          | Operasional minimal, integrasi autoscaling                  | Kontrol penuh, fitur khusus, biaya egress                                |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Kalau load balancer-nya mati?" → Anycast/ECMP, VIP aktif-pasif, DNS multi-IP.
+- "Bagaimana LB tahu server mati?" → Health check aktif + outlier detection; sebutkan jeda deteksi.
+- "Apakah service kamu stateless? Kenapa penting?" → Supaya LB bebas mengarahkan dan server bebas ditambah/dikurangi.
+- "Di mana TLS diputus?" → Di edge/regional LB; mTLS ke dalam bila perlu.
+- "Bagaimana melakukan canary deployment?" → Weighted routing di L7 atau header-based routing.
+- "Kalau trafik 10x?" → LB horizontal, tambah backend lewat autoscaling, dan cek bahwa bottleneck berpindah ke database.
+
+## Ringkasan
+
+1. Load balancer adalah syarat horizontal scaling: membagi trafik, menyembunyikan server mati, dan menjadi titik kendali lintas server (TLS, routing, rate limit).
+2. L4 untuk volume dan protokol apa pun, L7 untuk kecerdasan per request; algoritma dipilih dari pola trafik (round robin untuk request pendek, least connections untuk koneksi panjang, hash untuk afinitas).
+3. LB bukan SPOF bila dijalankan sebagai beberapa instance di belakang anycast/ECMP atau VIP, dan backend harus stateless agar semua itu bekerja.

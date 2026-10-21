@@ -1,0 +1,159 @@
+---
+title: 'Facebook: enam jam hilang dari internet (BGP, 2021)'
+module: bagian-4
+order: 3
+minutes: 45
+type: postmortem
+prerequisites: ['bagian-2/dns', 'bagian-3/deployment-system', 'bagian-4/cloudflare']
+summary: 'Satu perintah pemeliharaan backbone memutus semua datacenter Facebook dari dunia luar; DNS yang dirancang "sehat" ikut menarik diri dari internet; dan insinyur tidak bisa masuk karena alat akses bergantung pada jaringan yang sama. Pelajaran tentang blast radius, desain health check, dan akses out-of-band.'
+sources:
+  - title: 'Engineering at Meta — More details about the October 4 outage (postmortem resmi)'
+    url: 'https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/'
+  - title: 'Engineering at Meta — Update about the October 4th outage'
+    url: 'https://engineering.fb.com/2021/10/04/networking-traffic/outage/'
+  - title: 'Cloudflare Blog — Understanding how Facebook disappeared from the Internet (analisis pihak luar)'
+    url: 'https://blog.cloudflare.com/october-2021-facebook-outage/'
+  - title: 'RFC 4271 — A Border Gateway Protocol 4 (BGP-4)'
+    url: 'https://www.rfc-editor.org/rfc/rfc4271'
+quiz:
+  - q: 'Kenapa facebook.com tidak bisa di-resolve sama sekali, padahal masalah awalnya ada di backbone internal?'
+    options:
+      - text: 'Karena server DNS Facebook mati karena beban'
+        correct: false
+        why: 'Server DNS-nya sehat; mereka sengaja menarik diri.'
+      - text: 'Karena server DNS authoritative Facebook dirancang menarik iklan BGP prefix-nya bila tidak bisa menghubungi datacenter (dianggap tidak sehat); ketika backbone putus, semua server DNS menarik diri serentak sehingga resolver di seluruh dunia tidak punya tempat bertanya'
+        correct: true
+        why: 'Mekanisme yang dirancang untuk kegagalan parsial (satu lokasi DNS sakit → keluar dari rotasi) berperilaku bencana saat kegagalan total. Health check harus mempertimbangkan "apa jadinya kalau semua gagal bersamaan".'
+      - text: 'Karena registrar mencabut domain'
+        correct: false
+        why: 'Tidak terjadi.'
+      - text: 'Karena serangan DDoS ke DNS'
+        correct: false
+        why: 'Bukan serangan.'
+  - q: 'Perintah pemeliharaan yang memutus backbone seharusnya dicegah oleh alat audit, tetapi lolos. Pelajaran apa yang paling tepat?'
+    options:
+      - text: 'Alat audit tidak berguna'
+        correct: false
+        why: 'Alat audit berguna; yang gagal adalah satu-satunya lapisan.'
+      - text: 'Satu lapisan pengaman (audit) tidak cukup untuk tindakan dengan blast radius global; perlu defense in depth: dry-run/simulasi, rollout bertahap per lokasi, konfirmasi untuk perubahan yang memutus konektivitas, dan rollback otomatis bila konektivitas hilang'
+        correct: true
+        why: 'Bug di alat audit adalah hal yang akan terjadi; desain harus mengasumsikan pengaman mana pun bisa gagal dan membatasi dampak lewat mekanisme lain.'
+      - text: 'Pemeliharaan backbone harus dilarang'
+        correct: false
+        why: 'Pemeliharaan tetap wajib.'
+      - text: 'Perintah harus dijalankan lebih cepat'
+        correct: false
+        why: 'Tidak relevan.'
+  - q: 'Kenapa pemulihan memakan sekitar enam jam padahal perbaikannya "hanya" mengembalikan konfigurasi?'
+    options:
+      - text: 'Karena insinyur tidak tahu apa yang salah'
+        correct: false
+        why: 'Diagnosis relatif cepat; eksekusi yang sulit.'
+      - text: 'Karena alat untuk mengakses dan memperbaiki perangkat jaringan dari jarak jauh bergantung pada jaringan yang putus, sehingga tim harus hadir fisik di datacenter dengan prosedur keamanan fisik yang ketat; lalu pemulihan harus bertahap agar lonjakan daya dan trafik saat menyala tidak menimbulkan kegagalan baru'
+        correct: true
+        why: 'Dua pelajaran: akses out-of-band yang benar-benar independen, dan rencana "cold start" untuk menyalakan kembali sistem besar secara bertahap.'
+      - text: 'Karena harus menunggu persetujuan regulator'
+        correct: false
+        why: 'Tidak disebut.'
+      - text: 'Karena data harus dipulihkan dari backup'
+        correct: false
+        why: 'Tidak ada kehilangan data.'
+  - q: 'Mana pernyataan yang BENAR tentang dampak luar dari insiden ini?'
+    options:
+      - text: 'Hanya pengguna Facebook yang terdampak'
+        correct: false
+        why: 'Resolver DNS publik di seluruh dunia menerima lonjakan query ulang, dan layanan pihak ketiga yang memakai login Facebook ikut terganggu.'
+      - text: 'Penarikan prefix BGP dan hilangnya DNS membuat resolver dan aplikasi di seluruh internet melakukan query ulang secara masif; layanan lain yang bergantung pada login/SDK Facebook ikut terganggu; ini menunjukkan dependensi transitif di ekosistem'
+        correct: true
+        why: 'Analisis Cloudflare mencatat lonjakan query DNS untuk domain Facebook di resolver publik. Dependensi pada penyedia besar adalah risiko sistemik bagi pihak lain.'
+      - text: 'Internet secara keseluruhan mati'
+        correct: false
+        why: 'Hanya properti Facebook yang hilang; internet tetap berjalan.'
+      - text: 'Tidak ada dampak ke pihak luar'
+        correct: false
+        why: 'Ada, lewat DNS dan dependensi login.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan rantai kejadian 4 Oktober 2021: perintah backbone → BGP ditarik → DNS menarik diri → akses pemulihan hilang → pemulihan bertahap.
+- Mengkritisi desain health check "menarik diri bila tidak sehat" dan menyebut kapan ia menjadi bencana.
+- Menjelaskan kenapa akses out-of-band dan rencana cold start adalah requirement, bukan opsi.
+
+Catatan: ringkasan ditulis ulang dari postmortem resmi Meta dan analisis publik Cloudflare; baca sumber untuk detailnya.
+
+## Konteks sistem
+
+Datacenter Facebook di seluruh dunia terhubung lewat **backbone** jaringan global milik sendiri. Ke dunia luar, Facebook mengiklankan prefix IP-nya lewat **BGP** dari titik-titik peering. Server **DNS authoritative** Facebook tersebar di banyak lokasi kecil (PoP) dan berada di prefix yang diiklankan lewat BGP juga. Untuk menjaga agar pengguna tidak diarahkan ke PoP yang tidak sehat, server DNS memantau konektivitasnya ke datacenter dan **menarik iklan BGP** prefix-nya bila konektivitas itu hilang.
+
+## Kronologi (4 Oktober 2021, ringkas)
+
+```mermaid
+flowchart LR
+  A["Pemeliharaan rutin backbone\nperintah menilai kapasitas global"] --> B["Perintah secara tak sengaja\nmemutus semua koneksi backbone\n(alat audit gagal menangkap)"]
+  B --> C["Datacenter terputus satu sama lain\ndan dari internet"]
+  C --> D["Server DNS tidak bisa mencapai\ndatacenter → menarik prefix BGP\n(by design)"]
+  D --> E["facebook.com, instagram.com,\nwhatsapp.com tidak bisa di-resolve\ndi seluruh dunia"]
+  E --> F["Alat akses jarak jauh ke perangkat\njaringan ikut hilang → tim harus\nhadir fisik di datacenter"]
+  F --> G["Konfigurasi dipulihkan bertahap\nmenghindari lonjakan daya & trafik"]
+  G --> H["~6 jam: layanan kembali,\npostmortem publik"]
+```
+
+- Perintah yang dimaksud untuk menilai kapasitas backbone malah menjatuhkan semua koneksi backbone; alat audit yang seharusnya mencegah perintah berbahaya mengandung bug.
+- Dengan backbone putus, server DNS di PoP kehilangan konektivitas ke datacenter dan, sesuai rancangan, menarik iklan BGP prefix DNS. Dalam hitungan menit, domain Facebook lenyap dari DNS global.
+- Resolver di seluruh dunia mencoba lagi berulang kali (lonjakan query), aplikasi pihak ketiga yang memakai SDK/login Facebook terganggu.
+- Insinyur tidak bisa mengakses perangkat jaringan dari jarak jauh karena alat akses bergantung pada jaringan yang sama; perlu kehadiran fisik, dengan prosedur keamanan fisik yang memperlambat.
+- Pemulihan dilakukan bertahap untuk menghindari kegagalan baru dari lonjakan daya saat perangkat menyala dan lonjakan trafik saat pengguna kembali.
+
+## Akar masalah
+
+| Lapisan                 | Apa yang terjadi                                        | Kenapa bisa                                                                                                         |
+| ----------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Blast radius perintah   | Satu perintah memengaruhi seluruh backbone global       | Tidak ada pembatasan lokasi/tahap untuk perubahan jaringan; satu lapisan audit                                      |
+| Pengaman                | Bug di alat audit                                       | Pengaman tunggal tanpa lapisan lain (simulasi, konfirmasi, rollback otomatis)                                       |
+| Desain health check DNS | Semua server DNS menarik diri serentak                  | Mekanisme untuk kegagalan parsial tidak mempertimbangkan kegagalan total; tidak ada "jangan tarik bila semua gagal" |
+| Akses pemulihan         | Alat akses jarak jauh bergantung pada jaringan produksi | Jalur out-of-band tidak benar-benar independen                                                                      |
+| Cold start              | Menyalakan kembali berisiko lonjakan daya/trafik        | Rencana pemulihan bertahap ada, tetapi lambat; latihan jarang                                                       |
+
+## Desain health check: kapan "menarik diri" menjadi bencana
+
+Pola "node yang tidak sehat keluar dari rotasi" benar untuk kegagalan sebagian: satu PoP DNS yang terputus tidak boleh menjawab dengan alamat yang tidak bisa dicapai. Masalahnya muncul saat **semua** node melihat kondisi yang sama. Beberapa pengaman yang lazim:
+
+- **Fail-static / fail-open pada kegagalan mayoritas**: bila lebih dari X% node ingin menarik diri bersamaan, hentikan penarikan dan pertahankan keadaan terakhir yang diketahui baik (lebih baik menjawab DNS dengan alamat yang mungkin tidak bisa dicapai daripada menghilang total; setidaknya pesan error jelas dan resolver tidak membanjiri).
+- **Jendela waktu dan histeresis**: jangan bereaksi seketika; kegagalan global biasanya berawal dari satu perubahan yang bisa dibatalkan dalam menit.
+- **Pisahkan health check dari jalur yang sama dengan kegagalan**: cek lebih dari satu sinyal.
+
+Ini sama dengan prinsip "static stability" di modul karakteristik non-fungsional: sistem harus tetap pada keadaan baik terakhir saat control plane atau sinyal kesehatannya hilang.
+
+## Pola yang bisa dipetik
+
+1. **Perubahan jaringan global butuh rollout bertahap dan dry-run**, sama seperti kode dan konfigurasi: satu lokasi dulu, verifikasi konektivitas, baru lanjut; rollback otomatis bila konektivitas ke "luar" hilang.
+2. **Defense in depth untuk tindakan destruktif.** Audit + simulasi + konfirmasi + batas lokasi; asumsikan satu pengaman akan gagal.
+3. **Health check harus aman terhadap kegagalan total.** Mekanisme "keluar dari rotasi" perlu batas mayoritas dan fail-static.
+4. **Akses out-of-band yang benar-benar independen.** Jalur manajemen terpisah (jaringan, kredensial, DNS, otentikasi) yang diuji dengan mematikan jaringan produksi.
+5. **Rencana dan latihan cold start.** Menyalakan kembali sistem besar adalah operasi berisiko (daya, cache dingin, retry storm); urutan dan laju harus direncanakan.
+6. **Dependensi ekosistem.** Pihak ketiga yang bergantung pada login/SDK penyedia besar perlu fallback; penyedia besar perlu menyadari bahwa kegagalannya menjalar.
+
+## Hubungannya dengan building block
+
+| Building block          | Pelajaran dari insiden                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| DNS                     | TTL dan cache tidak menolong bila authoritative menarik diri; health check DNS harus fail-static                     |
+| Load balancer / anycast | Penarikan BGP adalah "health check" lapisan internet; perilakunya saat semua gagal harus didesain                    |
+| Deployment system       | Perubahan infrastruktur melewati pipeline bertahap dan simulasi seperti kode                                         |
+| Monitoring              | Pemantauan dari luar (sintetis) mendeteksi "hilang dari internet" lebih cepat dari dashboard internal yang ikut mati |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Bagaimana memastikan satu perintah tidak memutus seluruh jaringan?" → Batas lokasi per perubahan, dry-run, konfirmasi, rollback otomatis berbasis konektivitas.
+- "Health check kamu bisa menjatuhkan semuanya?" → Fail-static saat mayoritas gagal; histeresis.
+- "Kalau jaringan produksi mati, bagaimana kamu masuk?" → Jaringan manajemen terpisah, kredensial lokal, prosedur fisik yang dilatih.
+- "Apa yang berbahaya saat menyalakan kembali sistem besar?" → Lonjakan daya, cache dingin, thundering herd; rate limit dan urutan.
+
+## Ringkasan
+
+1. 4 Oktober 2021: perintah pemeliharaan memutus backbone, DNS menarik iklan BGP sesuai rancangan, Facebook hilang dari internet ~6 jam, dan tim harus hadir fisik karena akses jarak jauh ikut mati.
+2. Akar masalah berlapis: blast radius perintah global, pengaman tunggal yang bug, health check yang tidak aman untuk kegagalan total, akses pemulihan yang bergantung pada jaringan produksi.
+3. Pola: rollout bertahap untuk infrastruktur, defense in depth, fail-static pada kegagalan mayoritas, out-of-band yang diuji, rencana cold start.

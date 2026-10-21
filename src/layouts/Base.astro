@@ -1,0 +1,94 @@
+---
+import '../styles/global.css';
+import Sidebar from '../components/Sidebar.astro';
+import { publishedLessons, availableIds, sidebarModel } from '../lib/content';
+import { href } from '../lib/url';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** id pelajaran yang sedang dibuka (untuk highlight sidebar) */
+  currentId?: string;
+}
+const {
+  title,
+  description = 'Platform belajar System Design pribadi, gratis dan open source.',
+  currentId,
+} = Astro.props;
+const lessons = await publishedLessons();
+const available = availableIds(lessons);
+const modules = sidebarModel(lessons);
+const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+const path = Astro.url.pathname;
+const navLinks = [
+  {
+    label: 'Belajar',
+    to: href('/'),
+    match: (p: string) => p === href('/') || p.startsWith(href('/belajar')),
+  },
+  { label: 'Mock Interview', to: href('/mock'), match: (p: string) => p.startsWith(href('/mock')) },
+  { label: 'Kuis', to: href('/kuis'), match: (p: string) => p.startsWith(href('/kuis')) },
+  { label: 'Cheat Sheet', to: href('/cheatsheet'), match: (p: string) => p.startsWith(href('/cheatsheet')) },
+];
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
+    <title>{title} · SysDesign Lab</title>
+    <script is:inline>
+      // Set tema sebelum paint supaya tidak flash. Harus inline (tanpa import).
+      (function () {
+        try {
+          const saved = localStorage.getItem('sdl:theme');
+          const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+  </head>
+  <body data-available={JSON.stringify(available)} data-base={base}>
+    <div class="app">
+      <header class="header">
+        <button
+          id="menu-toggle"
+          class="icon-btn menu-btn"
+          aria-label="Buka navigasi"
+          aria-expanded="false"
+          aria-controls="sidebar"
+        >
+          ☰
+        </button>
+        <a class="brand" href={href('/')}>
+          SysDesign Lab
+        </a>
+        <nav aria-label="Utama">
+          {navLinks.map((l) => (
+            <a href={l.to} aria-current={l.match(path) ? 'page' : undefined}>
+              {l.label}
+            </a>
+          ))}
+        </nav>
+        <span class="spacer"></span>
+        <button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">
+          ☾
+        </button>
+      </header>
+      <Sidebar modules={modules} currentId={currentId} navLinks={navLinks} />
+      <main class="main">
+        <div class="content">
+          <slot />
+        </div>
+      </main>
+    </div>
+    <script>
+      import '../scripts/app';
+    </script>
+  </body>
+</html>

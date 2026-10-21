@@ -1,0 +1,45 @@
+---
+import Base from '../../layouts/Base.astro';
+import { publishedLessons } from '../../lib/content';
+import { lessonHref } from '../../lib/url';
+
+const lessons = (await publishedLessons()).filter((l) => l.data.quiz.length > 0);
+---
+
+<Base title="Kuis">
+  <h1>Kuis</h1>
+  <p class="muted">Setiap pelajaran diakhiri kuis 3–5 soal. Skor terakhir disimpan di browser ini.</p>
+  <table id="quiz-table">
+    <thead>
+      <tr>
+        <th>Pelajaran</th>
+        <th>Soal</th>
+        <th>Skor terakhir</th>
+      </tr>
+    </thead>
+    <tbody>
+      {lessons.map((l) => (
+        <tr data-quiz-row={l.id}>
+          <td>
+            <a href={`${lessonHref(l.id)}#quiz`}>{l.data.title}</a>
+          </td>
+          <td>{l.data.quiz.length}</td>
+          <td data-score class="muted">
+            belum
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <script>
+    import { browserStorage, loadProgress } from '../../lib/storage';
+    const s = loadProgress(browserStorage());
+    document.querySelectorAll<HTMLElement>('[data-quiz-row]').forEach((row) => {
+      const r = s.quiz[row.dataset.quizRow!];
+      if (!r) return;
+      const cell = row.querySelector('[data-score]')!;
+      cell.textContent = `${r.score}/${r.total} · ${new Date(r.at).toLocaleDateString('id-ID')}`;
+      cell.classList.remove('muted');
+    });
+  </script>
+</Base>

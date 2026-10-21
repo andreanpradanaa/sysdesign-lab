@@ -1,0 +1,189 @@
+---
+title: 'Key-value store'
+module: bagian-2
+order: 4
+minutes: 50
+type: lesson
+prerequisites: ['bagian-2/database', 'bagian-1/abstraksi-distributed-system']
+summary: 'Bagaimana merancang penyimpanan terdistribusi paling sederhana sekaligus paling sering ditanya: partisi dengan consistent hashing, replikasi dengan quorum, penanganan konflik, dan jalur tulis di satu node.'
+sources:
+  - title: 'Dynamo: Amazon’s Highly Available Key-value Store (paper, akses terbuka)'
+    url: 'https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf'
+  - title: 'Apache Cassandra docs — Architecture (dynamo-style, consistency levels)'
+    url: 'https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html'
+  - title: 'Consistent hashing — Wikipedia'
+    url: 'https://en.wikipedia.org/wiki/Consistent_hashing'
+  - title: 'Redis docs — Cluster specification'
+    url: 'https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/'
+  - title: 'System Design Primer — Key-value store'
+    url: 'https://github.com/donnemartin/system-design-primer#key-value-store'
+quiz:
+  - q: 'Dengan hash(key) mod N dan N naik dari 4 ke 5 node, kira-kira berapa persen key yang harus pindah node? Bandingkan dengan consistent hashing.'
+    options:
+      - text: 'Mod N: ~20%; consistent hashing: ~80%'
+        correct: false
+        why: 'Terbalik. Mod N mengacak hampir semua pemetaan; consistent hashing hanya memindahkan key yang jatuh ke node baru.'
+      - text: 'Mod N: ~80%; consistent hashing: ~20%'
+        correct: true
+        why: 'Mod N mengubah hasil untuk sebagian besar key (sekitar 1 − 1/5 = 80%). Consistent hashing memindahkan hanya ~1/N key (sekitar 20%), yaitu yang kini dimiliki node baru.'
+      - text: 'Keduanya ~50%'
+        correct: false
+        why: 'Tidak; perbedaannya justru alasan consistent hashing diciptakan.'
+      - text: 'Keduanya 0% karena data direplikasi'
+        correct: false
+        why: 'Replikasi tidak menghilangkan kebutuhan memindahkan kepemilikan key.'
+  - q: 'N = 3 replica, W = 2, R = 2. Mana yang benar?'
+    options:
+      - text: 'Baca mungkin mengembalikan data basi karena W + R &lt; N'
+        correct: false
+        why: 'W + R = 4 &gt; 3 = N, jadi himpunan tulis dan baca selalu beririsan minimal satu node yang punya versi terbaru.'
+      - text: 'Setiap baca pasti menyentuh minimal satu node yang menerima tulisan terakhir yang sukses'
+        correct: true
+        why: 'Karena W + R &gt; N, irisan terjamin. Namun ini bukan linearizability penuh (ada kasus tulis gagal sebagian atau concurrent write) dan membutuhkan versioning untuk memilih yang terbaru.'
+      - text: 'Sistem berhenti bila satu node mati'
+        correct: false
+        why: 'Dengan N = 3 dan W = R = 2, satu node mati masih memenuhi quorum.'
+      - text: 'W = 2 berarti tulisan disimpan di tepat dua node'
+        correct: false
+        why: 'Tulisan dikirim ke semua N replica; W adalah jumlah ack yang ditunggu sebelum menjawab sukses.'
+  - q: 'Dua client menulis key yang sama ke dua replica berbeda saat partisi. Saat partisi pulih, bagaimana sistem Dynamo-style memutuskan?'
+    options:
+      - text: 'Mengambil yang timestamp-nya lebih besar (last-write-wins) tanpa kecuali'
+        correct: false
+        why: 'LWW adalah salah satu pilihan, tapi membuang salah satu tulisan secara diam-diam dan bergantung pada jam yang tidak sinkron.'
+      - text: 'Memakai vector clock untuk mendeteksi bahwa keduanya concurrent, menyimpan kedua versi (siblings), dan menyerahkan resolusi ke aplikasi saat baca, atau memakai LWW bila aplikasi menerima kehilangan'
+        correct: true
+        why: 'Dynamo menyimpan versi concurrent dan aplikasi merekonsiliasi (mis. gabungan keranjang belanja). Cassandra memilih LWW demi kesederhanaan. Keduanya adalah trade-off yang harus disebut.'
+      - text: 'Menolak kedua tulisan'
+        correct: false
+        why: 'Menolak berarti tidak available, bertentangan dengan tujuan desain AP.'
+      - text: 'Meminta kedua client menulis ulang'
+        correct: false
+        why: 'Client tidak tahu ada konflik; sistem yang harus mendeteksinya.'
+  - q: 'Kenapa KV store seperti Cassandra atau LevelDB menulis ke commit log + memtable dulu, baru ke SSTable?'
+    options:
+      - text: 'Supaya tulisan sekuensial ke disk (cepat dan durable) dan data terbaru ada di memori; SSTable ditulis sekaligus dan immutable, lalu digabung lewat compaction'
+        correct: true
+        why: 'Ini pola LSM-tree: tulis cepat karena append-only, baca memeriksa memtable lalu SSTable (dibantu bloom filter), compaction merapikan di latar belakang.'
+      - text: 'Karena memori lebih murah daripada disk'
+        correct: false
+        why: 'Terbalik; alasan utamanya adalah pola tulis sekuensial dan durability lewat commit log.'
+      - text: 'Supaya data tidak pernah menyentuh disk'
+        correct: false
+        why: 'Commit log justru ditulis ke disk sebelum ack agar tahan crash.'
+      - text: 'Karena B-tree tidak bisa menyimpan key string'
+        correct: false
+        why: 'B-tree bisa; pilihan LSM tentang profil tulis-berat, bukan tipe key.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Merancang KV store terdistribusi dari nol: API, partisi, replikasi, konsistensi, dan kegagalan.
+- Menjelaskan consistent hashing (dengan virtual node) dan quorum N/W/R.
+- Menyebut cara menangani konflik tulis (vector clock, LWW) dan cara satu node menyimpan data (LSM-tree).
+
+## Masalah yang diselesaikan
+
+API-nya hanya dua: `put(key, value)` dan `get(key)`. Yang sulit adalah membuatnya **tersebar di banyak node**, **tahan node mati**, dan **tetap cepat**. Hampir semua sistem "NoSQL" skala besar (Dynamo, Cassandra, Riak, Redis Cluster) adalah variasi dari pola yang akan kita bahas, dan pertanyaan "rancang key-value store" adalah cara interviewer menguji pemahaman distributed system secara menyeluruh.
+
+## Requirements yang biasa diasumsikan
+
+- Key kecil (&lt; 1 KB), value kecil-sedang (&lt; 10 KB–1 MB).
+- Data terlalu besar untuk satu node; harus dipartisi.
+- Availability tinggi; mentoleransi konsistensi yang bisa disetel (tunable).
+- Latency baca/tulis rendah (ms).
+
+## Partisi: consistent hashing
+
+Cara naif `hash(key) mod N` mengacak hampir semua pemetaan saat N berubah. **Consistent hashing** menaruh node dan key di satu ring; key dimiliki node pertama searah jarum jam. Menambah/menghapus node hanya memindahkan key di satu segmen.
+
+```mermaid
+flowchart LR
+  subgraph ring[Hash ring 0..2^32]
+    direction LR
+    A((Node A\n+ vnodes))
+    B((Node B\n+ vnodes))
+    C((Node C\n+ vnodes))
+  end
+  K1[key: user:42\nhash → antara A dan B] --> B
+  K2[key: order:7\nhash → antara C dan A] --> A
+  B -. replika berikutnya .-> C
+  C -. replika berikutnya .-> A
+```
+
+Dua penyempurnaan yang selalu disebut:
+
+- **Virtual node**: tiap node fisik menempati banyak titik di ring supaya sebaran merata dan node yang lebih besar bisa diberi lebih banyak vnode.
+- **Replikasi ke N node berikutnya** di ring (preference list), melompati vnode milik node fisik yang sama.
+
+## Replikasi dan quorum
+
+Setiap key disimpan di N replica. Tulis menunggu **W** ack, baca menunggu **R** jawaban.
+
+| Setelan                           | Sifat                                       | Dipakai untuk                   |
+| --------------------------------- | ------------------------------------------- | ------------------------------- |
+| W + R &gt; N (mis. N=3, W=2, R=2) | Baca selalu beririsan dengan tulis terakhir | Default yang seimbang           |
+| W = 1, R = N                      | Tulis sangat cepat, baca mahal              | Write-heavy, baca jarang        |
+| W = N, R = 1                      | Baca cepat, tulis lambat dan rapuh          | Read-heavy, data jarang berubah |
+| W = 1, R = 1                      | Paling cepat, paling tidak konsisten        | Cache, metrik yang boleh basi   |
+
+Quorum bukan linearizability: tulis yang gagal sebagian, concurrent write, dan **sloppy quorum** (menulis ke node pengganti saat replica sebenarnya mati, lalu _hinted handoff_ mengembalikannya) semuanya bisa membuat baca melihat versi berbeda. Karena itu dibutuhkan **versioning**.
+
+## Konflik dan versi
+
+| Mekanisme             | Cara                                                           | Kelebihan                                 | Kekurangan                                                  |
+| --------------------- | -------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------- |
+| Last-write-wins (LWW) | Timestamp terbesar menang                                      | Sederhana                                 | Diam-diam membuang tulisan; bergantung pada jam             |
+| Vector clock          | Tiap replica menaikkan counternya; versi concurrent terdeteksi | Tidak ada data hilang tanpa sepengetahuan | Aplikasi harus merekonsiliasi siblings; clock bisa membesar |
+| CRDT                  | Tipe data yang bisa digabung secara matematis (counter, set)   | Rekonsiliasi otomatis                     | Hanya untuk operasi yang komutatif                          |
+
+Menjaga replica tetap sinkron di latar belakang: **read repair** (saat baca menemukan versi berbeda, perbarui yang basi) dan **anti-entropy** dengan **Merkle tree** (membandingkan hash per rentang key agar hanya bagian berbeda yang ditransfer).
+
+## Kegagalan: mendeteksi dan bertahan
+
+- **Deteksi**: gossip protocol; tiap node bertukar daftar anggota dan heartbeat secara acak, sehingga tidak ada koordinator pusat.
+- **Node mati sementara**: sloppy quorum + hinted handoff.
+- **Node mati permanen**: anti-entropy membangun ulang replica dari node lain.
+- **Datacenter mati**: replica ditempatkan lintas rack/zone/region (rack-aware placement).
+
+## Jalur tulis dan baca di satu node (LSM-tree)
+
+```mermaid
+flowchart LR
+  W[put] --> CL[Commit log\nappend ke disk]
+  CL --> MT[Memtable\nmemori, terurut]
+  MT -- penuh --> SS1[SSTable immutable\ndi disk]
+  SS1 --> CP[Compaction\nmenggabung SSTable]
+  G[get] --> MT
+  G --> BF{Bloom filter\nkey mungkin ada?}
+  BF -- ya --> SS1
+  BF -- tidak --> X[lewati SSTable itu]
+```
+
+Tulis selalu sekuensial (cepat, durable lewat commit log). Baca memeriksa memtable lalu SSTable dari yang terbaru; bloom filter menghindari pembacaan file yang pasti tidak punya key. Alternatifnya **B-tree** (update in-place), lebih cepat untuk baca acak, lebih lambat untuk tulis masif. Pola ini sama dengan yang dipakai Cassandra, RocksDB, dan LevelDB.
+
+## Trade-off ringkas
+
+| Keputusan                                                 | Pilih A bila                                            | Pilih B bila                                      |
+| --------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------- |
+| Leaderless quorum (A) vs single-leader (B)                | Availability tulis di banyak region; toleransi konflik  | Ingin tanpa konflik dan urutan tulis jelas        |
+| LWW (A) vs vector clock (B)                               | Kehilangan tulisan concurrent dapat diterima            | Setiap tulisan berharga (keranjang belanja)       |
+| LSM-tree (A) vs B-tree (B)                                | Write-heavy, append dominan                             | Read-heavy acak, range scan dengan latency stabil |
+| In-memory (Redis) (A) vs on-disk (Cassandra/DynamoDB) (B) | Latency sub-ms, data muat di RAM, boleh hilang sebagian | Data besar, durability utama                      |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Bagaimana menambah node tanpa memindahkan semua data?" → Consistent hashing + vnode.
+- "Pilih W dan R berapa, kenapa?" → Kaitkan dengan rasio baca/tulis dan kebutuhan konsistensi.
+- "Dua tulisan bersamaan ke key yang sama, siapa menang?" → LWW vs vector clock, dan kenapa.
+- "Bagaimana node tahu node lain mati?" → Gossip + heartbeat; sloppy quorum saat mati sementara.
+- "Bagaimana satu node menyimpan data agar tulis cepat?" → Commit log + memtable + SSTable + compaction + bloom filter.
+- "Kapan tidak memakai KV store?" → Saat butuh join, transaksi multi-key, atau query sekunder yang kaya.
+
+## Ringkasan
+
+1. KV store terdistribusi = consistent hashing untuk partisi, replikasi ke N node berikutnya, dan quorum W/R yang bisa disetel; W + R &gt; N memberi irisan, bukan linearizability.
+2. Konflik tulis tidak bisa dihindari pada sistem AP; pilih LWW (sederhana, bisa kehilangan data) atau vector clock (aman, aplikasi merekonsiliasi), dan sinkronkan replica lewat read repair dan Merkle tree.
+3. Di satu node, LSM-tree membuat tulis sekuensial dan cepat; baca dibantu bloom filter dan compaction.

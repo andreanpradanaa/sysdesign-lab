@@ -1,0 +1,175 @@
+---
+title: 'Message queue'
+module: bagian-2
+order: 9
+minutes: 45
+type: lesson
+prerequisites: ['bagian-1/abstraksi-distributed-system']
+summary: 'Memisahkan "menerima permintaan" dari "mengerjakannya": kenapa queue menyerap lonjakan dan kegagalan, jaminan pengiriman yang sebenarnya bisa diberikan, dan bagaimana membuat consumer yang aman diulang.'
+sources:
+  - title: 'Apache Kafka docs — Design (persistence, delivery semantics)'
+    url: 'https://kafka.apache.org/documentation/#design'
+  - title: 'RabbitMQ docs — Reliability guide'
+    url: 'https://www.rabbitmq.com/docs/reliability'
+  - title: 'Amazon SQS docs — Visibility timeout, dead-letter queues'
+    url: 'https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html'
+  - title: 'System Design Primer — Asynchronism (message queues, task queues, back pressure)'
+    url: 'https://github.com/donnemartin/system-design-primer#asynchronism'
+quiz:
+  - q: 'Consumer mengambil pesan, memproses (mengirim email), lalu crash sebelum ack. Dengan at-least-once delivery, apa yang terjadi dan bagaimana mencegah efek samping ganda?'
+    options:
+      - text: 'Pesan hilang; tidak ada yang bisa dilakukan'
+        correct: false
+        why: 'At-least-once justru menjamin pesan dikirim ulang setelah visibility timeout / tanpa ack.'
+      - text: 'Pesan dikirim ulang, email bisa terkirim dua kali; consumer harus idempotent, mis. mencatat message id yang sudah diproses sebelum efek samping'
+        correct: true
+        why: 'At-least-once = duplikat mungkin. Idempotency di consumer (dedup berdasarkan message id atau idempotency key) adalah satu-satunya pengaman yang andal.'
+      - text: 'Broker otomatis membatalkan email yang sudah terkirim'
+        correct: false
+        why: 'Broker tidak tahu efek samping di luar dirinya.'
+      - text: 'Gunakan at-most-once agar tidak duplikat'
+        correct: false
+        why: 'At-most-once menghilangkan duplikat dengan risiko kehilangan pesan; untuk email penting itu biasanya lebih buruk.'
+  - q: 'Producer menulis 10.000 pesan/detik, consumer hanya sanggup 2.000/detik. Antrian terus bertambah. Mana respons yang paling tepat?'
+    options:
+      - text: 'Menaikkan ukuran antrian tanpa batas'
+        correct: false
+        why: 'Menunda masalah; lag terus naik dan pesan makin basi.'
+      - text: 'Menambah consumer (dan partisi bila perlu) sampai throughput seimbang, plus back pressure atau penolakan di producer bila tetap tidak terkejar'
+        correct: true
+        why: 'Queue menyerap lonjakan sementara, bukan ketidakseimbangan permanen. Skala consumer secara horizontal; bila beban memang melebihi kapasitas, producer harus diperlambat atau sebagian pekerjaan ditolak/degradasi.'
+      - text: 'Menghapus pesan lama secara acak'
+        correct: false
+        why: 'Kehilangan data senyap; kalau memang boleh dibuang, lakukan secara eksplisit dengan TTL dan kebijakan yang disepakati.'
+      - text: 'Memproses pesan secara sinkron di producer'
+        correct: false
+        why: 'Memindahkan bottleneck ke request path user.'
+  - q: 'Apa gunanya dead-letter queue (DLQ)?'
+    options:
+      - text: 'Menyimpan pesan yang sudah diproses sebagai arsip'
+        correct: false
+        why: 'Arsip adalah urusan log/warehouse, bukan DLQ.'
+      - text: 'Menampung pesan yang gagal diproses berulang kali agar tidak memblokir antrian dan bisa diperiksa atau diputar ulang manusia'
+        correct: true
+        why: 'Pesan beracun (poison message) yang terus gagal akan diulang selamanya tanpa DLQ. Setelah N percobaan, pesan dipindah ke DLQ, antrian utama lancar, dan tim bisa menyelidiki.'
+      - text: 'Mempercepat consumer'
+        correct: false
+        why: 'DLQ tentang isolasi kegagalan, bukan performa.'
+      - text: 'Mengganti kebutuhan retry'
+        correct: false
+        why: 'DLQ adalah tujuan setelah retry habis, bukan penggantinya.'
+  - q: 'Order harus diproses dalam urutan per pelanggan (buat → bayar → kirim), tetapi antar pelanggan boleh paralel. Desain queue yang tepat?'
+    options:
+      - text: 'Satu antrian global dengan satu consumer'
+        correct: false
+        why: 'Urutan terjaga tetapi throughput dibatasi satu consumer.'
+      - text: 'Partisi berdasarkan customer_id sehingga semua pesan satu pelanggan masuk partisi yang sama dan diproses berurutan oleh satu consumer, sementara partisi lain paralel'
+        correct: true
+        why: 'Urutan hanya dijamin di dalam satu partisi (Kafka) atau message group (SQS FIFO). Kunci partisi dipilih dari entitas yang butuh urutan.'
+      - text: 'Memberi timestamp dan membiarkan consumer mengurutkan ulang'
+        correct: false
+        why: 'Consumer tidak tahu apakah masih ada pesan lebih awal yang belum tiba; jam antar producer pun tidak sinkron.'
+      - text: 'Memakai beberapa antrian acak'
+        correct: false
+        why: 'Pesan satu pelanggan tersebar ke antrian berbeda, urutan hilang.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan tiga manfaat queue (decoupling, buffering, retry) dan kapan pekerjaan sebaiknya dipindahkan dari request path.
+- Membedakan at-most-once, at-least-once, dan "exactly-once", serta membuat consumer idempotent.
+- Merancang partisi untuk urutan dan paralelisme, menangani consumer lambat, pesan beracun, dan back pressure.
+
+## Masalah yang diselesaikan
+
+Request user seharusnya selesai dalam ratusan milidetik; mengirim email, membuat thumbnail, atau memperbarui index pencarian bisa memakan detik dan bisa gagal. Queue memisahkan **menerima** dari **mengerjakan**: producer menaruh pesan dan langsung menjawab user; consumer mengerjakannya kapan sanggup.
+
+Tiga manfaat yang harus bisa kamu sebut:
+
+1. **Decoupling**: producer tidak tahu siapa consumer, tidak menunggu, dan tidak jatuh bila consumer mati.
+2. **Buffering**: lonjakan 10x ditampung di antrian; consumer memproses pada laju stabil.
+3. **Retry dan isolasi kegagalan**: pekerjaan gagal diulang tanpa melibatkan user; pesan beracun dikarantina.
+
+```mermaid
+flowchart LR
+  U[User] --> API[API service]
+  API -->|1. simpan order| DB[(DB)]
+  API -->|2. publish OrderCreated| Q[[Queue / log\npartisi by customer_id]]
+  API -->|3. 202 Accepted| U
+  Q --> W1[Worker email]
+  Q --> W2[Worker invoice]
+  Q --> W3[Worker analytics]
+  W1 -. gagal N kali .-> DLQ[[Dead-letter queue]]
+```
+
+## Dua keluarga broker
+
+|                            | Antrian klasik (RabbitMQ, SQS)                                       | Log terpartisi (Kafka, Pulsar)                                                                            |
+| -------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Model                      | Pesan dihapus setelah ack; routing fleksibel (exchange, routing key) | Pesan ditulis ke log append-only per partisi; consumer menyimpan offset; retensi berdasarkan waktu/ukuran |
+| Urutan                     | Per antrian (kira-kira); hilang saat ada prefetch dan redelivery     | Ketat di dalam partisi                                                                                    |
+| Konsumsi ulang             | Tidak bisa setelah ack                                               | Bisa: reset offset, replay dari masa lalu                                                                 |
+| Banyak consumer independen | Perlu antrian per consumer (fanout exchange)                         | Consumer group masing-masing punya offset sendiri                                                         |
+| Throughput                 | Ribuan–puluhan ribu/s per antrian                                    | Jutaan/s dengan partisi                                                                                   |
+| Cocok untuk                | Task queue, RPC async, routing kompleks                              | Event streaming, integrasi banyak sistem, audit/replay                                                    |
+
+Keduanya "message queue" dalam percakapan interview; sebutkan mana yang kamu maksud dan kenapa.
+
+## Jaminan pengiriman
+
+| Semantik               | Cara                                                                                                               | Risiko                                  | Kapan                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | --------------------------------- |
+| At-most-once           | Ack sebelum/ tanpa memproses; tanpa retry                                                                          | Pesan hilang                            | Metrik, log yang boleh hilang     |
+| At-least-once          | Ack setelah memproses; redeliver bila tidak ada ack                                                                | Duplikat                                | Default hampir semua kasus bisnis |
+| Exactly-once (efektif) | At-least-once + consumer idempotent, atau transaksi broker+consumer dalam ekosistem yang sama (Kafka transactions) | Kompleks; hanya di dalam batas tertentu | Keuangan, counter penting         |
+
+Kalimat yang aman di interview: "Saya pakai at-least-once dan membuat consumer idempotent; exactly-once end-to-end lintas sistem eksternal tidak bisa dijamin broker."
+
+### Membuat consumer idempotent
+
+- Simpan `message_id` / `idempotency_key` yang sudah diproses (tabel dedup atau set di Redis dengan TTL), cek **sebelum** efek samping, catat **dalam transaksi yang sama** dengan efek samping bila efeknya di DB.
+- Rancang operasi agar alami idempotent: `set status = paid` alih-alih `balance += x`; upsert alih-alih insert.
+- Untuk efek samping eksternal (email, pembayaran), teruskan idempotency key ke penyedia yang mendukungnya.
+
+### Outbox pattern
+
+Masalah: menulis ke DB **dan** mempublikasikan pesan bukan satu transaksi; salah satu bisa gagal. Solusi: tulis event ke tabel `outbox` dalam transaksi yang sama dengan data, lalu relay terpisah (atau CDC) membaca outbox dan mempublikasikannya. At-least-once, tanpa dual-write yang tidak konsisten.
+
+## Urutan dan paralelisme
+
+Urutan global dan paralelisme tidak bisa keduanya. Pilih **kunci partisi** dari entitas yang butuh urutan (customer_id, account_id); pesan dengan kunci sama masuk partisi sama dan diproses berurutan oleh satu consumer; partisi berbeda berjalan paralel. Jumlah partisi membatasi paralelisme maksimum consumer dalam satu group. Hati-hati hot partition (satu pelanggan raksasa).
+
+## Consumer lambat, pesan beracun, back pressure
+
+- **Lag** (pesan belum diproses) adalah metrik utama; alert bila tumbuh terus.
+- **Skala consumer** horizontal sampai partisi habis; lalu tambah partisi.
+- **Visibility timeout / ack deadline**: pesan "disembunyikan" saat diproses; bila consumer mati, muncul lagi. Setel lebih panjang dari waktu proses, atau perpanjang secara berkala.
+- **Retry dengan backoff** dan **DLQ** setelah N kali gagal; pantau DLQ dan sediakan alat replay.
+- **Back pressure**: bila queue mendekati batas, producer diperlambat (blocking publish), request ditolak dengan 429/503, atau pekerjaan diprioritaskan; "antrian tak terbatas" hanya menunda keputusan.
+- **Pesan besar**: taruh payload di blob store, kirim referensinya (claim check).
+
+## Trade-off ringkas
+
+| Keputusan                                 | Pilih A bila                                     | Pilih B bila                                                 |
+| ----------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ |
+| Sinkron (A) vs async via queue (B)        | User butuh hasil sekarang, kerja cepat dan andal | Kerja lambat/gagal-rentan, boleh ditunda, perlu buffer       |
+| Antrian klasik (A) vs log terpartisi (B)  | Task queue, routing kompleks, konsumsi sekali    | Replay, banyak consumer independen, throughput sangat tinggi |
+| At-least-once (A) vs at-most-once (B)     | Hampir selalu; consumer dibuat idempotent        | Data boleh hilang dan duplikat lebih merugikan               |
+| Push ke consumer (A) vs consumer pull (B) | Latency rendah, consumer seragam                 | Consumer mengatur lajunya sendiri (back pressure alami)      |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Kenapa pakai queue di sini, kenapa tidak panggil langsung?" → Decoupling, buffering, retry; sebut biaya: eventual, kompleksitas, observability.
+- "Pesan diproses dua kali, apa dampaknya?" → Idempotent consumer, dedup table.
+- "Bagaimana memastikan event terkirim bila DB sudah commit?" → Outbox pattern / CDC.
+- "Consumer tidak terkejar?" → Lag, skala consumer dan partisi, back pressure.
+- "Urutan terjamin?" → Hanya per partisi/kunci; desain kunci partisi.
+- "Broker mati?" → Replikasi partisi (Kafka ISR), quorum queue (RabbitMQ), dan producer yang menahan/menulis ulang.
+
+## Ringkasan
+
+1. Queue memisahkan menerima dari mengerjakan: decoupling, buffering lonjakan, retry terisolasi; pilih antrian klasik untuk task dan log terpartisi untuk event stream.
+2. Jaminan realistis adalah at-least-once plus consumer idempotent; outbox pattern menghubungkan transaksi DB dengan publikasi pesan.
+3. Urutan hanya per partisi (pilih kunci dari entitas yang butuh urutan); pantau lag, pakai visibility timeout, retry dengan backoff, DLQ, dan back pressure.

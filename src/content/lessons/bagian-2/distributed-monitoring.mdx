@@ -1,0 +1,178 @@
+---
+title: 'Distributed monitoring'
+module: bagian-2
+order: 7
+minutes: 45
+type: lesson
+prerequisites: ['bagian-1/karakteristik-non-fungsional']
+summary: 'Bagaimana tahu sistem sakit sebelum user tahu: metrik, log, trace; model push vs pull; agregasi dan penyimpanan time-series; dan alert yang tidak membangunkan orang sia-sia.'
+sources:
+  - title: 'Google SRE Book — Monitoring Distributed Systems (gratis online)'
+    url: 'https://sre.google/sre-book/monitoring-distributed-systems/'
+  - title: 'Prometheus docs — Data model, metric types, histograms'
+    url: 'https://prometheus.io/docs/concepts/data_model/'
+  - title: 'Brendan Gregg — The USE Method'
+    url: 'https://www.brendangregg.com/usemethod.html'
+  - title: 'Grafana — The RED Method: key metrics for microservices'
+    url: 'https://grafana.com/blog/2018/08/02/the-red-method-how-to-instrument-your-services/'
+  - title: 'OpenTelemetry docs — Observability primer (traces, metrics, logs)'
+    url: 'https://opentelemetry.io/docs/concepts/observability-primer/'
+quiz:
+  - q: 'Kamu ingin tahu p99 latency sebuah endpoint di seluruh cluster (50 instance). Instrumentasi mana yang benar?'
+    options:
+      - text: 'Tiap instance mengirim nilai p99-nya, lalu dirata-rata'
+        correct: false
+        why: 'Persentil tidak bisa dirata-rata atau digabung; rata-rata dari 50 p99 bukan p99 cluster.'
+      - text: 'Tiap instance mengekspor histogram (bucket latency), dan server monitoring menjumlahkan bucket lalu menghitung p99 dari histogram gabungan'
+        correct: true
+        why: 'Bucket histogram bisa dijumlahkan antar instance, lalu persentil diestimasi dari distribusi gabungan. Inilah alasan Prometheus memakai histogram, bukan summary, untuk agregasi lintas instance.'
+      - text: 'Mencatat setiap request ke log dan menghitung di akhir hari'
+        correct: false
+        why: 'Bisa, tapi mahal dan terlambat untuk alerting; log bukan alat agregat real-time.'
+      - text: 'Mengambil p99 instance yang paling lambat'
+        correct: false
+        why: 'Itu p99 satu instance, bukan distribusi seluruh trafik.'
+  - q: 'Alert mana yang paling layak membangunkan on-call jam 3 pagi?'
+    options:
+      - text: 'CPU server web-07 di atas 80% selama 5 menit'
+        correct: false
+        why: 'Gejala internal yang mungkin tidak berdampak ke user; cocok untuk dashboard atau tiket, bukan page.'
+      - text: 'Error rate endpoint checkout di atas 2% selama 5 menit (membakar error budget 10x lebih cepat dari normal)'
+        correct: true
+        why: 'Berbasis gejala yang dirasakan user, terkait SLO, dan dapat ditindaklanjuti. Alert berbasis error-budget burn rate adalah praktik yang direkomendasikan SRE.'
+      - text: 'Jumlah log WARN naik 20%'
+        correct: false
+        why: 'Tidak jelas dampaknya dan sulit ditindaklanjuti.'
+      - text: 'Satu replica dari 5 restart sekali'
+        correct: false
+        why: 'Sistem didesain menoleransi ini; cukup dicatat.'
+  - q: 'Apa perbedaan metrik, log, dan trace dalam hal biaya dan kegunaan?'
+    options:
+      - text: 'Semuanya sama saja, hanya format berbeda'
+        correct: false
+        why: 'Ketiganya menjawab pertanyaan berbeda dengan biaya penyimpanan yang sangat berbeda.'
+      - text: 'Metrik: angka teragregasi, murah, untuk alert dan tren; log: event detail, mahal di volume, untuk investigasi; trace: perjalanan satu request lintas service, untuk menemukan di mana waktu habis'
+        correct: true
+        why: 'Tiga pilar dengan peran saling melengkapi: metrik memberi tahu ADA masalah, trace memberi tahu DI MANA, log memberi tahu KENAPA.'
+      - text: 'Trace selalu menggantikan log'
+        correct: false
+        why: 'Trace menunjukkan struktur dan durasi; detail kesalahan tetap ada di log/span event.'
+      - text: 'Metrik hanya untuk hardware'
+        correct: false
+        why: 'Metrik aplikasi (RED) justru yang paling penting untuk user.'
+  - q: 'Metrik dengan label user_id (jutaan nilai berbeda) membuat server monitoring kehabisan memori. Apa masalahnya?'
+    options:
+      - text: 'High cardinality: tiap kombinasi label adalah time series terpisah; label harus berkardinalitas rendah (endpoint, status, region), dan detail per user masuk ke log/trace'
+        correct: true
+        why: 'Time-series DB menyimpan satu seri per kombinasi label. Jutaan user × endpoint × status = ledakan seri. Aturan: label untuk dimensi yang ingin diagregasi, bukan identitas.'
+      - text: 'Server monitoring butuh lebih banyak RAM'
+        correct: false
+        why: 'Menambah RAM hanya menunda; pertumbuhan seri tidak terbatas.'
+      - text: 'user_id harus berupa string'
+        correct: false
+        why: 'Tipe tidak relevan; jumlah nilai uniknya yang menjadi masalah.'
+      - text: 'Scrape interval terlalu pendek'
+        correct: false
+        why: 'Interval memengaruhi jumlah sampel per seri, bukan jumlah seri.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Membedakan metrik, log, dan trace, serta memilih mana yang dipakai untuk pertanyaan apa.
+- Merancang pipeline monitoring: instrumentasi → pengumpulan (push/pull) → penyimpanan time-series → query/dashboard → alert.
+- Menulis alert berbasis gejala dan SLO, dan menghindari jebakan kardinalitas serta persentil yang dirata-rata.
+
+## Kenapa monitoring adalah bagian dari desain
+
+Setiap NFR yang kamu tulis (availability 99.9%, p99 &lt; 200 ms) hanyalah niat sampai bisa **diukur**. Monitoring adalah cara sistem memberi tahu bahwa ia melenceng dari NFR, sebelum user yang memberi tahu. Di interview, komponen ini sering diminta saat deep dive operasional: "bagaimana kamu tahu sistem ini sehat?"
+
+## Tiga pilar
+
+| Pilar  | Bentuk                                                      | Pertanyaan yang dijawab                       | Biaya                            |
+| ------ | ----------------------------------------------------------- | --------------------------------------------- | -------------------------------- |
+| Metrik | Angka per interval dengan label (counter, gauge, histogram) | Ada masalah? Tren? Seberapa parah?            | Rendah; teragregasi              |
+| Log    | Event terstruktur per kejadian                              | Kenapa? Apa persisnya yang terjadi?           | Tinggi; sebanding volume request |
+| Trace  | Pohon span satu request lintas service                      | Di mana waktu habis? Service mana yang gagal? | Sedang; biasanya di-sample       |
+
+Alur praktis saat insiden: metrik memicu alert → trace menunjukkan service/hop yang lambat → log service itu menjelaskan sebabnya.
+
+## Metrik apa yang diukur
+
+- **RED** untuk tiap service (sudut pandang user): _Rate_ (request/s), _Errors_ (fraksi gagal), _Duration_ (distribusi latency).
+- **USE** untuk tiap sumber daya (sudut pandang mesin): _Utilization_, _Saturation_ (antrian), _Errors_.
+- **Four golden signals** (SRE): latency, traffic, errors, saturation. Kalau hanya bisa empat, ini empatnya.
+- **Metrik bisnis**: order/menit, pembayaran sukses; sering mendeteksi masalah yang tidak terlihat di metrik teknis.
+
+Tipe metrik: **counter** (hanya naik; dihitung laju dengan `rate()`), **gauge** (nilai saat ini: antrian, memori), **histogram** (bucket latency yang bisa dijumlahkan antar instance; persentil dihitung dari gabungannya).
+
+## Arsitektur pipeline
+
+```mermaid
+flowchart LR
+  subgraph svc[Service x N]
+    I[Instrumentasi SDK\ncounter/histogram/span]
+  end
+  I -- pull scrape /metrics --> P["Collector metrik\n(Prometheus-style)"]
+  I -- push --> A[Agent / OTel collector]
+  A --> TS[(Time-series DB\nlokal per region)]
+  P --> TS
+  TS --> R[Remote storage jangka panjang\ndownsampled]
+  A --> L[(Log store\nindex teks)]
+  A --> T[(Trace store\nsampled)]
+  TS --> Q[Query & dashboard]
+  TS --> AL[Alert manager\nrule, dedup, routing]
+  AL --> OC[On-call / tiket / chat]
+```
+
+### Push vs pull
+
+|              | Pull (server scrape endpoint)                                                                                         | Push (agent mengirim ke collector)                                             |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Kelebihan    | Server tahu target mana yang hilang ("up" = 0); mudah debug lewat `/metrics`; tidak membanjiri saat target bermasalah | Cocok untuk job singkat, serverless, dan target di balik NAT; agregasi di edge |
+| Kekurangan   | Butuh service discovery; sulit untuk job yang hidup sebentar                                                          | Target mati terlihat sebagai "tidak ada data"; collector bisa kebanjiran       |
+| Dipakai oleh | Prometheus                                                                                                            | StatsD, OpenTelemetry (OTLP), kebanyakan APM komersial                         |
+
+Keduanya sering digabung: pull untuk service berumur panjang, push lewat gateway untuk batch job.
+
+### Penyimpanan time-series
+
+Ciri beban: tulis sangat tinggi dan append-only (jutaan sampel/detik), baca berupa rentang waktu per seri, data lama jarang disentuh. Desain yang lazim: blok per rentang waktu, kompresi delta/XOR untuk timestamp dan nilai, index terbalik label → seri, **downsampling** (resolusi 15 s untuk 2 minggu, 5 menit untuk 1 tahun), dan retensi bertingkat. Jebakan terbesar: **kardinalitas**; label `user_id` atau `request_id` meledakkan jumlah seri.
+
+### Log dan trace
+
+- Log **terstruktur** (JSON) dengan `trace_id`, dikirim asinkron agar tidak memperlambat request; disimpan terindeks (inverted index) dengan retensi pendek, arsip murah untuk jangka panjang. Dibahas lebih dalam di modul distributed logging.
+- Trace: setiap hop menambah **span** dengan `trace_id` yang sama (W3C Trace Context di header). Disample (mis. 1%, plus 100% untuk request error/lambat, _tail-based sampling_) karena menyimpan semua trace terlalu mahal.
+
+## Alerting yang tidak menyiksa
+
+Prinsip SRE: alert pada **gejala** (yang dirasakan user), bukan **penyebab** (CPU tinggi); setiap page harus **dapat ditindaklanjuti** dan **mendesak**; sisanya menjadi tiket atau dashboard.
+
+Pola yang direkomendasikan: **error budget burn rate**. Bila SLO 99.9% per 30 hari, error budget = 0.1%. Alert bila laju pembakaran dalam 1 jam terakhir akan menghabiskan budget dalam &lt; 2 hari (burn rate ~14x), dengan jendela pendek (5 menit) untuk konfirmasi agar tidak flapping.
+
+Hal operasional: dedup dan grouping (100 instance gagal = 1 alert), silence saat maintenance, routing per tim, dan runbook yang ditautkan di alert.
+
+## Trade-off ringkas
+
+| Keputusan                                       | Pilih A bila                             | Pilih B bila                                  |
+| ----------------------------------------------- | ---------------------------------------- | --------------------------------------------- |
+| Pull (A) vs push (B)                            | Service berumur panjang dengan discovery | Job singkat, serverless, NAT                  |
+| Histogram (A) vs summary per instance (B)       | Perlu persentil lintas instance          | Hanya satu instance atau tidak perlu agregasi |
+| Sampling trace head-based (A) vs tail-based (B) | Sederhana, murah                         | Ingin menjamin trace error/lambat tersimpan   |
+| Alert gejala (A) vs penyebab (B)                | Hampir selalu untuk page                 | Sebagai tiket/dashboard pendukung             |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Bagaimana kamu tahu sistem ini memenuhi SLO?" → RED/golden signals, histogram, dashboard per SLO.
+- "Metrik apa yang memicu alert?" → Error rate dan latency berbasis SLO, burn rate; bukan CPU.
+- "Bagaimana menemukan service yang membuat request lambat?" → Distributed tracing, trace_id di log.
+- "Kenapa p99 tidak boleh dirata-rata?" → Persentil tidak komposabel; jumlahkan bucket histogram.
+- "Monitoring-nya sendiri mati, bagaimana?" → Meta-monitoring dari sistem terpisah, alert "no data", redundansi collector lintas region.
+- "Berapa biaya menyimpan semua ini?" → Downsampling, retensi bertingkat, sampling trace, log level dan kardinalitas yang dikendalikan.
+
+## Ringkasan
+
+1. Metrik untuk mendeteksi dan mengukur SLO, trace untuk melokalisasi, log untuk menjelaskan; ketiganya dihubungkan oleh trace_id.
+2. Pipeline: instrumentasi (RED/USE, histogram) → pengumpulan (pull untuk service, push untuk job singkat) → time-series DB dengan kompresi, downsampling, dan label berkardinalitas rendah.
+3. Alert pada gejala yang terkait SLO dengan burn rate, dengan dedup, routing, dan runbook; CPU tinggi adalah dashboard, bukan page.

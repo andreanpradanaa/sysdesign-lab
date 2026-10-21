@@ -1,0 +1,180 @@
+---
+title: 'Blob store'
+module: bagian-2
+order: 12
+minutes: 45
+type: lesson
+prerequisites: ['bagian-2/cdn', 'bagian-2/key-value-store']
+summary: 'Tempat file besar tinggal: object storage ala S3. Pemisahan metadata dan data, upload langsung lewat presigned URL, durability lewat replikasi atau erasure coding, dan kenapa database bukan tempat untuk gambar.'
+sources:
+  - title: 'Amazon S3 docs — How S3 works, consistency, multipart upload, presigned URLs'
+    url: 'https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html'
+  - title: 'Finding a needle in Haystack: Facebook’s photo storage (OSDI 2010, akses terbuka)'
+    url: 'https://www.usenix.org/conference/osdi10/finding-needle-haystack-facebooks-photo-storage'
+  - title: 'Ceph docs — Architecture (RADOS, CRUSH, erasure coding)'
+    url: 'https://docs.ceph.com/en/latest/architecture/'
+  - title: 'MinIO docs — Erasure coding'
+    url: 'https://min.io/docs/minio/linux/operations/concepts/erasure-coding.html'
+  - title: 'Erasure code — Wikipedia'
+    url: 'https://en.wikipedia.org/wiki/Erasure_code'
+quiz:
+  - q: 'Kenapa foto profil sebaiknya TIDAK disimpan sebagai BLOB di tabel users database relasional?'
+    options:
+      - text: 'Karena database tidak bisa menyimpan data biner'
+        correct: false
+        why: 'Bisa (BYTEA/BLOB); masalahnya biaya dan skala.'
+      - text: 'Karena membengkakkan database (backup, replikasi, cache buffer) dengan data yang tidak butuh transaksi atau query, sementara object storage jauh lebih murah dan bisa dilayani langsung lewat CDN'
+        correct: true
+        why: 'Pisahkan: biner ke blob store, URL/kunci di DB. DB menjadi kecil dan cepat, file dilayani dari storage yang dirancang untuk itu.'
+      - text: 'Karena foto harus selalu dikompresi'
+        correct: false
+        why: 'Kompresi tidak terkait tempat penyimpanan.'
+      - text: 'Karena tabel users tidak boleh lebih dari 1 GB'
+        correct: false
+        why: 'Tidak ada batas seperti itu.'
+  - q: 'User mengunggah video 2 GB dari ponsel dengan koneksi tidak stabil. Desain upload yang tepat?'
+    options:
+      - text: 'Upload ke API server, lalu API server meneruskan ke blob store'
+        correct: false
+        why: 'API server menjadi bottleneck bandwidth dan memori, dan upload harus diulang dari awal bila putus.'
+      - text: 'API memberi presigned URL multipart; client mengunggah bagian-bagian (mis. 10 MB) langsung ke blob store, bisa paralel dan melanjutkan bagian yang gagal; setelah selesai client memanggil complete dan API mencatat metadata'
+        correct: true
+        why: 'Jalur data tidak melewati API server; multipart memberi resume dan paralelisme; presigned URL memberi izin sementara tanpa membagikan kredensial.'
+      - text: 'Client mengirim video lewat message queue'
+        correct: false
+        why: 'Queue tidak dirancang untuk payload gigabyte; pakai claim check (unggah ke blob, kirim referensinya).'
+      - text: 'Client menyimpan video di localStorage browser lalu disinkronkan'
+        correct: false
+        why: 'Kapasitas localStorage kecil dan tidak terkait penyimpanan server.'
+  - q: 'Replikasi 3x vs erasure coding (mis. 10 data + 4 parity). Mana pernyataan yang benar?'
+    options:
+      - text: 'Erasure coding butuh storage lebih banyak dari replikasi 3x'
+        correct: false
+        why: 'Terbalik: 10+4 memakai 1.4x, replikasi 3x memakai 3x.'
+      - text: 'Erasure coding lebih hemat storage (overhead ~1.4x vs 3x) untuk durability setara atau lebih baik, dengan biaya CPU saat encode/rekonstruksi dan latency baca lebih tinggi bila ada fragmen hilang'
+        correct: true
+        why: 'Karena itu object storage memakai erasure coding untuk objek besar/dingin dan replikasi untuk objek kecil/panas yang butuh latency rendah.'
+      - text: 'Replikasi 3x tidak tahan kehilangan disk'
+        correct: false
+        why: 'Replikasi 3x tahan kehilangan 2 salinan.'
+      - text: 'Keduanya tidak bisa digabung dalam satu sistem'
+        correct: false
+        why: 'Banyak sistem memakai keduanya berdasarkan ukuran/usia objek.'
+  - q: 'Facebook Haystack menyimpan banyak foto kecil dalam satu file besar (volume) dengan index di memori. Masalah apa yang diselesaikan?'
+    options:
+      - text: 'Foto tidak bisa disimpan di filesystem biasa'
+        correct: false
+        why: 'Bisa, tapi tidak efisien.'
+      - text: 'Membaca satu foto di filesystem biasa butuh beberapa operasi disk untuk metadata (direktori, inode) sebelum data; dengan satu file besar dan index di memori, satu foto = satu baca disk'
+        correct: true
+        why: 'Inilah masalah "metadata overhead" untuk miliaran objek kecil. Pola yang sama dipakai banyak blob store: gabungkan objek kecil, simpan offset di index.'
+      - text: 'Kompresi foto'
+        correct: false
+        why: 'Haystack tidak tentang kompresi.'
+      - text: 'Enkripsi'
+        correct: false
+        why: 'Bukan fokus desain Haystack.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan model object storage (bucket, key, objek, metadata) dan kenapa ia berbeda dari filesystem dan database.
+- Merancang jalur upload/download yang tidak melewati API server (presigned URL, multipart, CDN).
+- Menjelaskan arsitektur dalamnya: metadata service, placement, replikasi vs erasure coding, dan penanganan objek kecil.
+
+## Masalah yang diselesaikan
+
+Gambar, video, backup, log arsip: objek besar, immutable (ditulis sekali, dibaca berkali-kali), tanpa kebutuhan transaksi atau query isi. Database relasional dan filesystem POSIX membayar mahal untuk fitur yang tidak dibutuhkan di sini (transaksi, hirarki direktori, kunci, update parsial). **Blob/object store** menukar fitur itu dengan skala petabyte, durability sangat tinggi (S3 mengklaim 11 nines), dan biaya rendah.
+
+Model API-nya datar: `PUT /bucket/key`, `GET /bucket/key`, `DELETE`, `LIST prefix`. Key terlihat seperti path (`users/42/avatar.jpg`) tetapi tidak ada direktori sungguhan.
+
+## Pola pemakaian di desain sistem
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant API as API service
+  participant B as Blob store
+  participant DB as Metadata DB
+  participant CDN as CDN
+  C->>API: minta izin upload (nama, ukuran, tipe)
+  API-->>C: presigned URL (berlaku 15 menit, maks 50 MB, tipe image/*)
+  C->>B: PUT langsung ke blob store (multipart bila besar)
+  B-->>C: 200 + ETag
+  C->>API: konfirmasi selesai (key, ETag)
+  API->>DB: simpan metadata (key, pemilik, ukuran, status=ready)
+  C->>CDN: GET https://cdn/…/avatar.jpg
+  CDN->>B: miss → ambil dari origin
+```
+
+Prinsip: **data path tidak melewati API server**. API hanya menerbitkan izin dan mencatat metadata; byte besar mengalir langsung client ↔ blob store ↔ CDN.
+
+- **Presigned URL**: tanda tangan HMAC atas (bucket, key, method, kedaluwarsa, batasan) sehingga client bisa menulis/membaca satu objek tanpa kredensial.
+- **Multipart upload**: objek dipecah menjadi bagian (5 MB–5 GB), diunggah paralel, bisa diulang per bagian, digabung di akhir. Wajib untuk file besar dan koneksi mobile.
+- **Pemrosesan async**: setelah upload, event (`ObjectCreated`) memicu worker untuk transcoding, thumbnail, pemindaian; hasilnya ditulis sebagai objek baru.
+- **Lifecycle**: aturan otomatis memindahkan objek dingin ke kelas penyimpanan murah dan menghapus setelah N hari.
+
+## Arsitektur di dalam blob store
+
+```mermaid
+flowchart LR
+  C[Client] --> GW[API gateway\nauth, tanda tangan, routing]
+  GW --> M[Metadata service\nkey → lokasi chunk, versi, ACL]
+  M --> MD[(Metadata store\nKV terpartisi by key)]
+  GW --> P[Placement / data service]
+  P --> D1[(Storage node\nchunk + checksum)]
+  P --> D2[(Storage node)]
+  P --> D3[(Storage node)]
+  P --> D4[(Storage node)]
+  R[Repair / rebalancer\nscrub checksum, rekonstruksi] --> D1
+```
+
+**Pemisahan metadata dan data**: metadata (key, ukuran, checksum, lokasi chunk, versi, ACL) kecil dan diakses by key, cocok di KV store terpartisi; data mentah tersebar di storage node.
+
+**Penulisan**: objek dipecah menjadi chunk tetap (mis. 64 MB), tiap chunk ditulis ke beberapa node (replikasi) atau di-encode menjadi fragmen (erasure coding), dengan checksum per chunk. Sukses dikembalikan setelah quorum tulis durable. **Pembacaan**: metadata → lokasi → ambil chunk (paralel), verifikasi checksum, kembalikan.
+
+### Durability: replikasi vs erasure coding
+
+|                              | Replikasi 3x                         | Erasure coding (k data + m parity, mis. 10+4) |
+| ---------------------------- | ------------------------------------ | --------------------------------------------- |
+| Overhead storage             | 3x                                   | (k+m)/k ≈ 1.4x                                |
+| Toleransi kehilangan         | 2 salinan                            | m fragmen                                     |
+| Baca normal                  | 1 node, latency rendah               | k node, paralel                               |
+| Baca saat ada fragmen hilang | Salinan lain                         | Rekonstruksi, CPU + latency                   |
+| Cocok untuk                  | Objek kecil, panas, latency sensitif | Objek besar, dingin, biaya sensitif           |
+
+Keduanya dilengkapi **scrubbing** (membaca ulang dan memverifikasi checksum berkala) dan **repair** otomatis saat node mati. Penempatan menyebar salinan/fragmen lintas rack, zone, atau region (failure domain).
+
+### Objek kecil
+
+Miliaran file 50 KB membuat overhead metadata filesystem (inode, direktori) lebih mahal dari datanya. Solusi ala Haystack: gabungkan objek kecil ke **volume** besar yang append-only, simpan `(key → volume, offset, size)` di index memori; satu baca objek = satu baca disk.
+
+### Konsistensi dan versi
+
+Modern object store memberi **strong read-after-write** untuk objek tunggal (S3 sejak 2020); listing bisa sedikit tertinggal. Objek immutable: update = tulis versi baru (versioning), hapus = tombstone lalu GC. Ini menyederhanakan cache dan CDN: key + versi tidak pernah berubah isinya.
+
+## Trade-off ringkas
+
+| Keputusan                                            | Pilih A bila                           | Pilih B bila                                                           |
+| ---------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------- |
+| Upload via presigned URL (A) vs via API server (B)   | Hampir selalu; file &gt; beberapa MB   | Perlu inspeksi/transformasi sinkron sebelum disimpan dan filenya kecil |
+| Replikasi (A) vs erasure coding (B)                  | Objek kecil/panas, latency utama       | Objek besar/dingin, biaya utama                                        |
+| Managed (S3/GCS) (A) vs self-hosted (MinIO/Ceph) (B) | Hampir selalu                          | Regulasi data on-prem, skala yang membuat biaya egress dominan         |
+| Satu bucket + prefix (A) vs banyak bucket (B)        | Sederhana, aturan lifecycle per prefix | Isolasi kebijakan/akun per tenant                                      |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Di mana file disimpan, dan apa yang ada di DB?" → Biner di blob store, URL/key + metadata di DB.
+- "Bagaimana upload file besar dari koneksi buruk?" → Presigned multipart, resume per bagian.
+- "Bagaimana menjaga agar API server tidak menjadi bottleneck bandwidth?" → Data path langsung ke blob store dan CDN.
+- "11 nines durability dari mana?" → Replikasi/erasure coding lintas failure domain, checksum, scrubbing, repair.
+- "Objek diubah, bagaimana cache CDN?" → Objek immutable; versi baru = key/versi baru.
+- "Bagaimana menghapus data user sesuai regulasi?" → Tombstone + GC terjadwal, lifecycle, bukti penghapusan.
+
+## Ringkasan
+
+1. Blob store menukar transaksi dan hirarki dengan skala, durability, dan biaya rendah; biner di sini, metadata di DB, dan data path tidak melewati API server.
+2. Presigned URL + multipart + CDN adalah pola jalur upload/download; event ObjectCreated memicu pemrosesan asinkron.
+3. Di dalamnya: metadata service terpisah, chunk dengan checksum, replikasi untuk objek panas dan erasure coding untuk objek dingin, scrubbing/repair, dan penggabungan objek kecil ke volume.

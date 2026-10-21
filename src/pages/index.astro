@@ -1,0 +1,73 @@
+---
+import Base from '../layouts/Base.astro';
+import { publishedLessons, sidebarModel } from '../lib/content';
+import { lessonHref, href } from '../lib/url';
+
+const lessons = await publishedLessons();
+const modules = sidebarModel(lessons);
+const totalPlanned = modules.reduce((a, m) => a + m.items.length, 0);
+---
+
+<Base title="Beranda">
+  <h1>Belajar System Design, satu modul tiap malam</h1>
+  <p class="muted">
+    Kurikulum 4 bagian, {totalPlanned} topik, {lessons.length} sudah tersedia. Progress disimpan di browser
+    ini (localStorage), tidak ada akun.
+  </p>
+  <p class="btn-row">
+    <a class="btn btn-primary" data-continue-link href="#">
+      Mulai belajar
+    </a>
+    <a class="btn" href={href('/mock')}>
+      Mock interview
+    </a>
+    <a class="btn" href={href('/cheatsheet')}>
+      Cheat sheet
+    </a>
+  </p>
+
+  <div class="card" style="margin:1.5rem 0">
+    <div class="small muted" data-progress-text>
+      0/0 selesai · 0%
+    </div>
+    <div class="progress" style="margin-top:0.4rem">
+      <div data-progress-bar></div>
+    </div>
+  </div>
+
+  {modules.map((m, i) => (
+    <section>
+      <h2>
+        Bagian {i + 1} — {m.title}
+      </h2>
+      <p class="muted">{m.description}</p>
+      <ol>
+        {m.items.map((it) => (
+          <li data-lesson-id={it.id}>
+            {it.available ? (
+              <a href={lessonHref(it.id)}>
+                <span data-title>{it.title}</span>
+              </a>
+            ) : (
+              <span class="muted">
+                <span data-title>{it.title}</span> <span class="badge">segera</span>
+              </span>
+            )}
+            {it.minutes && <span class="small muted"> · {it.minutes} mnt</span>}
+          </li>
+        ))}
+      </ol>
+    </section>
+  ))}
+
+  <section>
+    <h2>Cara belajar yang disarankan</h2>
+    <ol>
+      <li>Baca pelajaran, gambar ulang diagramnya di kertas tanpa melihat.</li>
+      <li>Kerjakan kuis; baca penjelasan untuk opsi yang salah, bukan hanya yang benar.</li>
+      <li>
+        Setelah satu studi kasus, lakukan mock interview 45 menit untuk kasus itu dan isi rubrik dengan jujur.
+      </li>
+    </ol>
+  </section>
+</Base>

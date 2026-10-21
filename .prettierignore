@@ -1,0 +1,7 @@
+dist/
+.astro/
+node_modules/
+coverage/
+graphify-out/
+pnpm-lock.yaml
+.claude/

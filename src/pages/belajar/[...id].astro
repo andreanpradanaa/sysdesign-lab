@@ -1,0 +1,80 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Quiz from '../../components/Quiz.astro';
+import MarkDone from '../../components/MarkDone.astro';
+import { publishedLessons, prevNext } from '../../lib/content';
+import { moduleOf } from '../../data/curriculum';
+import { lessonHref } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const lessons = await publishedLessons();
+  return lessons.map((entry) => ({ params: { id: entry.id }, props: { entry, lessons } }));
+}
+
+const { entry, lessons } = Astro.props;
+const { Content } = await render(entry);
+const { data } = entry;
+const mod = moduleOf(entry.id);
+const { prev, next } = prevNext(lessons, entry.id);
+const byId = new Map(lessons.map((l) => [l.id, l]));
+const typeLabel = { lesson: 'Pelajaran', case: 'Studi kasus', postmortem: 'Postmortem' }[data.type];
+---
+
+<Base title={data.title} description={data.summary} currentId={entry.id}>
+  <article>
+    <p class="small muted" style="margin:0">
+      {mod?.title} · {typeLabel}
+    </p>
+    <h1>{data.title}</h1>
+    <div class="lesson-meta">
+      <span class="badge">⏱ ±{data.minutes} menit</span>
+      {data.prerequisites.length > 0 && (
+        <span class="badge">
+          Prasyarat:{' '}
+          {data.prerequisites.map((p, i) => (
+            <>
+              {i > 0 && ', '}
+              {byId.has(p) ? (
+                <a href={lessonHref(p)}>{byId.get(p)!.data.title}</a>
+              ) : (
+                <span title="belum tersedia">{p}</span>
+              )}
+            </>
+          ))}
+        </span>
+      )}
+    </div>
+    {data.summary && (
+      <p class="muted">
+        <em>{data.summary}</em>
+      </p>
+    )}
+
+    <Content />
+
+    <section class="sources">
+      <h2>Sumber referensi</h2>
+      <ul>
+        {data.sources.map((s) => (
+          <li>
+            <a href={s.url} target="_blank" rel="noopener noreferrer">
+              {s.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p class="small muted">
+        Semua teks dan diagram di halaman ini ditulis orisinal; sumber di atas adalah bahan rujukan gratis.
+      </p>
+    </section>
+
+    <Quiz lessonId={entry.id} questions={data.quiz} />
+    <MarkDone lessonId={entry.id} />
+
+    <nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah">
+      <span>{prev && <a href={lessonHref(prev.id)}>← {prev.data.title}</a>}</span>
+      <span>{next && <a href={lessonHref(next.id)}>{next.data.title} →</a>}</span>
+    </nav>
+  </article>
+</Base>

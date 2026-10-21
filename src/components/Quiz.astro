@@ -1,0 +1,105 @@
+---
+/** Kuis pilihan ganda dengan feedback per opsi. Data dari frontmatter `quiz`. */
+import type { QuizQuestion } from '../lib/quiz';
+
+interface Props {
+  lessonId: string;
+  questions: QuizQuestion[];
+}
+const { lessonId, questions } = Astro.props;
+---
+
+{questions.length > 0 && (
+  <section
+    class="quiz"
+    id="quiz"
+    data-lesson={lessonId}
+    data-quiz={JSON.stringify(questions)}
+    aria-labelledby="quiz-title"
+  >
+    <h2 id="quiz-title">Kuis</h2>
+    <p class="muted small">
+      Pilih satu jawaban per soal, lalu periksa. Penjelasan muncul untuk semua opsi, termasuk yang salah.
+    </p>
+    <form id="quiz-form" novalidate>
+      {questions.map((q, qi) => (
+        <fieldset>
+          <legend>
+            {qi + 1}. {q.q}
+          </legend>
+          {q.options.map((o, oi) => (
+            <div class="opt" data-q={qi} data-o={oi}>
+              <label>
+                <input type="radio" name={`q${qi}`} value={oi} />
+                <span>{o.text}</span>
+              </label>
+              <div class="why">{o.why}</div>
+            </div>
+          ))}
+        </fieldset>
+      ))}
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+        <button type="submit" class="btn-primary">
+          Periksa jawaban
+        </button>
+        <button type="button" id="quiz-reset">
+          Ulangi
+        </button>
+      </div>
+    </form>
+    <div class="quiz-result" id="quiz-result" hidden aria-live="polite"></div>
+    <p class="small muted" id="quiz-last" hidden></p>
+  </section>
+)}
+
+<script>
+  import { gradeQuiz, gradeLabel, type QuizQuestion } from '../lib/quiz';
+  import { browserStorage, loadProgress, saveProgress, PROGRESS_EVENT } from '../lib/storage';
+  import { recordQuiz } from '../lib/progress';
+
+  const root = document.getElementById('quiz');
+  if (root) {
+    const questions: QuizQuestion[] = JSON.parse(root.dataset.quiz ?? '[]');
+    const lessonId = root.dataset.lesson!;
+    const form = document.getElementById('quiz-form') as HTMLFormElement;
+    const result = document.getElementById('quiz-result')!;
+    const last = document.getElementById('quiz-last')!;
+    const kv = browserStorage();
+
+    const prev = loadProgress(kv).quiz[lessonId];
+    if (prev) {
+      last.textContent = `Skor terakhir: ${prev.score}/${prev.total} (${new Date(prev.at).toLocaleDateString('id-ID')})`;
+      last.hidden = false;
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const answers = questions.map((_, i) => {
+        const v = (form.elements.namedItem(`q${i}`) as RadioNodeList | null)?.value;
+        return v === '' || v == null ? null : Number(v);
+      });
+      const grade = gradeQuiz(questions, answers);
+      root.classList.add('graded');
+      root.querySelectorAll<HTMLElement>('.opt').forEach((opt) => {
+        const q = Number(opt.dataset.q);
+        const o = Number(opt.dataset.o);
+        const out = grade.outcomes[q];
+        opt.classList.remove('correct', 'wrong-chosen', 'other');
+        if (o === out.correctIndex) opt.classList.add('correct');
+        else if (o === out.chosen) opt.classList.add('wrong-chosen');
+        else opt.classList.add('other');
+      });
+      result.textContent = `Skor ${grade.score}/${grade.total} (${grade.percent}%) — ${gradeLabel(grade.percent)}`;
+      result.hidden = false;
+      result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      saveProgress(kv, recordQuiz(loadProgress(kv), lessonId, grade.score, grade.total));
+      document.dispatchEvent(new CustomEvent(PROGRESS_EVENT));
+    });
+
+    document.getElementById('quiz-reset')?.addEventListener('click', () => {
+      form.reset();
+      root.classList.remove('graded');
+      result.hidden = true;
+    });
+  }
+</script>

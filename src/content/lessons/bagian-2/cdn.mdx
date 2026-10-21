@@ -1,0 +1,175 @@
+---
+title: 'CDN'
+module: bagian-2
+order: 5
+minutes: 35
+type: lesson
+prerequisites: ['bagian-2/dns', 'bagian-1/estimasi-kapasitas']
+summary: 'Cache yang ditaruh dekat user: kenapa ia menyelesaikan latency lintas benua dan bandwidth origin sekaligus, pull vs push, aturan cache HTTP, dan invalidasi yang tidak merusak.'
+sources:
+  - title: 'System Design Primer — Content delivery network'
+    url: 'https://github.com/donnemartin/system-design-primer#content-delivery-network'
+  - title: 'Cloudflare Learning Center — What is a CDN?'
+    url: 'https://www.cloudflare.com/learning/cdn/what-is-a-cdn/'
+  - title: 'RFC 9111 — HTTP Caching'
+    url: 'https://www.rfc-editor.org/rfc/rfc9111'
+  - title: 'Amazon CloudFront docs — How CloudFront delivers content'
+    url: 'https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/HowCloudFrontWorks.html'
+  - title: 'Netflix Open Connect — Overview (CDN milik sendiri)'
+    url: 'https://openconnect.netflix.com/en/'
+quiz:
+  - q: 'Layanan foto melayani 2.000 QPS × 500 KB ≈ 1 GB/s ke user di seluruh dunia dari satu datacenter di Singapura. Masalah mana yang CDN selesaikan sekaligus?'
+    options:
+      - text: 'Hanya latency untuk user jauh'
+        correct: false
+        why: 'CDN memang memotong RTT lintas benua, tapi itu baru setengah manfaatnya.'
+      - text: 'Latency untuk user jauh DAN bandwidth/beban origin, karena request berulang dilayani edge tanpa menyentuh Singapura'
+        correct: true
+        why: 'Kedua masalah berasal dari sumber yang sama: setiap request menempuh jarak dan membebani origin. Edge yang meng-cache konten populer memotong keduanya; origin hanya menerima cache miss.'
+      - text: 'Hanya biaya storage'
+        correct: false
+        why: 'CDN tidak menggantikan storage; ia menyalin sementara konten populer.'
+      - text: 'Konsistensi data'
+        correct: false
+        why: 'CDN justru memperkenalkan kemungkinan konten basi yang harus dikelola lewat TTL dan invalidasi.'
+  - q: 'Kamu merilis file JS baru tetapi sebagian user masih memuat versi lama dari CDN selama berjam-jam. Praktik mana yang mencegah ini sejak awal?'
+    options:
+      - text: 'Menurunkan TTL semua aset ke 10 detik'
+        correct: false
+        why: 'Menghancurkan hit ratio; origin kembali terbebani dan latency naik.'
+      - text: 'Memberi nama file dengan hash isinya (app.3f9a1c.js) dan TTL sangat panjang, sementara HTML yang merujuknya ber-TTL pendek'
+        correct: true
+        why: 'Konten immutable boleh di-cache selamanya karena URL berubah saat isinya berubah. Hanya "pintu masuk" (HTML) yang perlu segar. Ini pola cache-busting standar.'
+      - text: 'Meminta user menghapus cache browser'
+        correct: false
+        why: 'Tidak bisa diandalkan dan tidak menyelesaikan cache di edge.'
+      - text: 'Mematikan CDN untuk file JS'
+        correct: false
+        why: 'JS adalah kandidat terbaik untuk CDN; masalahnya di strategi penamaan, bukan di CDN.'
+  - q: 'Perbedaan utama pull CDN dan push CDN?'
+    options:
+      - text: 'Pull: edge mengambil dari origin saat cache miss pertama; push: kamu mengunggah konten ke CDN lebih dulu'
+        correct: true
+        why: 'Pull nyaman dan hemat (hanya konten yang diminta yang disalin) tapi request pertama lambat; push cocok untuk konten besar dan jarang berubah yang ingin selalu siap di edge.'
+      - text: 'Pull hanya untuk video, push hanya untuk gambar'
+        correct: false
+        why: 'Keduanya tidak terikat jenis konten.'
+      - text: 'Push lebih murah untuk konten long-tail'
+        correct: false
+        why: 'Terbalik: push menyalin semuanya meski tidak pernah diminta; untuk long-tail itu pemborosan.'
+      - text: 'Pull tidak bisa di-cache'
+        correct: false
+        why: 'Pull justru meng-cache setelah miss pertama.'
+  - q: 'Mana konten yang paling TIDAK cocok dilayani dari cache CDN?'
+    options:
+      - text: 'Thumbnail video yang sama untuk semua user'
+        correct: false
+        why: 'Statis, populer, sama untuk semua: kandidat ideal.'
+      - text: 'Respons API "saldo rekening saya" yang berbeda per user dan harus akurat'
+        correct: true
+        why: 'Personal (tidak bisa dibagi antar user) dan butuh konsistensi; harus Cache-Control: private/no-store. CDN masih berguna sebagai proxy TLS/DDoS, bukan sebagai cache.'
+      - text: 'Bundle JS dengan hash di namanya'
+        correct: false
+        why: 'Immutable, cocok di-cache sangat lama.'
+      - text: 'Halaman produk publik yang berubah beberapa kali sehari'
+        correct: false
+        why: 'Bisa di-cache dengan TTL pendek atau invalidasi saat berubah.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan bagaimana CDN memotong latency lintas benua **dan** bandwidth origin, dan kapan ia wajib masuk ke desain.
+- Membedakan pull vs push CDN, dan memakai header cache HTTP (`Cache-Control`, `ETag`) dengan benar.
+- Merancang invalidasi dan versioning aset tanpa merusak hit ratio.
+
+## Masalah yang diselesaikan
+
+Di pelajaran estimasi, layanan foto berujung pada bandwidth keluar ~1 GB/s. Dua kenyataan fisik membuat ini sulit dari satu datacenter: **RTT lintas benua ~150 ms** tidak bisa dipercepat, dan **setiap byte** harus keluar dari pipa origin. CDN memindahkan salinan konten ke ratusan titik (edge / PoP) dekat user, sehingga request berulang tidak menempuh jarak dan tidak membebani origin.
+
+## Cara kerja
+
+```mermaid
+sequenceDiagram
+  participant U as User (Jakarta)
+  participant D as DNS CDN
+  participant E as Edge PoP (Jakarta)
+  participant O as Origin (Singapura/US)
+  U->>D: cdn.contoh.com ?
+  D-->>U: IP edge terdekat (geo/anycast)
+  U->>E: GET /img/42.jpg
+  alt cache hit
+    E-->>U: 200 (dari cache edge, ~10 ms)
+  else cache miss
+    E->>O: GET /img/42.jpg
+    O-->>E: 200, Cache-Control: max-age=86400
+    E-->>U: 200 (disimpan di edge)
+  end
+```
+
+Pemilihan edge terdekat dilakukan lewat DNS geo/latency-based atau **anycast** (satu IP untuk semua PoP). CDN besar menambahkan lapisan **shield/mid-tier** di antara edge dan origin agar satu cache miss di banyak edge tidak menjadi banyak request ke origin.
+
+## Pull vs push
+
+|             | Pull CDN                                             | Push CDN                                                      |
+| ----------- | ---------------------------------------------------- | ------------------------------------------------------------- |
+| Cara        | Edge mengambil dari origin saat miss                 | Kamu mengunggah ke CDN lebih dulu                             |
+| Cocok untuk | Konten banyak dan long-tail, trafik tidak terduga    | Konten besar yang jarang berubah (installer, video on demand) |
+| Kelebihan   | Hanya yang diminta yang disalin; setup mudah         | Request pertama pun cepat; kontrol penuh isi edge             |
+| Kekurangan  | Miss pertama lambat; origin harus siap menerima miss | Storage CDN dibayar untuk semua konten; pipeline unggah       |
+
+Mayoritas kasus interview memakai pull; sebutkan push bila kontennya besar dan katalognya terbatas.
+
+## Aturan cache HTTP yang harus dikuasai
+
+| Header                                                          | Arti                                                                 | Dipakai untuk                                                 |
+| --------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `Cache-Control: public, max-age=31536000, immutable`            | Boleh di-cache siapa pun selama setahun, tidak perlu revalidasi      | Aset dengan hash di nama (JS, CSS, gambar versi)              |
+| `Cache-Control: public, max-age=60, stale-while-revalidate=300` | Cache 60 s; setelah itu layani versi lama sambil mengambil yang baru | Halaman/API publik yang boleh sedikit basi                    |
+| `Cache-Control: private, no-store`                              | Jangan di-cache CDN/proxy                                            | Data personal, respons ber-auth                               |
+| `ETag` / `Last-Modified` + `If-None-Match`                      | Revalidasi: 304 tanpa body bila belum berubah                        | Menghemat bandwidth saat TTL habis                            |
+| `Vary: Accept-Encoding`                                         | Cache terpisah per nilai header                                      | Kompresi, bahasa; jangan `Vary: Cookie` atau hit ratio runtuh |
+
+Cache key default adalah URL; query string dan header di `Vary` menambah variasi. Terlalu banyak variasi = hit ratio rendah.
+
+## Invalidasi tanpa drama
+
+Masalah klasik: konten sudah berubah di origin, edge masih memegang yang lama.
+
+1. **Versioning di URL** (cache-busting): `app.3f9a1c.js` dengan TTL sangat panjang; hanya HTML (TTL pendek) yang berubah merujuk nama baru. Ini solusi utama untuk aset build.
+2. **TTL pendek + stale-while-revalidate** untuk konten yang berubah tetapi boleh sedikit basi.
+3. **Purge API** untuk kasus darurat (konten salah, takedown). Purge global memakan detik–menit dan memicu gelombang miss; gunakan **surrogate key / tag** agar bisa purge per kelompok.
+4. **Jangan** menurunkan TTL semua aset ke beberapa detik: hit ratio runtuh dan origin kembali menjadi bottleneck.
+
+## Apa yang dilayani CDN selain file statis
+
+- **Konten dinamis yang bisa dibagi**: halaman produk, hasil pencarian populer, respons API publik, dengan TTL pendek.
+- **Video**: segmen HLS/DASH adalah file statis kecil, ideal untuk cache; CDN sendiri (Netflix Open Connect) menaruh server di dalam ISP.
+- **Fungsi di edge**: redirect, A/B routing, header manipulation, bahkan logika ringan, untuk memotong RTT ke origin.
+- **Perlindungan**: TLS termination, DDoS absorption, WAF, karena semua trafik lewat edge.
+
+Yang **tidak** boleh di-cache CDN: respons personal ber-auth (kecuali dengan cache key per user yang hati-hati), data yang butuh konsistensi kuat, dan apa pun dengan `Set-Cookie`.
+
+## Trade-off ringkas
+
+| Keputusan                                      | Pilih A bila                                | Pilih B bila                                     |
+| ---------------------------------------------- | ------------------------------------------- | ------------------------------------------------ |
+| Pull (A) vs push (B)                           | Katalog besar/long-tail, trafik tak terduga | Konten besar, terbatas, harus langsung cepat     |
+| TTL panjang + versioning (A) vs TTL pendek (B) | Konten immutable atau bisa diberi versi     | Konten berubah dan URL harus tetap               |
+| CDN pihak ketiga (A) vs CDN sendiri (B)        | Hampir selalu                               | Skala Netflix/YouTube, ingin server di dalam ISP |
+| Cache di edge (A) vs hanya proxy (B)           | Konten bisa dibagi antar user               | Respons personal; manfaat hanya TLS/DDoS         |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Di mana CDN masuk ke desain ini, dan untuk konten apa?" → Tunjuk aset dan respons yang bisa dibagi; sebutkan yang tidak.
+- "Bagaimana memastikan user mendapat versi terbaru setelah deploy?" → Versioning URL + HTML TTL pendek.
+- "Bagaimana menghitung hit ratio yang dibutuhkan?" → Dari estimasi bandwidth: origin hanya boleh menerima (1 − hit ratio) × trafik.
+- "Apa yang terjadi saat cache miss masif (cold start, purge global)?" → Origin shield, request coalescing, warm-up bertahap.
+- "Bagaimana upload file besar user?" → Presigned URL langsung ke blob store; CDN hanya untuk jalur baca.
+
+## Ringkasan
+
+1. CDN memindahkan salinan konten ke edge dekat user, memotong RTT lintas benua dan beban origin sekaligus; hanya cache miss yang mencapai origin.
+2. Pull untuk mayoritas kasus, push untuk katalog besar yang terbatas; kendalikan dengan `Cache-Control`, `ETag`, dan `Vary` yang hemat.
+3. Invalidasi yang benar adalah versioning URL dengan TTL panjang; purge hanya untuk darurat, dan jangan pernah mengorbankan hit ratio demi kesegaran.

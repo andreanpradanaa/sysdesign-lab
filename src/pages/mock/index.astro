@@ -1,0 +1,53 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { mockHref } from '../../lib/url';
+import { STAGES, RUBRIC } from '../../lib/mock';
+
+const mocks = (await getCollection('mocks')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<Base title="Mock Interview">
+  <h1>Mock Interview</h1>
+  <p class="muted">
+    Pilih soal, nyalakan timer 45 menit, kerjakan di kertas atau whiteboard, centang tahap yang sudah dibahas,
+    lalu nilai diri sendiri dengan rubrik. Riwayat sesi tersimpan di browser ini.
+  </p>
+  <div class="grid">
+    {mocks.map((m) => (
+      <a class="card" href={mockHref(m.id)} style="color:inherit">
+        <strong>{m.data.title}</strong>
+        <div class="small muted" style="margin-top:0.3rem">
+          {m.data.minutes} menit · {m.data.difficulty}
+        </div>
+      </a>
+    ))}
+    {mocks.length === 0 && <p class="muted">Belum ada soal mock.</p>}
+  </div>
+
+  <h2>Tahap yang dinilai</h2>
+  <ol>
+    {STAGES.map((s) => (
+      <li>
+        {s.label} <span class="small muted">(~{s.minutes} menit)</span>
+      </li>
+    ))}
+  </ol>
+  <h2>Kriteria rubrik</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Kriteria</th>
+        <th>Nilai 4 berarti</th>
+      </tr>
+    </thead>
+    <tbody>
+      {RUBRIC.map((c) => (
+        <tr>
+          <td>{c.label}</td>
+          <td>{c.hint.replace(/^4 = /, '')}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</Base>

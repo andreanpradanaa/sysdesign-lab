@@ -1,0 +1,54 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import MockInterview from '../../components/MockInterview.astro';
+import { lessonHref, href } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const mocks = await getCollection('mocks');
+  return mocks.map((entry) => ({ params: { id: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+---
+
+<Base title={`Mock: ${d.title}`}>
+  <p class="small muted" style="margin:0">
+    <a href={href('/mock')}>← Semua soal mock</a>
+  </p>
+  <h1>Mock interview: {d.title}</h1>
+  <div class="lesson-meta">
+    <span class="badge">⏱ {d.minutes} menit</span>
+    <span class="badge">{d.difficulty}</span>
+    {d.relatedCase && (
+      <a class="badge badge-accent" href={lessonHref(d.relatedCase)}>
+        Studi kasus terkait
+      </a>
+    )}
+  </div>
+
+  <details class="card" open>
+    <summary>
+      <strong>Soal</strong> (baca, lalu tekan Mulai di timer)
+    </summary>
+    <Content />
+  </details>
+
+  {d.hints.length > 0 && (
+    <details class="card" style="margin-top:1rem">
+      <summary>
+        <strong>Petunjuk</strong> (buka hanya kalau macet)
+      </summary>
+      <ol>
+        {d.hints.map((h) => (
+          <li>{h}</li>
+        ))}
+      </ol>
+    </details>
+  )}
+
+  <h2>Sesi</h2>
+  <MockInterview mockId={entry.id} minutes={d.minutes} />
+</Base>

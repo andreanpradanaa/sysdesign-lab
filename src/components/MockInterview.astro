@@ -1,0 +1,244 @@
+---
+/** Mode mock interview: timer, checklist tahap, rubrik 1-4, catatan, riwayat sesi (localStorage). */
+import { STAGES, RUBRIC, SCALE_MIN, SCALE_MAX } from '../lib/mock';
+
+interface Props {
+  mockId: string;
+  minutes: number;
+}
+const { mockId, minutes } = Astro.props;
+const scale = Array.from({ length: SCALE_MAX - SCALE_MIN + 1 }, (_, i) => SCALE_MIN + i);
+---
+
+<div class="mock-grid" id="mock" data-mock={mockId} data-minutes={minutes}>
+  <div>
+    <section class="card">
+      <h2 style="margin-top:0">Checklist tahap</h2>
+      <p class="small muted">
+        Anggaran waktu per tahap hanya panduan. Tahap yang "seharusnya" sedang berjalan ditandai.
+      </p>
+      <div class="stages" id="stages">
+        {STAGES.map((s) => (
+          <label data-stage={s.id}>
+            <input type="checkbox" value={s.id} />
+            <span>{s.label}</span>
+            <span class="budget">{s.minutes}m</span>
+          </label>
+        ))}
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Rubrik penilaian mandiri</h2>
+      <p class="small muted">
+        Skala {SCALE_MIN}–{SCALE_MAX}. Isi setelah selesai, dengan jujur. Arahkan kursor ke kriteria untuk
+        melihat deskripsi nilai 4.
+      </p>
+      <div class="rubric" id="rubric">
+        {RUBRIC.map((c) => (
+          <div class="row" data-criterion={c.id} title={c.hint}>
+            <div>
+              <div>{c.label}</div>
+              <div class="small muted">{c.hint}</div>
+            </div>
+            <div class="scale" role="radiogroup" aria-label={c.label}>
+              {scale.map((n) => (
+                <button type="button" data-score={n} aria-pressed="false" aria-label={`${c.label}: ${n}`}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p style="margin-top:0.8rem">
+        Rata-rata: <strong id="rubric-avg">–</strong>
+      </p>
+      <label for="mock-notes">
+        <strong>Catatan</strong> (apa yang terlewat, apa yang mau diulang)
+      </label>
+      <textarea
+        id="mock-notes"
+        rows="5"
+        placeholder="Contoh: lupa membahas idempotency di API, estimasi storage meleset 10x…"
+      ></textarea>
+      <div style="display:flex;gap:0.6rem;margin-top:0.8rem;flex-wrap:wrap">
+        <button type="button" class="btn-primary" id="mock-save">
+          Simpan sesi
+        </button>
+        <button type="button" id="mock-clear">
+          Reset form
+        </button>
+        <span class="small muted" id="mock-saved" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section style="margin-top:1rem">
+      <h2>Riwayat sesi</h2>
+      <ul class="history" id="mock-history">
+        <li class="muted">Belum ada sesi tersimpan.</li>
+      </ul>
+    </section>
+  </div>
+
+  <aside class="card" style="position:sticky;top:calc(var(--header-h) + 1rem)">
+    <div class="timer" id="timer" aria-live="off">
+      {String(minutes).padStart(2, '0')}:00
+    </div>
+    <p class="small muted" style="text-align:center;margin:0.2rem 0 0.8rem" id="timer-stage">
+      Tahap: belum mulai
+    </p>
+    <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap">
+      <button type="button" class="btn-primary" id="timer-toggle">
+        Mulai
+      </button>
+      <button type="button" id="timer-reset">
+        Reset
+      </button>
+    </div>
+    <p class="small muted" style="margin-top:0.8rem">
+      Timer menghitung mundur dari {minutes} menit. Setelah 0 tetap berjalan (merah) supaya kamu tahu seberapa
+      lama kelebihannya.
+    </p>
+  </aside>
+</div>
+
+<script>
+  import {
+    STAGES,
+    RUBRIC,
+    formatClock,
+    stageAt,
+    averageScore,
+    clampScore,
+    addSession,
+    type MockSession,
+  } from '../lib/mock';
+  import { browserStorage, loadMocks, saveMocks } from '../lib/storage';
+
+  const root = document.getElementById('mock');
+  if (root) {
+    const mockId = root.dataset.mock!;
+    const totalSec = Number(root.dataset.minutes) * 60;
+    const kv = browserStorage();
+
+    // ----- timer -----
+    const timerEl = document.getElementById('timer')!;
+    const stageEl = document.getElementById('timer-stage')!;
+    const toggle = document.getElementById('timer-toggle')!;
+    let elapsed = 0;
+    let startedAt: number | null = null;
+    let handle: number | undefined;
+
+    const paintTimer = () => {
+      const e = currentElapsed();
+      const remaining = totalSec - e;
+      timerEl.textContent = (remaining < 0 ? '-' : '') + formatClock(Math.abs(remaining));
+      timerEl.classList.toggle('warn', remaining <= 5 * 60 && remaining > 0);
+      timerEl.classList.toggle('over', remaining < 0);
+      const st = stageAt(e);
+      stageEl.textContent =
+        startedAt === null && e === 0
+          ? 'Tahap: belum mulai'
+          : st
+            ? `Tahap: ${st.label}`
+            : 'Waktu habis — wrap-up';
+      document
+        .querySelectorAll<HTMLElement>('#stages label')
+        .forEach((l) => l.classList.toggle('current', l.dataset.stage === st?.id));
+    };
+    const currentElapsed = () =>
+      elapsed + (startedAt === null ? 0 : Math.floor((Date.now() - startedAt) / 1000));
+
+    toggle.addEventListener('click', () => {
+      if (startedAt === null) {
+        startedAt = Date.now();
+        toggle.textContent = 'Jeda';
+        handle = window.setInterval(paintTimer, 500);
+      } else {
+        elapsed = currentElapsed();
+        startedAt = null;
+        toggle.textContent = 'Lanjut';
+        window.clearInterval(handle);
+      }
+      paintTimer();
+    });
+    document.getElementById('timer-reset')!.addEventListener('click', () => {
+      elapsed = 0;
+      startedAt = null;
+      window.clearInterval(handle);
+      toggle.textContent = 'Mulai';
+      paintTimer();
+    });
+    paintTimer();
+
+    // ----- rubrik -----
+    const scores: Record<string, number> = {};
+    const avgEl = document.getElementById('rubric-avg')!;
+    const paintAvg = () => {
+      const a = averageScore(scores);
+      avgEl.textContent = a ? `${a} / 4` : '–';
+    };
+    document.querySelectorAll<HTMLElement>('#rubric .row').forEach((row) => {
+      const id = row.dataset.criterion!;
+      row.querySelectorAll<HTMLButtonElement>('button[data-score]').forEach((b) => {
+        b.addEventListener('click', () => {
+          scores[id] = clampScore(Number(b.dataset.score));
+          row.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          paintAvg();
+        });
+      });
+    });
+
+    // ----- simpan / riwayat -----
+    const notes = document.getElementById('mock-notes') as HTMLTextAreaElement;
+    const savedMsg = document.getElementById('mock-saved')!;
+    const historyEl = document.getElementById('mock-history')!;
+    const labelOf = (id: string) => RUBRIC.find((c) => c.id === id)?.label ?? id;
+
+    const paintHistory = () => {
+      const sessions = loadMocks(kv).sessions[mockId] ?? [];
+      if (sessions.length === 0) return;
+      historyEl.innerHTML = '';
+      [...sessions].reverse().forEach((s) => {
+        const li = document.createElement('li');
+        const date = new Date(s.at).toLocaleString('id-ID');
+        const detail = Object.entries(s.scores)
+          .map(([k, v]) => `${labelOf(k)}: ${v}`)
+          .join(' · ');
+        li.innerHTML =
+          `<strong>${date}</strong> — ${formatClock(s.elapsedSec)} · rata-rata <strong>${averageScore(s.scores) || '–'}</strong> · ${s.stagesDone.length}/${STAGES.length} tahap` +
+          (detail ? `<div class="small muted">${detail}</div>` : '') +
+          (s.notes ? `<div class="small">${escapeHtml(s.notes)}</div>` : '');
+        historyEl.appendChild(li);
+      });
+    };
+    const escapeHtml = (s: string) =>
+      s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+    document.getElementById('mock-save')!.addEventListener('click', () => {
+      const stagesDone = Array.from(document.querySelectorAll<HTMLInputElement>('#stages input:checked')).map(
+        (i) => i.value,
+      );
+      const session: MockSession = {
+        at: new Date().toISOString(),
+        elapsedSec: currentElapsed(),
+        stagesDone,
+        scores: { ...scores },
+        notes: notes.value.trim(),
+      };
+      saveMocks(kv, addSession(loadMocks(kv), mockId, session));
+      savedMsg.textContent = 'Tersimpan di browser ini.';
+      paintHistory();
+    });
+    document.getElementById('mock-clear')!.addEventListener('click', () => {
+      document.querySelectorAll<HTMLInputElement>('#stages input').forEach((i) => (i.checked = false));
+      document.querySelectorAll('#rubric button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      for (const k of Object.keys(scores)) delete scores[k];
+      notes.value = '';
+      savedMsg.textContent = '';
+      paintAvg();
+    });
+    paintHistory();
+  }
+</script>

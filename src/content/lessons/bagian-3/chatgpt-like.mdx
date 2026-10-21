@@ -1,0 +1,241 @@
+---
+title: 'ChatGPT-like system'
+module: bagian-3
+order: 15
+minutes: 65
+type: case
+prerequisites:
+  ['bagian-2/message-queue', 'bagian-2/rate-limiter', 'bagian-2/distributed-cache', 'bagian-3/whatsapp']
+summary: 'Melayani percakapan dengan LLM ke jutaan user: GPU sebagai sumber daya langka, streaming token, batching dan KV cache di inference server, antrian dengan prioritas dan kuota, serta percakapan yang disimpan terpisah dari model yang stateless.'
+sources:
+  - title: 'Efficient Memory Management for Large Language Model Serving with PagedAttention (vLLM, arXiv 2023)'
+    url: 'https://arxiv.org/abs/2309.06180'
+  - title: 'vLLM docs — Continuous batching & serving'
+    url: 'https://docs.vllm.ai/en/latest/'
+  - title: 'Orca: A Distributed Serving System for Transformer-Based Generative Models (OSDI 2022)'
+    url: 'https://www.usenix.org/conference/osdi22/presentation/yu'
+  - title: 'MDN — Server-sent events'
+    url: 'https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events'
+  - title: 'Anthropic docs — Streaming Messages (contoh API streaming publik)'
+    url: 'https://docs.anthropic.com/en/docs/build-with-claude/streaming'
+quiz:
+  - q: 'Kenapa respons LLM di-stream token per token ke client, bukan dikirim setelah selesai?'
+    options:
+      - text: 'Karena HTTP tidak bisa mengirim respons besar'
+        correct: false
+        why: 'Bisa; alasannya pengalaman dan sumber daya.'
+      - text: 'Karena generasi 500 token bisa memakan 10–20 detik; streaming membuat user melihat kata pertama dalam &lt; 1 detik (time-to-first-token), bisa membatalkan lebih awal (menghemat GPU), dan koneksi tidak menganggur'
+        correct: true
+        why: 'Metrik utama adalah TTFT dan token/detik, bukan total latency. Pembatalan dini oleh user adalah penghematan GPU yang nyata.'
+      - text: 'Karena model menghasilkan token secara acak'
+        correct: false
+        why: 'Tidak relevan.'
+      - text: 'Karena token harus disimpan di DB satu per satu'
+        correct: false
+        why: 'Penyimpanan pesan dilakukan setelah selesai (atau per chunk), bukan alasan streaming.'
+  - q: 'Apa yang dimaksud continuous batching di inference server dan kenapa penting?'
+    options:
+      - text: 'Mengumpulkan request selama 1 detik lalu menjalankannya bersama sampai semua selesai'
+        correct: false
+        why: 'Itu static batching: request pendek menunggu yang panjang, GPU idle sebagian.'
+      - text: 'Menjalankan langkah decode untuk banyak sequence sekaligus dan menyisipkan request baru / mengeluarkan yang selesai di setiap langkah, sehingga GPU hampir selalu penuh dan latency request pendek tidak tersandera request panjang'
+        correct: true
+        why: 'Decode LLM bersifat memory-bandwidth-bound per langkah; batching lintas request meningkatkan throughput berkali lipat. Continuous batching (Orca/vLLM) menjaga utilisasi tanpa menunggu.'
+      - text: 'Menggabungkan beberapa prompt menjadi satu prompt'
+        correct: false
+        why: 'Mencampur konteks user; salah.'
+      - text: 'Menjalankan model di CPU untuk request kecil'
+        correct: false
+        why: 'CPU terlalu lambat untuk model besar.'
+  - q: 'Percakapan panjang (50 pesan) dikirim ulang seluruhnya tiap giliran. Masalah dan mitigasinya?'
+    options:
+      - text: 'Tidak ada masalah; model mengingat percakapan'
+        correct: false
+        why: 'Model stateless; konteks dikirim setiap kali.'
+      - text: 'Biaya prefill dan memori KV cache naik linear (atau lebih) dengan panjang konteks; mitigasi: batas konteks dengan pemangkasan/ringkasan pesan lama, prefix caching untuk bagian konteks yang sama (system prompt, riwayat) agar prefill tidak diulang, dan routing giliran lanjutan ke replika yang masih memegang cache'
+        correct: true
+        why: 'Konteks adalah biaya utama. Prefix/KV cache reuse dan ringkasan adalah dua tuas yang paling sering dibahas.'
+      - text: 'Simpan percakapan di GPU selamanya'
+        correct: false
+        why: 'Memori GPU sangat terbatas; cache harus dievict.'
+      - text: 'Kirim hanya pesan terakhir'
+        correct: false
+        why: 'Model kehilangan konteks; jawaban tidak koheren.'
+  - q: 'GPU penuh saat puncak. Bagaimana sistem menjaga pengalaman tanpa menambah GPU seketika?'
+    options:
+      - text: 'Menolak semua request baru'
+        correct: false
+        why: 'Terlalu kasar.'
+      - text: 'Antrian admission dengan prioritas (pelanggan berbayar, request interaktif vs batch), kuota/rate limit per user, degradasi ke model lebih kecil untuk tier tertentu, batas token output, dan backpressure dengan estimasi waktu tunggu; autoscale dengan pre-warm karena menyalakan GPU memakan menit'
+        correct: true
+        why: 'Kapasitas GPU tidak elastis dalam detik; admission control dan degradasi anggun adalah bagian inti desain, bukan tambahan.'
+      - text: 'Menurunkan kualitas jawaban dengan memotong prompt secara acak'
+        correct: false
+        why: 'Merusak jawaban secara tidak terkendali.'
+      - text: 'Menjalankan model di browser user'
+        correct: false
+        why: 'Tidak realistis untuk model besar.'
+---
+
+## 1. Requirements
+
+Klarifikasi: satu model atau beberapa (ukuran/tier)? Modal: teks saja atau gambar/file? Tool use (pencarian web, kode)? Multi-tenant dengan tier gratis/berbayar? Retensi percakapan dan privasi?
+
+Asumsi: produk chat teks dengan dua tier model, streaming, riwayat percakapan tersimpan, tool use sebagai ekstensi.
+
+### Functional
+
+- User membuat percakapan, mengirim pesan, menerima jawaban yang di-stream; bisa membatalkan; regenerate.
+- Riwayat percakapan tersimpan, bisa dilanjutkan dari perangkat lain, dicari judulnya.
+- Kuota per tier; pemilihan model.
+- Moderasi input/output; penolakan sesuai kebijakan.
+- Out of scope: pelatihan/fine-tuning, multimodal, plugin pihak ketiga (disebut), RAG (kasus berikutnya).
+
+### Non-functional
+
+| NFR                        | Target                                                                       | Alasan                                 |
+| -------------------------- | ---------------------------------------------------------------------------- | -------------------------------------- |
+| Time-to-first-token (TTFT) | p50 &lt; 1 s, p95 &lt; 3 s                                                   | Terasa responsif                       |
+| Throughput token           | ≥ 30 token/detik per stream yang terlihat user                               | Lebih cepat dari membaca               |
+| Availability               | 99.9% (chat), 99.99% untuk membaca riwayat                                   | GPU adalah sumber daya rapuh dan mahal |
+| Skala                      | 10 juta DAU, 100.000 request bersamaan puncak                                | —                                      |
+| Biaya                      | Utilisasi GPU tinggi; batas token; cache                                     | GPU dominan                            |
+| Privasi                    | Percakapan terenkripsi, retensi terkendali, tidak dipakai melatih tanpa izin | Kepercayaan                            |
+
+## 2. Estimasi kapasitas
+
+Asumsi: 10 juta DAU × 10 pesan/hari; prompt rata-rata 1.000 token (termasuk riwayat), output 300 token; model besar menghasilkan ~2.000 token/detik agregat per GPU dengan batching (angka kasar; sangat bergantung model dan hardware).
+
+- Request: 10^8 / 10^5 ≈ **1.000 request/detik** rata-rata, puncak 3.000/s.
+- Token output: 1.000 × 300 = 300.000 token/s rata-rata; puncak 900.000 token/s → **~450 GPU** untuk decode pada puncak dengan utilisasi baik; prefill 1.000 token/request menambah beban compute yang signifikan (prefill compute-bound, decode memory-bound) → total ratusan hingga seribu GPU; biaya adalah faktor desain utama.
+- Memori KV cache: per token per sequence puluhan–ratusan KB tergantung model; 1.300 token × 100 KB ≈ 130 MB per request; 100 request bersamaan per GPU ≈ 13 GB; PagedAttention mencegah fragmentasi.
+- Koneksi streaming bersamaan: 100.000; gateway koneksi persisten (SSE/WebSocket) seperti kasus chat.
+- Storage percakapan: 10^8 pesan/hari × 2 KB ≈ 200 GB/hari; 1 tahun ≈ 70 TB; DB terpartisi by user + blob untuk lampiran.
+
+Keputusan: inference tier terpisah (stateless terhadap user, stateful terhadap KV cache), gateway streaming, antrian admission dengan prioritas, cache prefix, penyimpanan percakapan di DB biasa.
+
+## 3. API design
+
+```text
+POST /v1/conversations                       → { conversationId }
+POST /v1/conversations/{id}/messages          { content, model: "large"|"small", stream: true, Idempotency-Key }
+     → 200, Content-Type: text/event-stream
+       event: message_start {messageId}
+       event: content_delta {text}      (berulang)
+       event: message_end   {usage: {inputTokens, outputTokens}, stopReason}
+       event: error         {code}
+POST /v1/messages/{id}/cancel                → 202
+GET  /v1/conversations?cursor=               → daftar (judul, updated)
+GET  /v1/conversations/{id}?cursor=          → pesan
+GET  /v1/usage                               → kuota tersisa per periode
+```
+
+SSE untuk web (sederhana, lewat HTTP/2); WebSocket untuk mobile bila perlu dua arah. Idempotency key mencegah pesan ganda saat retry; `cancel` menghentikan generasi dan membebaskan GPU.
+
+## 4. Skema data
+
+```sql
+users(id, tier, quota_tokens_per_day, ...)
+conversations(id, user_id, title, model_default, created_at, updated_at, archived)   -- shard by user_id
+messages(id, conversation_id, role: user|assistant|system, content, tokens, model, status, created_at)
+       -- shard by conversation_id; content terenkripsi at-rest; status: streaming|complete|cancelled|error
+usage_events(user_id, ts, model, input_tokens, output_tokens, request_id)   -- stream → agregasi kuota & billing
+moderation_results(message_id, verdict, categories, score)
+-- Cache: usage counter per user per hari (Redis, sharded counter); session stream state (gateway, memori)
+```
+
+Model tidak menyimpan apa pun antar request; "memori" percakapan = pesan yang dikirim ulang sebagai konteks (dengan pemangkasan/ringkasan).
+
+## 5. High-level design
+
+```mermaid
+flowchart LR
+  C[Client] -->|SSE / WS| GW[Streaming gateway\nauth, rate limit, koneksi persisten]
+  GW --> ORCH[Chat orchestrator\nsusun konteks, moderasi, kuota]
+  ORCH --> CDB[("Conversation DB")]
+  ORCH --> MOD[Moderation service\nklasifier cepat]
+  ORCH --> ADM[Admission / scheduler\nprioritas, kuota, antrian]
+  ADM --> RT[Router\nmodel, prefix-cache affinity]
+  RT --> INF1["Inference server A\n(model besar, continuous batching,\nKV cache)"]
+  RT --> INF2["Inference server B\n(model kecil)"]
+  INF1 -->|token stream| ORCH
+  ORCH -->|delta| GW
+  ORCH --> USE[["Usage events"]] --> BILL[Kuota & billing]
+  CAP[Capacity controller\nautoscale GPU, pre-warm] --> INF1
+```
+
+**Alur pesan**: client mengirim pesan → gateway memeriksa auth dan rate limit → orchestrator menyimpan pesan user, memeriksa kuota, moderasi input (cepat), menyusun konteks (system prompt + riwayat yang dipangkas/diringkas) → admission memberi prioritas dan antrian bila GPU penuh (dengan estimasi tunggu ke client) → router memilih replika model yang mungkin memegang prefix cache percakapan ini → inference server menghasilkan token via continuous batching → token di-stream kembali melalui orchestrator (moderasi output streaming) ke gateway ke client → selesai: pesan assistant disimpan, usage dicatat.
+
+## 6. Detailed design
+
+### 6.1 Inference server
+
+```mermaid
+flowchart LR
+  R1[Req 1: prefill 800 tok] --> S["Scheduler langkah\n(continuous batching)"]
+  R2[Req 2: decode] --> S
+  R3[Req 3: decode] --> S
+  S --> G[GPU: satu forward pass\nbatch gabungan]
+  G --> KV[("KV cache\nblok halaman (PagedAttention)\nprefix sharing")]
+  G --> OUT[Token baru per sequence\n→ stream]
+  OUT --> S
+```
+
+- **Prefill** (memproses prompt) compute-bound; **decode** (satu token per langkah) memory-bandwidth-bound: batching lintas request menaikkan throughput decode besar-besaran.
+- **Continuous batching**: request baru disisipkan di langkah berikutnya; yang selesai keluar; chunked prefill agar prompt panjang tidak memblokir decode request lain.
+- **KV cache** per sequence disimpan sebagai blok halaman; **prefix caching** membagi blok untuk prefix identik (system prompt yang sama untuk semua, riwayat percakapan untuk giliran berikutnya). Router mengirim giliran lanjutan ke replika yang memegang cache (affinity by conversation id, dengan fallback).
+- Model besar dipecah antar GPU (tensor/pipeline parallel) dalam satu node; replika = satu grup GPU.
+- Batas: max tokens output, max konteks, timeout; pembatalan menghentikan sequence dan membebaskan blok KV.
+- Kuantisasi dan speculative decoding sebagai optimasi throughput/latency yang disebut, bukan dibahas dalam.
+
+### 6.2 Admission control dan kapasitas
+
+- Antrian per model dengan prioritas: tier berbayar &gt; gratis; interaktif &gt; batch/API offline; request dengan konteks pendek dapat disisipkan lebih cepat (shortest-job heuristik dengan batas fairness).
+- Kuota: token per hari per user (sharded counter), rate limit request/menit di gateway; respons 429 dengan `Retry-After`; UI menunjukkan antrian.
+- Kapasitas GPU tidak elastis dalam detik: prediksi beban (harian/jam), pre-warm replika sebelum puncak, scale-down bertahap; degradasi: tier gratis ke model kecil saat tekanan, batas output lebih pendek.
+- Backpressure end-to-end: inference server melaporkan slot bebas; admission tidak mengirim melebihi kapasitas agar latency tidak meledak (antri di depan, bukan di GPU).
+
+### 6.3 Streaming end-to-end
+
+- Gateway memegang koneksi SSE/WebSocket; token diteruskan dari inference server lewat orchestrator (gRPC stream) dengan buffer kecil; chunk digabung per ~20–50 ms agar tidak membanjiri client.
+- Pemutusan client → cancel ke inference (bebaskan GPU); pemutusan inference → event error ke client + pesan ditandai `error` dengan konten parsial tersimpan; client dapat "lanjutkan".
+- Moderasi output di jalur stream: klasifier ringan per jendela token; bila melanggar, hentikan dan ganti dengan pesan kebijakan.
+- Keep-alive dan reconnect; `messageId` memungkinkan client menyambung ulang dan menerima sisa stream (gateway menyimpan buffer pesan yang sedang berjalan beberapa detik).
+
+### 6.4 Konteks dan memori percakapan
+
+- Susun konteks: system prompt + ringkasan percakapan lama (dibuat async oleh model kecil saat melewati ambang) + N pesan terakhir, dalam batas token model.
+- Prefix stabil ditempatkan di awal (system prompt, ringkasan) agar prefix cache efektif; bagian yang berubah di akhir.
+- Judul percakapan dibuat async dari pesan pertama.
+
+### 6.5 Keamanan dan privasi
+
+- Enkripsi at-rest percakapan, kunci per tenant untuk enterprise; retensi dan penghapusan sesuai kebijakan; opt-out pelatihan.
+- Prompt injection bukan ancaman di chat murni, tetapi relevan saat tool use/RAG (kasus berikutnya).
+- Audit akses manusia ke percakapan; log tanpa konten (hanya metadata) secara default.
+
+### 6.6 Observability
+
+TTFT, token/detik per stream, antrian admission, utilisasi GPU, hit ratio prefix cache, rasio pembatalan, error per model; alert pada TTFT p95 dan panjang antrian; A/B per versi model.
+
+## 7. Evaluasi terhadap non-functional requirements
+
+| NFR                | Dipenuhi oleh                                                                                                  | Risiko tersisa                                                          |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| TTFT &lt; 1 s      | Admission tidak melebihi kapasitas, chunked prefill, prefix cache, routing affinity                            | Prompt sangat panjang: prefill lama; batasi konteks                     |
+| ≥ 30 token/s       | Batching terkendali (ukuran batch vs latency per token), model tier                                            | Saat tekanan: batas output, model kecil untuk tier gratis               |
+| Availability 99.9% | Replika model di beberapa node/zona, antrian durable untuk request yang diterima, riwayat di DB biasa (99.99%) | Kehilangan node GPU memutus stream aktif: client reconnect, "lanjutkan" |
+| Skala              | Horizontal replika model, gateway stateless, DB shard by user                                                  | GPU supply; multi-region untuk latency dan kapasitas                    |
+| Biaya              | Utilisasi tinggi via batching, prefix cache, pembatalan dini, kuota, kuantisasi                                | Trade-off batch besar vs latency harus dipantau                         |
+| Privasi            | Enkripsi, retensi, log tanpa konten                                                                            | Akses operasional: RBAC dan audit                                       |
+
+Bottleneck 10x: GPU (kapasitas dan biaya) dan memori KV; SPOF: admission/scheduler (replikasi dengan lease) dan gateway (horizontal).
+
+## 8. Pertanyaan lanjutan interviewer
+
+- "Bagaimana menambahkan tool use (pencarian, kode)?" → Loop orchestrator: model mengeluarkan panggilan tool terstruktur → orchestrator mengeksekusi (dengan sandbox/timeout) → hasil dikirim kembali sebagai konteks → lanjut; stream event tool ke client.
+- "Multi-region?" → Replika model per region, percakapan direplikasi, routing ke region terdekat dengan kapasitas; failover lintas region dengan latency lebih tinggi.
+- "Bagaimana mengukur kualitas jawaban?" → Umpan balik user, evaluasi offline per versi model, A/B terkontrol, pemantauan rasio regenerate.
+- "Request batch/API non-interaktif besar?" → Antrian prioritas rendah yang mengisi celah kapasitas malam hari, SLA jam, harga lebih murah.
+- "Rate limit per organisasi dengan banyak user?" → Hirarki kuota (org → user), token bucket bertingkat.
+- "Bagaimana rollout model baru?" → Canary per persen trafik dengan metrik kualitas dan latency, rollback cepat, versi model di setiap pesan untuk analisis.

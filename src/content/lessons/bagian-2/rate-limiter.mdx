@@ -1,0 +1,177 @@
+---
+title: 'Rate limiter'
+module: bagian-2
+order: 11
+minutes: 40
+type: lesson
+prerequisites: ['bagian-2/distributed-cache', 'bagian-2/load-balancer']
+summary: 'Menolak sebagian request supaya sisanya tetap hidup: algoritma (token bucket, sliding window), tempat menaruhnya, state terdistribusi di Redis, dan cara menolak yang sopan.'
+sources:
+  - title: 'Stripe Engineering — Scaling your API with rate limiters'
+    url: 'https://stripe.com/blog/rate-limiters'
+  - title: 'Cloudflare Blog — How we built rate limiting capable of scaling to millions of domains'
+    url: 'https://blog.cloudflare.com/counting-things-a-lot-of-different-things/'
+  - title: 'RFC 6585 — Additional HTTP Status Codes (429 Too Many Requests)'
+    url: 'https://www.rfc-editor.org/rfc/rfc6585#section-4'
+  - title: 'IETF draft — RateLimit header fields for HTTP'
+    url: 'https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/'
+  - title: 'Token bucket — Wikipedia'
+    url: 'https://en.wikipedia.org/wiki/Token_bucket'
+quiz:
+  - q: 'Limit 100 request/menit dengan fixed window. Client mengirim 100 request pada detik ke-59 dan 100 lagi pada detik ke-61. Apa yang terjadi?'
+    options:
+      - text: 'Request kedua ditolak karena melebihi 100/menit'
+        correct: false
+        why: 'Detik ke-61 masuk jendela menit berikutnya yang counternya baru; semuanya lolos.'
+      - text: 'Semua 200 lolos dalam 2 detik, dua kali limit yang dimaksud; ini kelemahan fixed window di batas jendela'
+        correct: true
+        why: 'Fixed window mereset counter di batas waktu sehingga burst di sekitar batas bisa mencapai 2x limit. Sliding window log/counter atau token bucket menghindari ini.'
+      - text: 'Sistem crash'
+        correct: false
+        why: 'Tidak; hanya batasnya yang tidak efektif.'
+      - text: 'Hanya 100 pertama lolos, sisanya diantrikan'
+        correct: false
+        why: 'Rate limiter menolak, bukan mengantrikan (kecuali didesain sebagai shaper).'
+  - q: 'Rate limiter berjalan di 20 instance API gateway. Di mana counter per user sebaiknya disimpan?'
+    options:
+      - text: 'Di memori tiap instance, karena paling cepat'
+        correct: false
+        why: 'Tiap instance hanya melihat sebagian trafik user; limit efektif menjadi 20x lebih longgar (atau tidak dapat diprediksi dengan LB round robin).'
+      - text: 'Di store bersama berlatensi rendah seperti Redis, dengan operasi atomik (INCR + EXPIRE atau script Lua) agar check-and-increment tidak balapan'
+        correct: true
+        why: 'State harus dibagi agar limit berlaku global. Operasi atomik mencegah dua instance sama-sama melihat "masih di bawah limit". Cache lokal kecil boleh ditambahkan sebagai optimasi dengan toleransi sedikit over-limit.'
+      - text: 'Di database relasional utama'
+        correct: false
+        why: 'Setiap request akan menambah beban tulis ke DB utama; latency pun terlalu tinggi untuk jalur request.'
+      - text: 'Di client, lewat header yang dikirim balik'
+        correct: false
+        why: 'Client bisa memanipulasi; server harus menjadi sumber kebenaran.'
+  - q: 'Mana yang paling tepat menggambarkan token bucket?'
+    options:
+      - text: 'Bucket terisi token dengan laju tetap sampai kapasitas; tiap request mengambil satu token; tanpa token request ditolak; kapasitas bucket menentukan burst yang diizinkan'
+        correct: true
+        why: 'Dua parameter: laju isi (rata-rata) dan kapasitas (burst). Mudah diimplementasikan dengan menyimpan jumlah token dan timestamp terakhir, lalu menghitung token baru secara lazy.'
+      - text: 'Request masuk antrian dan dikeluarkan dengan laju tetap'
+        correct: false
+        why: 'Itu leaky bucket versi antrian (traffic shaping), yang menghaluskan laju tapi menambah latency.'
+      - text: 'Counter per jendela waktu tetap'
+        correct: false
+        why: 'Itu fixed window counter.'
+      - text: 'Log timestamp semua request dalam jendela'
+        correct: false
+        why: 'Itu sliding window log, akurat tapi boros memori.'
+  - q: 'Respons yang paling baik saat request ditolak oleh rate limiter?'
+    options:
+      - text: '500 Internal Server Error'
+        correct: false
+        why: 'Menyesatkan: client akan menganggap server rusak dan mungkin retry agresif.'
+      - text: '429 Too Many Requests dengan header Retry-After dan informasi limit/sisa kuota, dicatat ke metrik'
+        correct: true
+        why: 'Status standar (RFC 6585) memberi tahu client bahwa ia yang harus melambat; Retry-After mencegah retry storm; header RateLimit membantu client mengatur diri.'
+      - text: 'Menutup koneksi tanpa respons'
+        correct: false
+        why: 'Client tidak tahu kenapa; retry membabi buta.'
+      - text: '200 dengan body kosong'
+        correct: false
+        why: 'Client mengira sukses; data hilang secara senyap.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan untuk apa rate limiter (perlindungan, keadilan, biaya) dan di lapisan mana ia ditaruh.
+- Membandingkan fixed window, sliding window log, sliding window counter, token bucket, leaky bucket.
+- Merancang rate limiter terdistribusi dengan Redis dan operasi atomik, dan menolak request dengan benar (429, Retry-After).
+
+## Kenapa membatasi
+
+Sistem punya kapasitas terbatas. Tanpa pembatas, satu client yang salah konfigurasi (atau jahat) bisa memakai semua kapasitas, dan saat beban lebih tinggi dari kapasitas semua orang menjadi lambat lalu gagal. Rate limiter **menolak sebagian request lebih awal dan murah** agar sisanya dilayani dengan baik. Alasannya tiga: perlindungan (DoS, brute force, scraping), keadilan antar tenant, dan biaya (API pihak ketiga berbayar, kuota per paket).
+
+## Di mana ditaruh
+
+```mermaid
+flowchart LR
+  C[Client] --> E[Edge / CDN\nlimit per IP, WAF]
+  E --> G[API gateway\nlimit per API key / user / endpoint]
+  G --> S[Service]
+  S --> O[Panggilan keluar\nlimit per penyedia eksternal]
+  G <--> R[(Redis\ncounter / bucket)]
+```
+
+- **Edge**: per IP, kasar, menyerap volume besar.
+- **Gateway/middleware**: per API key, user, endpoint, tenant; aturan bisnis ada di sini.
+- **Di dalam service / client**: membatasi panggilan keluar ke dependency agar tidak melanggar kuota mereka (self-throttling).
+
+Kunci pembatas (siapa yang dihitung) adalah keputusan produk: IP (lemah, NAT), user id, API key, tenant, atau kombinasi.
+
+## Algoritma
+
+| Algoritma              | Cara                                                                   | Memori per kunci           | Akurasi                             | Burst        | Catatan                               |
+| ---------------------- | ---------------------------------------------------------------------- | -------------------------- | ----------------------------------- | ------------ | ------------------------------------- |
+| Fixed window counter   | Counter per jendela (mis. per menit)                                   | 1 counter                  | Rendah di batas jendela (hingga 2x) | Ya, di batas | Paling sederhana                      |
+| Sliding window log     | Simpan timestamp tiap request; hitung yang masih dalam jendela         | O(limit)                   | Tepat                               | Tidak        | Boros memori untuk limit besar        |
+| Sliding window counter | Bobot counter jendela sebelumnya + jendela sekarang                    | 2 counter                  | Aproksimasi baik                    | Halus        | Kompromi favorit (dipakai Cloudflare) |
+| Token bucket           | Token terisi dengan laju r sampai kapasitas b; request mengambil token | 2 angka (token, timestamp) | Baik                                | Ya, sampai b | Standar untuk API; burst terkendali   |
+| Leaky bucket (antrian) | Request masuk antrian, keluar dengan laju tetap                        | O(antrian)                 | Laju keluar tetap                   | Dihaluskan   | Shaping, menambah latency             |
+
+Token bucket, dihitung lazy:
+
+```text
+tokens = min(b, tokens + (now - last) * r)
+if tokens >= 1: tokens -= 1; izinkan   else: tolak
+last = now
+```
+
+## Versi terdistribusi
+
+Dengan banyak instance gateway, counter harus **bersama**. Pola standar: Redis dengan operasi atomik.
+
+- Fixed/sliding window: `INCR key` + `EXPIRE` (atau `MULTI`), key = `rl:{user}:{menit}`.
+- Token bucket: satu **script Lua** yang membaca token dan timestamp, menghitung, memutuskan, dan menulis kembali secara atomik; menghindari race check-then-set antar instance.
+- Latency tambahan: satu round trip Redis (&lt; 1 ms di datacenter yang sama).
+
+Pengurangan beban: **cache lokal** per instance yang memeriksa ke Redis setiap N request atau secara batch (meminjam token dalam jumlah), dengan toleransi sedikit over-limit; atau sinkronisasi asinkron ala Cloudflare untuk limit yang tidak perlu presisi.
+
+Kalau Redis mati: **fail open** (izinkan semua, catat alert) untuk kebanyakan API; **fail closed** untuk endpoint sensitif seperti login/OTP. Sebutkan pilihanmu.
+
+```mermaid
+sequenceDiagram
+  participant GW as Gateway (instance mana pun)
+  participant R as Redis
+  GW->>R: EVAL token_bucket.lua key=rl:user:42 r=10/s b=20
+  R->>R: hitung token lazy, kurangi bila cukup (atomik)
+  R-->>GW: {allowed: true, remaining: 7, reset: 2}
+  GW-->>GW: lanjut ke service, set header RateLimit-*
+```
+
+## Menolak dengan benar
+
+- Status **429 Too Many Requests**, header `Retry-After` (detik), dan header informatif `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` (IETF draft; banyak API memakai prefix `X-`).
+- Jangan 500 atau memutus koneksi: client akan retry agresif.
+- Catat metrik penolakan per kunci dan aturan; penolakan masif seringkali adalah sinyal insiden, bukan abuse.
+- Pertimbangkan **soft limit** (hanya mencatat) sebelum **hard limit** saat memperkenalkan aturan baru.
+
+## Trade-off ringkas
+
+| Keputusan                                          | Pilih A bila                                     | Pilih B bila                                                   |
+| -------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
+| Token bucket (A) vs sliding window counter (B)     | Ingin burst terkendali dan semantik "laju" jelas | Ingin batas per jendela yang mudah dijelaskan ke client        |
+| State terpusat Redis (A) vs lokal per instance (B) | Limit harus global dan adil                      | Limit kasar untuk perlindungan diri; toleransi ketidakakuratan |
+| Fail open (A) vs fail closed (B) saat store mati   | Ketersediaan API lebih penting                   | Endpoint sensitif (auth, pembayaran)                           |
+| Per user/API key (A) vs per IP (B)                 | Client terautentikasi                            | Trafik anonim, lapisan edge                                    |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Di mana rate limiter-nya?" → Gateway untuk aturan bisnis, edge untuk volume, client-side untuk dependency.
+- "Algoritma apa dan kenapa?" → Token bucket untuk API umum; sebut kelemahan fixed window.
+- "Bagaimana dengan banyak instance?" → Redis + atomik (Lua); cache lokal sebagai optimasi.
+- "Redis mati?" → Fail open vs closed.
+- "Bagaimana client tahu harus melambat?" → 429 + Retry-After + header RateLimit.
+- "Limit berbeda per paket langganan?" → Aturan dari config/DB di-cache di gateway; kunci = tenant + endpoint.
+
+## Ringkasan
+
+1. Rate limiter menolak lebih awal dan murah agar sisanya hidup; ditaruh di edge (per IP), gateway (per user/API key), dan di client untuk dependency.
+2. Token bucket adalah default (laju + burst); sliding window counter adalah kompromi akurat-hemat; fixed window bocor 2x di batas jendela.
+3. Versi terdistribusi memakai Redis dengan operasi atomik; putuskan fail open/closed; tolak dengan 429 dan Retry-After, dan pantau penolakan.

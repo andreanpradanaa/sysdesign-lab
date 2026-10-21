@@ -1,0 +1,182 @@
+---
+title: 'Abstraksi distributed system'
+module: bagian-1
+order: 3
+minutes: 45
+type: lesson
+prerequisites: ['bagian-1/cara-kerja-interview']
+summary: 'Tiga abstraksi yang mendasari semua desain: network yang tidak bisa dipercaya, model konsistensi, dan model kegagalan. Kalau ini jelas, komponen apa pun jadi masuk akal.'
+sources:
+  - title: 'Fallacies of distributed computing — Wikipedia'
+    url: 'https://en.wikipedia.org/wiki/Fallacies_of_distributed_computing'
+  - title: 'Jepsen — Consistency models (peta model konsistensi)'
+    url: 'https://jepsen.io/consistency'
+  - title: 'Amazon Builders’ Library — Challenges with distributed systems'
+    url: 'https://aws.amazon.com/builders-library/challenges-with-distributed-systems/'
+  - title: 'Jeff Hodges — Notes on Distributed Systems for Young Bloods'
+    url: 'https://www.somethingsimilar.com/2013/01/14/notes-on-distributed-systems-for-young-bloods/'
+  - title: 'Designing Data-Intensive Applications — bab 8 & 9 (ringkasan konsep; buku berbayar, bab referensi saja)'
+    url: 'https://dataintensive.net/'
+  - title: 'System Design Primer — CAP theorem & consistency patterns'
+    url: 'https://github.com/donnemartin/system-design-primer#cap-theorem'
+quiz:
+  - q: 'Service A memanggil service B, lalu timeout. Mana pernyataan yang BENAR?'
+    options:
+      - text: 'Request pasti tidak sampai ke B'
+        correct: false
+        why: 'Timeout hanya berarti A tidak menerima respons tepat waktu. Request bisa hilang, bisa sampai dan diproses, atau responsnya yang hilang.'
+      - text: 'B pasti sudah memproses request'
+        correct: false
+        why: 'Sama tidak pastinya; mungkin request tidak pernah tiba.'
+      - text: 'A tidak bisa tahu apakah B memproses request; retry hanya aman bila operasinya idempotent'
+        correct: true
+        why: 'Inilah inti network yang tidak bisa dipercaya: kegagalan parsial tidak bisa dibedakan dari lambat. Idempotency key membuat retry aman.'
+      - text: 'A harus menunggu lebih lama sampai respons pasti datang'
+        correct: false
+        why: 'Tidak ada batas waktu yang menjamin kepastian; menunggu selamanya justru memblokir sistem.'
+  - q: 'Dalam CAP, apa arti "memilih AP" saat terjadi network partition?'
+    options:
+      - text: 'Sistem berhenti melayani sampai partition pulih'
+        correct: false
+        why: 'Itu pilihan CP: mengorbankan availability demi konsistensi.'
+      - text: 'Setiap node tetap melayani baca/tulis, dengan risiko dua sisi melihat data berbeda sementara waktu'
+        correct: true
+        why: 'AP mempertahankan availability; konsistensi menjadi eventual dan konflik harus direkonsiliasi setelah partition pulih.'
+      - text: 'Sistem memilih node dengan jam paling akurat untuk menjadi primary'
+        correct: false
+        why: 'Jam tidak menyelesaikan partition; jam di node berbeda pun tidak bisa dipercaya sepenuhnya.'
+      - text: 'Partition tidak mungkin terjadi bila memakai cloud'
+        correct: false
+        why: 'Partition adalah kenyataan di jaringan mana pun; P bukan pilihan, melainkan kondisi yang harus ditoleransi.'
+  - q: 'User mengubah nama profil lalu langsung refresh halaman dan melihat nama lama. Jaminan konsistensi apa yang dilanggar?'
+    options:
+      - text: 'Linearizability'
+        correct: false
+        why: 'Linearizability memang dilanggar, tapi jaminan yang paling spesifik dan paling murah untuk diminta di sini adalah read-your-writes.'
+      - text: 'Read-your-writes'
+        correct: true
+        why: 'Jaminan bahwa user melihat tulisan dirinya sendiri. Biasanya dipenuhi dengan membaca dari primary beberapa detik setelah menulis, atau routing berbasis sesi.'
+      - text: 'Monotonic reads'
+        correct: false
+        why: 'Monotonic reads melarang melihat data "mundur" antar pembacaan berturut-turut; kasus ini tentang tulisan sendiri yang belum terlihat.'
+      - text: 'Durability'
+        correct: false
+        why: 'Data tidak hilang; hanya belum tereplikasi ke replica yang dibaca.'
+  - q: 'Kenapa "primary mati" lebih mudah ditangani daripada "primary lambat"?'
+    options:
+      - text: 'Karena node mati bisa dideteksi dengan pasti, sedangkan lambat tidak bisa dibedakan dari partition atau GC pause'
+        correct: true
+        why: 'Gray failure: node yang setengah hidup membuat health check lulus tapi request lambat, dan failover otomatis bisa menghasilkan dua primary (split brain) bila tidak memakai fencing/lease.'
+      - text: 'Karena node lambat tidak pernah terjadi di produksi'
+        correct: false
+        why: 'Justru sangat sering: GC pause, disk penuh, network jenuh.'
+      - text: 'Karena node mati otomatis memperbaiki dirinya'
+        correct: false
+        why: 'Tidak; pemulihan tetap butuh failover atau restart.'
+      - text: 'Karena timeout selalu akurat'
+        correct: false
+        why: 'Timeout adalah tebakan; terlalu pendek memicu failover palsu, terlalu panjang memperlama outage.'
+---
+
+## Tujuan belajar
+
+Setelah pelajaran ini kamu bisa:
+
+- Menjelaskan kenapa **network tidak bisa dipercaya** dan apa konsekuensinya untuk retry, timeout, dan idempotency.
+- Menempatkan model konsistensi (linearizable, sequential, causal, eventual) pada skala "kuat ↔ lemah" dan tahu harga masing-masing.
+- Membedakan model kegagalan (crash-stop, crash-recovery, byzantine, gray failure) dan menyebut cara mendeteksi serta memulihkannya.
+
+## Kenapa abstraksi ini penting
+
+Setiap komponen di Bagian 2 (cache, queue, database terdistribusi) adalah jawaban atas tiga kenyataan yang sama: pesan bisa hilang, dua node bisa melihat urutan kejadian yang berbeda, dan node bisa mati kapan saja. Kalau tiga kenyataan ini sudah jelas, kamu bisa menurunkan sendiri kenapa Kafka butuh offset, kenapa Redis punya replica, dan kenapa semua API tulis butuh idempotency key.
+
+## 1. Network: pesan bisa hilang, telat, atau ganda
+
+Di satu proses, memanggil fungsi berarti fungsi itu dijalankan tepat sekali. Di antara dua mesin, mengirim request memberi **empat kemungkinan hasil** yang dari sisi pengirim terlihat sama:
+
+```mermaid
+sequenceDiagram
+  participant A as Service A
+  participant B as Service B
+  A->>B: request #1 (hilang di jaringan)
+  Note over A: timeout
+  A->>B: request #2 (sampai)
+  B->>B: proses
+  B-->>A: respons #2 (hilang)
+  Note over A: timeout lagi: A tidak tahu<br/>bahwa B sudah memproses
+  A->>B: request #3 (sampai, diproses dua kali!)
+```
+
+Konsekuensi desain:
+
+- **Timeout adalah tebakan**, bukan kepastian. Terlalu pendek → retry berlebihan dan failover palsu; terlalu panjang → user menunggu.
+- **Retry hanya aman untuk operasi idempotent.** Untuk operasi non-idempotent (transfer uang, buat order), lampirkan _idempotency key_ agar penerima bisa mengenali duplikat.
+- **Retry memperbesar beban** pada sistem yang sudah sakit. Pakai _exponential backoff + jitter_, batasi jumlah retry, dan _circuit breaker_ agar kegagalan tidak menjalar.
+- **Clock tiap mesin berbeda.** Jangan mengurutkan kejadian lintas mesin berdasarkan timestamp wall-clock; gunakan nomor urut dari satu penulis (log offset, version number) atau logical clock.
+
+Delapan asumsi keliru yang terkenal ("fallacies of distributed computing") bisa diringkas: network tidak reliabel, latency tidak nol, bandwidth terbatas, topologi berubah, dan ada lebih dari satu administrator.
+
+## 2. Konsistensi: siapa melihat apa, kapan
+
+Begitu data disalin ke lebih dari satu node (replikasi, cache), muncul pertanyaan: pembaca melihat versi yang mana? Model konsistensi adalah **kontrak** tentang itu.
+
+| Model                 | Jaminan (bahasa manusia)                                                                            | Harga                                                                           | Contoh pemakaian                              |
+| --------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------- |
+| Linearizable (strong) | Seolah hanya ada satu salinan; setelah tulis sukses, semua baca melihatnya                          | Latency tinggi, availability turun saat partition; butuh konsensus (Raft/Paxos) | Lock, leader election, saldo, stok terakhir   |
+| Sequential            | Semua node melihat urutan operasi yang sama, tapi tidak harus "real-time"                           | Lebih murah dari linearizable                                                   | Log replikasi                                 |
+| Causal                | Kejadian yang berhubungan sebab-akibat terlihat berurutan; yang tidak berhubungan boleh beda urutan | Butuh melacak dependensi (vector clock)                                         | Komentar balasan tampil setelah komentar asal |
+| Read-your-writes      | Kamu selalu melihat tulisanmu sendiri                                                               | Routing ke primary / sticky session                                             | Edit profil lalu refresh                      |
+| Monotonic reads       | Setelah melihat versi N, tidak akan melihat versi lebih lama                                        | Sticky replica per user                                                         | Timeline tidak "mundur"                       |
+| Eventual              | Kalau tulisan berhenti, semua replica akhirnya sama                                                 | Paling murah, paling tersedia                                                   | Counter like, DNS, cache                      |
+
+Pola praktis di interview: **pilih model terlemah yang masih benar untuk fitur itu**, lalu sebut cara memenuhinya. Saldo rekening butuh linearizable di satu partisi; jumlah like cukup eventual.
+
+### CAP dan PACELC dalam satu paragraf
+
+Saat network partition (P) terjadi, kamu harus memilih: tetap melayani di kedua sisi dengan risiko data berbeda (A), atau menolak sebagian request demi satu kebenaran (C). Partition tidak bisa dihindari, jadi pilihannya hanya A atau C **saat partition**. PACELC menambahkan: bahkan tanpa partition (E), ada trade-off latency (L) vs consistency (C), karena menunggu replika mengonfirmasi tulisan memakan waktu.
+
+## 3. Kegagalan: apa yang bisa salah, dan bagaimana tahu
+
+| Model kegagalan     | Perilaku                                                    | Deteksi                             | Pemulihan                                                    |
+| ------------------- | ----------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
+| Crash-stop          | Node berhenti dan tidak kembali                             | Heartbeat / health check gagal      | Failover ke replica, ganti node                              |
+| Crash-recovery      | Node mati lalu hidup lagi, memori hilang, disk mungkin utuh | Sama, plus cek state saat start     | Replay log (WAL), rejoin cluster                             |
+| Omission / network  | Pesan hilang atau telat                                     | Timeout                             | Retry + idempotency                                          |
+| Gray failure / slow | Node hidup tapi lambat atau separuh berfungsi               | Sulit: health check lulus, p99 naik | Outlier detection, lease, "fail fast"                        |
+| Byzantine           | Node berbohong / rusak                                      | Sangat mahal (quorum 3f+1)          | Jarang diasumsikan di sistem internal; relevan di blockchain |
+
+Dua jebakan klasik:
+
+- **Split brain**: dua node sama-sama mengira dirinya primary setelah partition. Solusi: _lease_ berwaktu, _fencing token_ yang naik monoton, atau quorum mayoritas (n/2 + 1).
+- **Failover berantai**: node sehat menerima beban dari node mati, ikut kewalahan, mati, dan seterusnya. Solusi: kapasitas cadangan (N+1), load shedding, circuit breaker.
+
+```mermaid
+flowchart LR
+  P[Partition terjadi] --> Q{Sisi mana yang\nberhak menulis?}
+  Q -- quorum mayoritas --> M[Sisi mayoritas lanjut\nminoritas read-only / tolak]
+  Q -- tanpa quorum --> S[Split brain:\ndua primary, konflik data]
+  M --> R[Partition pulih:\nminoritas sinkron ulang]
+```
+
+## Trade-off yang akan selalu muncul
+
+| Keputusan                   | Pilih "kuat" bila                                          | Pilih "lemah/tersedia" bila                                    |
+| --------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------- |
+| Konsistensi tulis           | Kesalahan sementara tidak bisa diterima (uang, stok, lock) | Pengguna mentoleransi data basi beberapa detik (feed, counter) |
+| Replikasi sinkron vs async  | Kehilangan tulisan terakhir tidak boleh terjadi            | Latency tulis lebih penting; replica boleh tertinggal          |
+| Timeout pendek vs panjang   | Ingin gagal cepat dan ada fallback                         | Operasi memang lama dan retry mahal                            |
+| Failover otomatis vs manual | Downtime detik-menit mahal, ada fencing                    | Risiko split brain lebih mahal daripada downtime               |
+
+## Pertanyaan yang sering ditanya interviewer
+
+- "Apa yang terjadi kalau request ini timeout?" → Jelaskan empat kemungkinan, lalu idempotency dan backoff.
+- "Replica tertinggal 5 detik, apa dampaknya ke user?" → Sebutkan fitur mana yang butuh read-your-writes dan cara memenuhinya.
+- "Kenapa butuh tiga node, bukan dua?" → Quorum mayoritas: dua node tidak bisa membedakan "rekan mati" dari "partition".
+- "Bagaimana mendeteksi node yang lambat tapi belum mati?" → Health check berbasis latency/error rate, bukan hanya ping; lease yang kedaluwarsa.
+- "Pilih CP atau AP untuk sistem ini?" → Jawab per fitur, bukan per sistem; sebagian besar sistem punya keduanya.
+
+## Ringkasan
+
+1. Network tidak bisa dipercaya: timeout bukan kepastian, retry butuh idempotency dan backoff, jangan andalkan wall-clock lintas mesin.
+2. Konsistensi adalah kontrak berjenjang; pilih model terlemah yang masih benar untuk fitur itu, dan sebutkan cara memenuhinya.
+3. Kegagalan datang dalam beberapa model; yang paling berbahaya adalah node lambat dan split brain, keduanya diatasi dengan lease, fencing, dan quorum.
