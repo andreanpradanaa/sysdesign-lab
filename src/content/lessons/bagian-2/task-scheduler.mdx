@@ -5,7 +5,7 @@ order: 15
 minutes: 40
 type: lesson
 prerequisites: ['bagian-2/message-queue', 'bagian-2/database']
-summary: 'Menjalankan pekerjaan "nanti" dan "berkala" di banyak mesin tanpa dua kali dan tanpa terlewat: delayed job, cron terdistribusi, DAG, dan lease yang mencegah dua worker mengerjakan hal yang sama.'
+summary: 'Menjalankan pekerjaan "nanti" dan "berkala" di banyak mesin tanpa terjadi dua kali dan tanpa terlewat: delayed job, cron terdistribusi, workflow bertahap, dan lease yang mencegah dua worker mengerjakan hal yang sama.'
 sources:
   - title: 'Kubernetes docs — CronJob (concurrency policy, missed schedules)'
     url: 'https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/'
@@ -16,117 +16,121 @@ sources:
   - title: 'Redis docs — Sorted sets (pola delayed queue dengan ZADD/ZRANGEBYSCORE)'
     url: 'https://redis.io/docs/latest/develop/data-types/sorted-sets/'
 quiz:
-  - q: 'Cron "kirim laporan harian jam 02:00" berjalan di 3 instance service yang identik. Apa yang terjadi dan solusinya?'
+  - q: 'Cron "kirim laporan harian jam 02:00" berjalan di 3 instance service yang identik. Apa yang terjadi?'
     options:
-      - text: 'Hanya satu yang berjalan karena cron saling tahu'
+      - text: 'Hanya satu yang berjalan karena cron saling mengetahui'
         correct: false
-        why: 'Instance tidak saling tahu; masing-masing memakai jamnya sendiri.'
-      - text: 'Laporan terkirim 3 kali; solusinya leader election atau lease/lock terdistribusi (mis. baris job dengan UPDATE bersyarat atau SET NX di Redis) sehingga hanya satu instance mengeksekusi per jadwal'
+        why: 'Instance tidak saling tahu. Masing-masing memakai jamnya sendiri.'
+      - text: 'Laporan terkirim tiga kali, kecuali ada lease yang membatasi satu eksekutor'
         correct: true
-        why: 'Jadwal tanpa koordinasi = eksekusi ganda. Lease dengan kedaluwarsa (bukan lock selamanya) memastikan satu eksekutor dan pemulihan bila ia mati.'
+        why: 'Jadwal tanpa koordinasi berarti eksekusi ganda. Lease yang kedaluwarsa menjamin satu eksekutor dan pemulihan bila ia mati.'
       - text: 'Laporan tidak terkirim sama sekali'
         correct: false
         why: 'Justru terkirim berlebih.'
       - text: 'Instance harus dikurangi menjadi satu'
         correct: false
-        why: 'Mengorbankan availability service demi cron; koordinasi lebih murah.'
-  - q: 'Worker mengambil task, mulai mengerjakan, lalu mati tanpa laporan. Bagaimana task akhirnya dikerjakan lagi?'
+        why: 'Itu mengorbankan ketersediaan service demi cron. Koordinasi jauh lebih murah.'
+  - q: 'Worker mengambil task, mulai mengerjakan, lalu mati tanpa laporan. Bagaimana task itu akhirnya dikerjakan lagi?'
     options:
-      - text: 'Tidak bisa; task hilang'
+      - text: 'Tidak bisa, task itu hilang'
         correct: false
         why: 'Desain yang benar mengantisipasi worker mati.'
-      - text: 'Task dipegang dengan lease berwaktu (visibility timeout); worker yang hidup memperpanjang lease secara berkala (heartbeat); bila lease habis tanpa perpanjangan, scheduler mengembalikan task ke antrian dan worker lain mengambilnya'
+      - text: 'Lease task kedaluwarsa karena tidak diperpanjang, lalu worker lain mengambilnya'
         correct: true
-        why: 'Lease + heartbeat adalah pola standar. Konsekuensinya task bisa berjalan dua kali (worker pertama mungkin hanya lambat), sehingga task harus idempotent.'
-      - text: 'Scheduler harus melakukan ping ke worker setiap detik'
+        why: 'Lease dan heartbeat adalah pola standar. Task bisa berjalan dua kali, jadi task harus idempotent.'
+      - text: 'Scheduler harus ping ke worker setiap detik'
         correct: false
-        why: 'Arah sebaliknya lebih skalabel: worker yang melapor.'
-      - text: 'Task dijalankan ulang setelah restart seluruh sistem'
+        why: 'Arah sebaliknya lebih skalabel, yaitu worker yang melapor.'
+      - text: 'Task dijalankan ulang setelah seluruh sistem restart'
         correct: false
         why: 'Terlalu lambat dan manual.'
-  - q: 'Kamu butuh "kirim pengingat 24 jam setelah pendaftaran" untuk jutaan user. Desain yang paling sesuai?'
+  - q: 'Kamu butuh "kirim pengingat 24 jam setelah pendaftaran" untuk jutaan pengguna. Desain mana yang paling sesuai?'
     options:
-      - text: 'Satu thread tidur 24 jam per user'
+      - text: 'Satu thread tidur 24 jam per pengguna'
         correct: false
-        why: 'Jutaan thread/timer di memori proses hilang saat restart.'
-      - text: 'Simpan task dengan waktu eksekusi di store terurut (tabel dengan index run_at, atau Redis sorted set dengan score = timestamp); poller mengambil batch task yang run_at ≤ now dengan lease, mengirim ke worker queue'
+        why: 'Jutaan timer di memori proses hilang saat restart.'
+      - text: 'Simpan task dengan waktu eksekusi di store terurut, lalu poller mengambil yang jatuh tempo'
         correct: true
-        why: 'Delayed queue yang durable: urutkan by waktu, ambil yang jatuh tempo, pakai lease agar beberapa poller tidak berebut. Skala dengan partisi berdasarkan waktu atau user.'
-      - text: 'Cron tiap menit yang memindai seluruh tabel user'
+        why: 'Ini delayed queue yang durable. Poller memakai lease supaya beberapa poller tidak berebut task yang sama.'
+      - text: 'Cron tiap menit yang memindai seluruh tabel pengguna'
         correct: false
-        why: 'Full scan jutaan baris tiap menit; harus ada index/struktur by waktu.'
+        why: 'Memindai jutaan baris tiap menit. Harus ada index atau struktur berdasarkan waktu.'
       - text: 'Kirim semua pengingat saat pendaftaran dengan delay di email provider'
         correct: false
-        why: 'Memindahkan masalah ke pihak lain yang belum tentu mendukung dan tidak bisa dibatalkan.'
-  - q: 'Pipeline data: tugas B dan C hanya boleh jalan setelah A sukses; D setelah B dan C. Tugas C gagal. Perilaku scheduler DAG yang diharapkan?'
+        why: 'Ini memindahkan masalah ke pihak lain yang belum tentu mendukung dan tidak bisa dibatalkan.'
+  - q: 'Dalam pipeline, tugas B dan C hanya boleh jalan setelah A sukses, dan D setelah B dan C. Tugas C gagal. Apa yang diharapkan?'
     options:
       - text: 'Semua tugas diulang dari A'
         correct: false
-        why: 'A dan B sudah sukses; mengulang semuanya membuang kerja (kecuali tidak idempotent).'
-      - text: 'C diulang sesuai kebijakan retry; D menunggu sampai B dan C sukses; bila C gagal permanen, D ditandai tidak jalan dan run dinyatakan gagal dengan alert'
+        why: 'A dan B sudah sukses. Mengulang semuanya membuang kerja.'
+      - text: 'C diulang sesuai kebijakan, D menunggu, dan run gagal bila C gagal permanen'
         correct: true
-        why: 'DAG scheduler melacak status per tugas dan dependensinya; retry lokal, propagasi kegagalan ke hilir, dan visibilitas status run.'
+        why: 'Scheduler workflow melacak status tiap tugas dan dependensinya. Kegagalan diulang lokal dan diteruskan ke hilir.'
       - text: 'D tetap berjalan tanpa hasil C'
         correct: false
-        why: 'Melanggar dependensi.'
+        why: 'Itu melanggar dependensi.'
       - text: 'Scheduler berhenti total'
         correct: false
-        why: 'Run lain tidak boleh terdampak.'
+        why: 'Run lain tidak boleh ikut terdampak.'
 ---
 
 ## Tujuan belajar
 
 Setelah pelajaran ini kamu bisa:
 
-- Membedakan tiga kebutuhan: delayed job, recurring job (cron), dan workflow/DAG.
-- Merancang scheduler terdistribusi dengan store terurut by waktu, poller, lease/heartbeat, dan worker idempotent.
+- Membedakan tiga kebutuhan: delayed job, recurring job atau cron, dan workflow bertahap.
+- Merancang scheduler terdistribusi dengan store terurut berdasarkan waktu, poller, lease dan heartbeat, serta worker yang idempotent.
 - Menjawab pertanyaan tentang eksekusi ganda, jadwal terlewat, prioritas, dan skala.
 
 ## Masalah yang diselesaikan
 
-Tidak semua pekerjaan terjadi saat request datang. "Hapus akun 30 hari setelah permintaan", "tagih langganan tiap bulan", "hitung ulang rekomendasi tiap jam", "jalankan pipeline ETL dengan 40 langkah berurutan". Di satu mesin, `cron` dan `sleep` cukup. Di banyak mesin yang bisa mati kapan saja, kita butuh scheduler yang **durable** (tidak lupa), **tepat sekali secara efektif** (tidak dua kali), dan **tahan worker mati**.
+Tidak semua pekerjaan terjadi saat request datang. Contohnya menghapus akun 30 hari setelah permintaan, menagih langganan tiap bulan, atau menjalankan pipeline data dengan 40 langkah berurutan. Di satu mesin, `cron` dan `sleep` sudah cukup. Di banyak mesin yang bisa mati kapan saja, kita butuh scheduler yang durable, tidak menjalankan dua kali, dan tahan worker mati.
 
 ## Tiga jenis kebutuhan
 
-| Jenis              | Contoh                                                        | Inti desain                                                |
-| ------------------ | ------------------------------------------------------------- | ---------------------------------------------------------- |
-| Delayed / one-shot | Pengingat 24 jam, kedaluwarsa reservasi, retry dengan backoff | Store terurut by waktu + poller                            |
-| Recurring (cron)   | Laporan harian, tagihan bulanan, pembersihan                  | Jadwal + satu eksekutor per tick (lease) + catatan run     |
-| Workflow / DAG     | Pipeline data, proses onboarding multi-langkah                | Status per langkah, dependensi, retry lokal, durable state |
+| Jenis                          | Contoh                                                           | Inti desainnya                                                           |
+| ------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Delayed job, dijalankan sekali | Pengingat 24 jam, kedaluwarsa reservasi, pengulangan dengan jeda | Store terurut berdasarkan waktu dan poller                               |
+| Recurring job atau cron        | Laporan harian, tagihan bulanan, pembersihan                     | Jadwal, satu eksekutor per tick lewat lease, catatan run                 |
+| Workflow bertahap              | Pipeline data, proses onboarding banyak langkah                  | Status per langkah, dependensi, pengulangan lokal, state yang tahan lama |
 
 ## Arsitektur dasar
 
 ```mermaid
 flowchart LR
-  P["Producer / API: jalankan X pada T"] --> S[(Task store\nterpartisi, index run_at\nstatus, lease, attempts)]
-  CR["Cron definer: tiap hari 02:00"] --> S
-  PL1[Poller 1] -->|ambil batch run_at ≤ now\nSET lease atomik| S
+  P["Producer atau API\njalankan X pada waktu T"] --> S[("Task store\nterpartisi, index run_at,\nstatus, lease, attempts")]
+  CR["Cron definer\ntiap hari 02:00"] --> S
+  PL1[Poller 1] -->|ambil batch yang jatuh tempo\nset lease secara atomik| S
   PL2[Poller 2] --> S
-  PL1 --> Q[["Worker queue\n(prioritas, partisi)"]]
+  PL1 --> Q[["Worker queue\nprioritas, partisi"]]
   PL2 --> Q
   Q --> W1[Worker]
   Q --> W2[Worker]
-  W1 -->|heartbeat perpanjang lease\nack sukses / gagal| S
-  S --> DLQ[Gagal permanen → DLQ / alert]
+  W1 -->|heartbeat perpanjang lease\nack sukses atau gagal| S
+  S --> DLQ[Gagal permanen ke DLQ dan alert]
 ```
 
-- **Task store**: tabel (atau KV) dengan `id, run_at, status, lease_until, attempts, payload, idempotency_key`, index pada `(status, run_at)`. Redis sorted set (score = run_at) adalah versi ringan.
-- **Poller**: beberapa instance mengambil batch yang jatuh tempo dengan operasi **atomik** (`UPDATE ... WHERE status='pending' AND run_at <= now ... RETURNING` dengan `FOR UPDATE SKIP LOCKED`, atau `ZPOPMIN`/script Lua) sehingga dua poller tidak mengambil task yang sama.
-- **Lease dan heartbeat**: task yang diambil mendapat `lease_until = now + N`; worker memperpanjang selama bekerja; lease habis tanpa ack = task kembali pending. Ini mengubah "worker mati" menjadi "task tertunda".
-- **Worker idempotent**: karena worker lambat tidak bisa dibedakan dari mati, task bisa berjalan dua kali. Idempotency key dan efek samping yang aman diulang wajib.
-- **Retry dan DLQ**: `attempts` naik, `run_at` digeser dengan backoff + jitter; setelah batas, status `failed` dan alert.
+Komponennya:
+
+- Task store menyimpan tiap task dengan kolom id, run_at, status, lease_until, attempts, payload, dan idempotency_key. Index dibuat pada status dan run_at. Redis sorted set dengan score berupa waktu adalah versi ringannya.
+- Poller mengambil batch task yang jatuh tempo. Pengambilannya harus atomik, misalnya `UPDATE ... RETURNING` dengan `FOR UPDATE SKIP LOCKED` di PostgreSQL, atau script Lua di Redis. Dengan begitu dua poller tidak mengambil task yang sama.
+- Lease adalah izin berbatas waktu. Task yang diambil mendapat lease_until beberapa menit ke depan. Worker memperpanjangnya selama bekerja lewat heartbeat. Kalau lease habis tanpa ack, task kembali ke status pending. Worker mati pun hanya menjadi task tertunda.
+- Worker harus idempotent, artinya aman dijalankan dua kali. Worker yang lambat tidak bisa dibedakan dari worker yang mati, jadi task memang bisa berjalan dua kali.
+- Pengulangan dan DLQ. Setiap kegagalan menaikkan attempts dan menggeser run_at dengan jeda yang membesar. Setelah batas, task ditandai gagal dan masuk dead-letter queue dengan alert.
 
 ## Cron terdistribusi
 
-Jadwal `0 2 * * *` di N instance tanpa koordinasi = N eksekusi. Pilihan:
+Jadwal `0 2 * * *` di N instance tanpa koordinasi berarti N eksekusi. Ada dua cara mengatasinya.
 
-1. **Leader election** (etcd/ZooKeeper/lease di DB): hanya leader yang menerjemahkan jadwal menjadi task; bila leader mati, lease kedaluwarsa dan instance lain mengambil alih.
-2. **Materialisasi**: cron definer menulis satu task per tick ke task store dengan `idempotency_key = job_id + waktu_tick`; unique constraint menolak duplikat, sehingga beberapa definer pun aman.
-3. Kebijakan **jadwal terlewat** (scheduler mati jam 02:00): jalankan sekali saat hidup (catch-up), lewati, atau jalankan semua yang terlewat; dan **concurrency**: boleh tumpang tindih dengan run sebelumnya atau tidak (Kubernetes CronJob menamai ini `concurrencyPolicy`).
+Cara pertama adalah leader election. Hanya leader yang menerjemahkan jadwal menjadi task. Kalau leader mati, lease-nya kedaluwarsa dan instance lain mengambil alih.
 
-## Workflow / DAG
+Cara kedua adalah materialisasi. Cron definer menulis satu task per tick ke task store dengan idempotency_key berupa gabungan job_id dan waktu tick. Unique constraint menolak duplikat, jadi beberapa definer pun aman.
 
-Untuk pekerjaan multi-langkah, scheduler menyimpan **status per langkah** dan dependensi.
+Dua kebijakan harus kamu putuskan. Pertama, apa yang terjadi bila scheduler mati pada jam 02:00: jalankan sekali saat hidup, lewati, atau jalankan semua yang terlewat. Kedua, bolehkah run baru tumpang tindih dengan run sebelumnya yang masih berjalan. Kubernetes CronJob menamai kebijakan kedua ini `concurrencyPolicy`.
+
+## Workflow bertahap
+
+Untuk pekerjaan banyak langkah, scheduler menyimpan status tiap langkah dan dependensinya.
 
 ```mermaid
 flowchart LR
@@ -137,37 +141,37 @@ flowchart LR
   D --> E[Kirim laporan]
 ```
 
-- Langkah dijalankan saat semua pendahulunya sukses; gagal → retry lokal → bila permanen, hilir ditandai dan run gagal.
-- Durable execution (Temporal-style): state workflow disimpan sebagai event history sehingga proses bisa mati dan dilanjutkan dari langkah terakhir; kode workflow harus deterministik, efek samping di "activity" yang idempotent.
-- Pengamatan: status run, durasi per langkah, SLA per DAG.
+Sebuah langkah dijalankan saat semua pendahulunya sukses. Langkah yang gagal diulang secara lokal. Kalau gagal permanen, langkah di hilir ditandai dan run dinyatakan gagal.
+
+Durable execution ala Temporal menyimpan state workflow sebagai riwayat event. Proses bisa mati dan dilanjutkan dari langkah terakhir. Syaratnya, kode workflow harus deterministik, dan efek samping dipisahkan ke activity yang idempotent.
 
 ## Skala dan prioritas
 
-- **Partisi** task store by waktu (bucket per menit/jam) atau by tenant agar poller tidak memindai tabel raksasa; **hot bucket** saat jutaan task jatuh tempo bersamaan (tengah malam) diatasi dengan menyebar jitter saat penjadwalan.
-- **Prioritas**: beberapa queue (tinggi/normal/rendah) atau skor gabungan; hindari starvation dengan aging.
-- **Isolasi**: worker pool per jenis task agar task berat tidak menghalangi task ringan.
-- **Timeliness**: presisi detik biasanya cukup; poller tiap 1 s dengan batch; untuk sub-detik gunakan timer wheel di memori yang dipulihkan dari store saat restart.
+- Partisi task store berdasarkan waktu atau tenant supaya poller tidak memindai tabel raksasa. Jutaan task yang jatuh tempo bersamaan pada tengah malam diatasi dengan menyebar jitter saat dijadwalkan.
+- Prioritas memakai beberapa queue atau skor gabungan. Hindari task prioritas rendah yang tidak pernah kebagian dengan menaikkan prioritasnya seiring waktu.
+- Isolasi worker pool per jenis task supaya task berat tidak menghalangi task ringan.
+- Ketepatan waktu dalam hitungan detik biasanya cukup. Poller tiap satu detik dengan batch sudah memadai. Untuk kebutuhan di bawah satu detik, pakai timer di memori yang dipulihkan dari store saat restart.
 
 ## Trade-off ringkas
 
-| Keputusan                                                          | Pilih A bila                                  | Pilih B bila                                               |
-| ------------------------------------------------------------------ | --------------------------------------------- | ---------------------------------------------------------- |
-| Tabel DB + SKIP LOCKED (A) vs Redis sorted set (B)                 | Durability utama, sudah ada DB, volume sedang | Volume tinggi, latency rendah, toleransi persistensi Redis |
-| Leader election (A) vs materialisasi + unique key (B) untuk cron   | Perlu satu "otak" untuk logika kompleks       | Ingin tanpa komponen leader; DB sudah ada                  |
-| Queue generik + kode sendiri (A) vs mesin workflow (B)             | Task sederhana, independen                    | Langkah berantai, kompensasi, state tahan lama             |
-| At-least-once + idempotent (A) vs "exactly-once" via transaksi (B) | Hampir selalu                                 | Efek samping dan state di DB yang sama                     |
+| Keputusan                                               | Pilih yang pertama bila                            | Pilih yang kedua bila                                              |
+| ------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
+| Tabel database dengan SKIP LOCKED atau Redis sorted set | Durability adalah hal utama dan database sudah ada | Volume tinggi, latency rendah, dan persistensi Redis bisa diterima |
+| Leader election atau materialisasi dengan unique key    | Butuh satu otak untuk logika jadwal yang rumit     | Ingin tanpa komponen leader dan database sudah ada                 |
+| Queue generik dengan kode sendiri atau mesin workflow   | Task sederhana dan berdiri sendiri                 | Langkah berantai, kompensasi, dan state yang harus tahan lama      |
+| At-least-once dengan idempotency atau transaksi penuh   | Hampir selalu                                      | Efek samping dan state ada di database yang sama                   |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Bagaimana memastikan task tidak jalan dua kali?" → Lease atomik, idempotency key; akui at-least-once.
-- "Worker mati di tengah jalan?" → Lease habis → kembali pending; heartbeat untuk task panjang.
-- "Scheduler mati jam 02:00, laporan harian?" → Kebijakan jadwal terlewat; catatan run per tick.
-- "Jutaan task jatuh tempo bersamaan?" → Partisi by waktu, jitter, batch, worker pool.
-- "Bagaimana membatalkan task yang sudah dijadwalkan?" → Update status; worker memeriksa status sebelum efek samping.
-- "Pipeline 40 langkah dengan dependensi?" → DAG scheduler dengan status per langkah dan retry lokal.
+- "Bagaimana memastikan task tidak jalan dua kali?" Lease atomik dan idempotency key. Akui bahwa jaminannya at-least-once.
+- "Worker mati di tengah jalan?" Lease habis, task kembali pending, dan heartbeat dipakai untuk task panjang.
+- "Scheduler mati jam 02:00, bagaimana laporan harian?" Terapkan kebijakan jadwal terlewat dan catat run per tick.
+- "Jutaan task jatuh tempo bersamaan?" Partisi berdasarkan waktu, jitter, batch, dan worker pool.
+- "Bagaimana membatalkan task yang sudah dijadwalkan?" Ubah statusnya. Worker memeriksa status sebelum menjalankan efek samping.
+- "Pipeline 40 langkah dengan dependensi?" Scheduler workflow dengan status per langkah dan pengulangan lokal.
 
 ## Ringkasan
 
-1. Scheduler terdistribusi = task store terurut by waktu + poller dengan pengambilan atomik + lease/heartbeat + worker idempotent + retry/DLQ.
-2. Cron di banyak instance butuh koordinasi: leader election atau materialisasi tick dengan unique key, plus kebijakan jadwal terlewat dan concurrency.
-3. Workflow multi-langkah butuh status per langkah dan dependensi; mesin durable execution menyimpan history agar proses bisa dilanjutkan setelah mati.
+1. Scheduler terdistribusi terdiri dari task store terurut berdasarkan waktu, poller dengan pengambilan atomik, lease dan heartbeat, worker idempotent, serta pengulangan dan DLQ.
+2. Cron di banyak instance butuh koordinasi lewat leader election atau materialisasi tick dengan unique key, ditambah kebijakan untuk jadwal terlewat dan run yang tumpang tindih.
+3. Workflow banyak langkah butuh status per langkah dan dependensi. Mesin durable execution menyimpan riwayat supaya proses bisa dilanjutkan setelah mati.

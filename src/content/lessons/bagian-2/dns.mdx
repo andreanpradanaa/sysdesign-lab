@@ -5,7 +5,7 @@ order: 1
 minutes: 35
 type: lesson
 prerequisites: ['bagian-1/abstraksi-distributed-system']
-summary: 'Buku telepon internet: bagaimana nama diubah jadi alamat, kenapa hampir tidak pernah down, dan bagaimana ia dipakai sebagai alat routing dan failover dalam desain sistem.'
+summary: 'Buku telepon internet: bagaimana nama diubah menjadi alamat, kenapa DNS hampir tidak pernah mati, dan bagaimana ia dipakai sebagai alat routing dan failover dalam desain sistem.'
 sources:
   - title: 'RFC 1034 — Domain Names: Concepts and Facilities'
     url: 'https://www.rfc-editor.org/rfc/rfc1034'
@@ -18,62 +18,62 @@ sources:
   - title: 'Amazon Route 53 — Routing policies (dokumentasi)'
     url: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html'
 quiz:
-  - q: 'Kamu mengganti IP server dan memperbarui record A, tapi sebagian user masih diarahkan ke IP lama selama satu jam. Penyebab paling mungkin?'
+  - q: 'Kamu mengganti IP server dan memperbarui record A, tetapi sebagian pengguna masih diarahkan ke IP lama selama satu jam. Apa penyebab paling mungkin?'
     options:
       - text: 'Root server belum menyebarkan perubahan'
         correct: false
-        why: 'Root server tidak menyimpan record A domainmu; ia hanya menunjuk ke TLD server.'
-      - text: 'Resolver dan OS user masih memegang jawaban lama sampai TTL record habis'
+        why: 'Root server tidak menyimpan record A domainmu. Ia hanya menunjuk ke server TLD.'
+      - text: 'Resolver dan sistem operasi pengguna masih memegang jawaban lama sampai TTL habis'
         correct: true
-        why: 'DNS bergantung pada cache di banyak lapisan. Sebelum migrasi, turunkan TTL (mis. ke 60 detik) beberapa hari sebelumnya, lalu naikkan lagi setelahnya.'
+        why: 'DNS bergantung pada cache di banyak lapisan. Sebelum migrasi, turunkan TTL beberapa hari sebelumnya, lalu naikkan lagi setelahnya.'
       - text: 'Record A tidak mendukung perubahan IP'
         correct: false
-        why: 'Record A bebas diubah; yang membatasi adalah cache.'
-      - text: 'Browser memerlukan restart agar membaca DNS'
+        why: 'Record A bebas diubah. Yang membatasi adalah cache.'
+      - text: 'Browser perlu di-restart agar membaca DNS'
         correct: false
-        why: 'Browser memang punya cache kecil, tapi masalah utamanya adalah TTL di resolver.'
-  - q: 'Record apa yang dipakai untuk mengalihkan nama layanan ke nama lain (mis. www.contoh.com ke load balancer milik cloud)?'
+        why: 'Browser memang punya cache kecil, tetapi masalah utamanya adalah TTL di resolver.'
+  - q: 'Record apa yang dipakai untuk mengalihkan satu nama ke nama lain, misalnya www ke load balancer milik cloud?'
     options:
       - text: 'A'
         correct: false
-        why: 'A memetakan nama ke IPv4 langsung; IP load balancer cloud bisa berubah sehingga tidak cocok.'
-      - text: 'CNAME (atau ALIAS/ANAME di apex)'
+        why: 'Record A memetakan nama langsung ke IPv4. IP load balancer cloud bisa berubah, jadi tidak cocok.'
+      - text: 'CNAME, atau ALIAS di apex domain'
         correct: true
-        why: 'CNAME menunjuk ke nama lain, sehingga perubahan IP di sisi penyedia tidak memerlukan perubahan di zona kamu. Di apex domain banyak penyedia menyediakan ALIAS karena CNAME dilarang di sana.'
+        why: 'CNAME menunjuk ke nama lain. Perubahan IP di sisi penyedia tidak memerlukan perubahan di zona kamu.'
       - text: 'MX'
         correct: false
         why: 'MX khusus untuk routing email.'
       - text: 'TXT'
         correct: false
-        why: 'TXT untuk data teks seperti verifikasi domain dan SPF, bukan routing.'
-  - q: 'Mana yang BUKAN alasan DNS sangat tersedia (available)?'
+        why: 'TXT menyimpan data teks seperti verifikasi domain dan SPF, bukan routing.'
+  - q: 'Mana yang BUKAN alasan DNS sangat tersedia?'
     options:
-      - text: 'Hirarki terdistribusi: root, TLD, authoritative, masing-masing banyak server dengan anycast'
+      - text: 'Hirarki terdistribusi dengan banyak server di tiap tingkat'
         correct: false
-        why: 'Ini alasan utama: tidak ada satu titik yang bila mati menjatuhkan semuanya.'
-      - text: 'Cache berlapis membuat sebagian besar query tidak pernah menyentuh server authoritative'
+        why: 'Ini alasan utama. Tidak ada satu titik yang bila mati menjatuhkan semuanya.'
+      - text: 'Cache berlapis membuat sebagian besar query tidak menyentuh server authoritative'
         correct: false
-        why: 'Ini benar; bahkan bila authoritative mati, jawaban yang di-cache tetap berlaku sampai TTL habis.'
-      - text: 'Semua record disimpan dalam satu database global yang direplikasi secara sinkron'
+        why: 'Ini benar. Bahkan bila authoritative mati, jawaban yang di-cache tetap berlaku sampai TTL habis.'
+      - text: 'Semua record disimpan dalam satu database global yang direplikasi sinkron'
         correct: true
-        why: 'Tidak ada database global. Tiap zona dikelola pemiliknya; replikasi dilakukan per zona (zone transfer) dan konsistensinya eventual lewat TTL.'
-      - text: 'Protokol UDP yang ringan dan stateless'
+        why: 'Tidak ada database global. Tiap zona dikelola pemiliknya, dan konsistensinya eventual lewat TTL.'
+      - text: 'Protokol UDP yang ringan dan tanpa state'
         correct: false
-        why: 'Benar: query UDP murah, sehingga server bisa melayani jutaan query dengan sedikit sumber daya.'
-  - q: 'Kamu ingin user di Asia dilayani datacenter Singapura dan user di Eropa dilayani Frankfurt. Mekanisme DNS mana yang paling cocok?'
+        why: 'Benar. Query UDP murah, sehingga server bisa melayani jutaan query dengan sedikit sumber daya.'
+  - q: 'Kamu ingin pengguna di Asia dilayani datacenter Singapura dan pengguna Eropa dilayani Frankfurt. Mekanisme DNS mana yang cocok?'
     options:
-      - text: 'Round-robin: beberapa record A dikembalikan bergantian'
+      - text: 'Round-robin dengan beberapa record A bergantian'
         correct: false
-        why: 'Round-robin membagi beban tetapi tidak peduli lokasi user.'
-      - text: 'Geo/latency-based routing di DNS authoritative yang menjawab berbeda sesuai lokasi resolver'
+        why: 'Round-robin membagi beban, tetapi tidak peduli lokasi pengguna.'
+      - text: 'Geo routing di server authoritative yang menjawab sesuai lokasi resolver'
         correct: true
-        why: 'Penyedia DNS seperti Route 53 atau Cloudflare menjawab berdasarkan lokasi/latency resolver. Perhatikan: yang dilihat adalah lokasi resolver, bukan user, kecuali resolver mengirim EDNS Client Subnet.'
-      - text: 'Menurunkan TTL ke 0'
+        why: 'Penyedia seperti Route 53 menjawab berdasarkan lokasi resolver. Ingat, yang dilihat adalah lokasi resolver, bukan pengguna.'
+      - text: 'Menurunkan TTL ke nol'
         correct: false
         why: 'TTL mengatur cache, bukan pemilihan lokasi.'
       - text: 'Record CNAME berantai'
         correct: false
-        why: 'CNAME hanya mengalihkan nama; tidak ada logika lokasi di dalamnya.'
+        why: 'CNAME hanya mengalihkan nama. Tidak ada logika lokasi di dalamnya.'
 ---
 
 ## Tujuan belajar
@@ -82,74 +82,74 @@ Setelah pelajaran ini kamu bisa:
 
 - Menjelaskan alur resolusi nama dari browser sampai server authoritative, dan di mana cache berada.
 - Memilih jenis record yang tepat dan mengatur TTL untuk migrasi tanpa drama.
-- Memakai DNS sebagai alat **routing** (geo, latency, weighted) dan **failover** dalam high-level design, sekaligus tahu batasnya.
+- Memakai DNS sebagai alat routing dan failover dalam high-level design, sekaligus tahu batasnya.
 
 ## Apa yang diselesaikan DNS
 
-Manusia mengingat nama, jaringan butuh alamat. DNS adalah basis data terdistribusi hirarkis yang memetakan `api.contoh.com` ke `203.0.113.10` (atau ke nama lain, atau ke data lain). Dalam desain sistem, DNS hampir selalu menjadi **kotak pertama** yang dilewati request, dan sering menjadi lapisan routing global yang paling murah.
+Manusia mengingat nama, sedangkan jaringan butuh alamat. DNS adalah basis data terdistribusi yang memetakan nama seperti `api.contoh.com` ke alamat IP, ke nama lain, atau ke data lain. Dalam desain sistem, DNS hampir selalu menjadi kotak pertama yang dilewati request. Ia juga sering menjadi lapisan routing global yang paling murah.
 
 ## Alur resolusi
 
 ```mermaid
 sequenceDiagram
-  participant B as Browser / OS cache
-  participant R as Recursive resolver (ISP / 1.1.1.1 / 8.8.8.8)
+  participant B as Browser dan cache OS
+  participant R as Recursive resolver
   participant Root as Root server
-  participant TLD as TLD server (.com)
-  participant Auth as Authoritative (contoh.com)
+  participant TLD as Server TLD .com
+  participant Auth as Authoritative contoh.com
   B->>R: api.contoh.com ?
-  Note over R: cek cache, miss →
+  Note over R: cek cache, bila miss lanjut
   R->>Root: api.contoh.com ?
-  Root-->>R: tanya TLD .com di X
+  Root-->>R: tanya server TLD .com
   R->>TLD: api.contoh.com ?
-  TLD-->>R: tanya authoritative contoh.com di Y
+  TLD-->>R: tanya authoritative contoh.com
   R->>Auth: api.contoh.com ?
   Auth-->>R: A 203.0.113.10, TTL 300
-  R-->>B: 203.0.113.10 (di-cache 300 s)
+  R-->>B: 203.0.113.10, disimpan 300 detik
 ```
 
-Tiga hal yang penting untuk desain:
+Ada tiga hal yang penting untuk desain:
 
-1. **Cache ada di mana-mana**: browser, OS, resolver, bahkan library HTTP. Konsekuensinya perubahan record **tidak instan**; ia menyebar seiring TTL habis.
-2. **Resolver rekursif menanggung kerja berat**; authoritative server kamu hanya menerima cache miss. Itulah sebabnya DNS murah dan tahan beban.
-3. **Jawaban bisa berbeda per penanya**: authoritative server boleh menjawab berdasarkan siapa yang bertanya. Inilah dasar geo-routing.
+1. Cache ada di mana-mana: di browser, sistem operasi, resolver, bahkan library HTTP. Karena itu perubahan record tidak instan. Ia menyebar seiring TTL habis.
+2. Resolver rekursif menanggung kerja berat. Server authoritative milikmu hanya menerima cache miss. Itulah sebabnya DNS murah dan tahan beban.
+3. Jawaban bisa berbeda per penanya. Server authoritative boleh menjawab berdasarkan siapa yang bertanya. Inilah dasar geo routing.
 
 ## Jenis record yang sering muncul
 
-| Record        | Memetakan                   | Dipakai untuk                                                                   |
-| ------------- | --------------------------- | ------------------------------------------------------------------------------- |
-| A / AAAA      | nama → IPv4 / IPv6          | Server atau load balancer dengan IP tetap                                       |
-| CNAME         | nama → nama lain            | Menunjuk ke load balancer/CDN penyedia yang IP-nya berubah; tidak boleh di apex |
-| ALIAS / ANAME | nama apex → nama lain       | Varian CNAME untuk apex, disediakan penyedia DNS                                |
-| NS            | zona → server authoritative | Delegasi subdomain ke tim/penyedia lain                                         |
-| MX            | domain → mail server        | Email                                                                           |
-| TXT           | nama → teks                 | Verifikasi domain, SPF/DKIM                                                     |
-| SRV           | layanan → host:port         | Service discovery internal                                                      |
+| Record     | Memetakan                    | Dipakai untuk                                                                                       |
+| ---------- | ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| A dan AAAA | Nama ke IPv4 atau IPv6       | Server atau load balancer dengan IP tetap                                                           |
+| CNAME      | Nama ke nama lain            | Menunjuk ke load balancer atau CDN penyedia yang IP-nya berubah. Tidak boleh dipakai di apex domain |
+| ALIAS      | Nama apex ke nama lain       | Varian CNAME untuk apex domain, disediakan oleh penyedia DNS                                        |
+| NS         | Zona ke server authoritative | Mendelegasikan subdomain ke tim atau penyedia lain                                                  |
+| MX         | Domain ke mail server        | Email                                                                                               |
+| TXT        | Nama ke teks                 | Verifikasi domain, SPF, DKIM                                                                        |
+| SRV        | Layanan ke host dan port     | Penemuan layanan internal                                                                           |
 
-## TTL: tuas kontrol utama
+## TTL: tuas kendali utama
 
 TTL adalah berapa lama jawaban boleh di-cache.
 
-| TTL                       | Kelebihan                                                | Kekurangan                                                      | Kapan                                  |
-| ------------------------- | -------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------- |
-| Panjang (jam–hari)        | Beban authoritative kecil, tahan bila authoritative mati | Perubahan lambat menyebar                                       | Record stabil (MX, NS, apex)           |
-| Pendek (30–300 s)         | Migrasi dan failover cepat                               | Lebih banyak query ke authoritative; failover tetap butuh ≥ TTL | Endpoint yang bisa berpindah (API, LB) |
-| Sangat pendek (&lt; 30 s) | Hampir real-time                                         | Banyak resolver mengabaikan TTL terlalu kecil; latency naik     | Jarang layak                           |
+| TTL                                     | Kelebihan                                                   | Kekurangan                                                                      | Kapan dipakai                                              |
+| --------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Panjang, berjam-jam sampai berhari-hari | Beban authoritative kecil dan tahan bila authoritative mati | Perubahan lambat menyebar                                                       | Record stabil seperti MX, NS, apex                         |
+| Pendek, 30 sampai 300 detik             | Migrasi dan failover cepat                                  | Lebih banyak query ke authoritative, dan failover tetap butuh waktu sebesar TTL | Endpoint yang bisa berpindah seperti API dan load balancer |
+| Sangat pendek, di bawah 30 detik        | Hampir real-time                                            | Banyak resolver mengabaikan TTL sekecil ini, dan latency naik                   | Jarang layak                                               |
 
-Resep migrasi IP: turunkan TTL ke 60 detik **beberapa hari sebelum** perubahan, ganti record, tunggu, lalu naikkan lagi.
+Resep migrasi IP: turunkan TTL ke 60 detik beberapa hari sebelum perubahan. Ganti record, tunggu, lalu naikkan TTL lagi.
 
 ## DNS sebagai alat desain sistem
 
-Dalam high-level design, DNS biasanya muncul untuk tiga tujuan:
+Dalam high-level design, DNS biasanya muncul untuk tiga tujuan.
 
-1. **Routing global**: _geo_ atau _latency-based_ mengarahkan user ke region terdekat; _weighted_ membagi persentase trafik (berguna untuk canary antar region).
-2. **Failover kasar**: health check di penyedia DNS mencabut IP region yang mati. Kasar, karena butuh TTL habis dan ada resolver yang tidak patuh. Untuk failover halus, gunakan load balancer/anycast di lapisan bawah.
-3. **Dekoupling**: tim lain cukup diberi nama, bukan IP; infrastruktur bisa berpindah tanpa mengubah client.
+1. Routing global. Geo routing atau routing berbasis latency mengarahkan pengguna ke region terdekat. Weighted routing membagi persentase trafik, berguna untuk canary antar region.
+2. Failover kasar. Health check di penyedia DNS mencabut IP region yang mati. Ini kasar karena butuh TTL habis, dan ada resolver yang tidak patuh. Untuk failover halus, pakai load balancer atau anycast di lapisan bawah.
+3. Pemisahan. Tim lain cukup diberi nama, bukan IP. Infrastruktur bisa berpindah tanpa mengubah client.
 
 ```mermaid
 flowchart LR
-  U1[User Asia] -->|query| D[DNS authoritative\ngeo + health check]
-  U2[User Eropa] -->|query| D
+  U1[Pengguna Asia] -->|query| D["DNS authoritative\ngeo routing + health check"]
+  U2[Pengguna Eropa] -->|query| D
   D -->|IP LB Singapura| LB1[Load balancer SG]
   D -->|IP LB Frankfurt| LB2[Load balancer FRA]
   LB1 --> S1[Service]
@@ -157,25 +157,25 @@ flowchart LR
   D -. region FRA gagal health check .-> LB1
 ```
 
-Batas yang harus disebut di interview: DNS tidak melihat beban nyata server, keputusan berbasis lokasi **resolver** (bukan user, kecuali EDNS Client Subnet), dan client lama bisa memegang IP basi.
+Batas yang harus kamu sebut di interview: DNS tidak melihat beban nyata server. Keputusannya berdasarkan lokasi resolver, bukan pengguna. Client lama juga bisa memegang IP basi.
 
-## Kenapa DNS hampir tidak pernah down
+## Kenapa DNS hampir tidak pernah mati
 
-- Hirarki + replikasi: 13 alamat root dilayani ratusan server lewat **anycast** (satu IP, banyak lokasi; routing BGP membawa query ke yang terdekat).
-- Cache berlapis: mayoritas query tidak pernah mencapai authoritative.
-- Stateless UDP: murah; TCP hanya untuk jawaban besar atau zone transfer.
-- Namun bukan kebal: serangan DDoS ke penyedia DNS besar pernah menjatuhkan banyak situs sekaligus, karena banyak domain bergantung pada satu penyedia. Mitigasi: dua penyedia DNS authoritative.
+- Hirarki dan replikasi. Tiga belas alamat root dilayani ratusan server lewat anycast. Anycast berarti satu IP diiklankan dari banyak lokasi, dan routing membawa query ke lokasi terdekat.
+- Cache berlapis. Mayoritas query tidak pernah mencapai server authoritative.
+- UDP tanpa state. Query murah. TCP hanya dipakai untuk jawaban besar atau transfer zona.
+- Meski begitu, DNS tidak kebal. Serangan DDoS ke penyedia DNS besar pernah menjatuhkan banyak situs sekaligus. Mitigasinya memakai dua penyedia DNS authoritative.
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Bagaimana user tahu harus ke server mana?" → Jelaskan resolusi + geo-routing.
-- "Kalau satu region mati, bagaimana user dialihkan?" → DNS health check + TTL pendek, dan sebut bahwa failover sejati butuh waktu ≥ TTL.
-- "Kenapa tidak taruh IP langsung di client?" → Dekoupling dan rotasi infrastruktur.
-- "Apa risiko mengandalkan DNS untuk failover?" → Cache yang tidak patuh TTL, lokasi resolver, tidak melihat beban.
-- "Bagaimana service di dalam cluster saling menemukan?" → DNS internal / service discovery (SRV, CoreDNS di Kubernetes), lebih dinamis dari DNS publik.
+- "Bagaimana pengguna tahu harus ke server mana?" Jelaskan resolusi dan geo routing.
+- "Kalau satu region mati, bagaimana pengguna dialihkan?" DNS health check dan TTL pendek. Sebut bahwa failover sejati butuh waktu minimal sebesar TTL.
+- "Kenapa tidak taruh IP langsung di client?" Supaya infrastruktur bisa berpindah tanpa mengubah client.
+- "Apa risiko mengandalkan DNS untuk failover?" Cache yang tidak patuh TTL, lokasi resolver, dan DNS tidak melihat beban.
+- "Bagaimana service di dalam cluster saling menemukan?" DNS internal atau service discovery, misalnya record SRV atau CoreDNS di Kubernetes.
 
 ## Ringkasan
 
-1. DNS adalah basis data hirarkis dengan cache di setiap lapisan; perubahan menyebar seiring TTL, bukan seketika.
-2. Pakai CNAME/ALIAS untuk menunjuk ke penyedia, A untuk IP tetap, dan atur TTL sebagai tuas migrasi dan failover.
-3. Dalam desain sistem DNS adalah lapisan routing global yang murah (geo, weighted, failover kasar), tetapi tidak melihat beban nyata dan tidak instan.
+1. DNS adalah basis data hirarkis dengan cache di setiap lapisan. Perubahan menyebar seiring TTL, bukan seketika.
+2. Pakai CNAME atau ALIAS untuk menunjuk ke penyedia, A untuk IP tetap, dan atur TTL sebagai tuas migrasi dan failover.
+3. Dalam desain sistem, DNS adalah lapisan routing global yang murah. Tetapi ia tidak melihat beban nyata dan tidak instan.

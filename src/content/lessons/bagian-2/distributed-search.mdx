@@ -5,7 +5,7 @@ order: 13
 minutes: 45
 type: lesson
 prerequisites: ['bagian-2/database', 'bagian-2/message-queue']
-summary: 'Kenapa LIKE %kata% tidak cukup: inverted index, analisis teks, ranking, dan bagaimana index dipartisi, direplikasi, dan dijaga sinkron dengan database utama.'
+summary: 'Kenapa pencarian dengan LIKE tidak cukup: inverted index, analisis teks, ranking, dan cara index dipartisi, direplikasi, dan dijaga tetap sinkron dengan database utama.'
 sources:
   - title: 'Introduction to Information Retrieval (Manning, Raghavan, Schütze; buku gratis online)'
     url: 'https://nlp.stanford.edu/IR-book/'
@@ -16,157 +16,177 @@ sources:
   - title: 'OpenSearch docs — Text analysis'
     url: 'https://opensearch.org/docs/latest/analyzers/'
 quiz:
-  - q: 'Kenapa pencarian full-text di DB relasional dengan LIKE "%laptop%" menjadi lambat pada jutaan baris?'
+  - q: 'Kenapa pencarian teks dengan LIKE "%laptop%" di database relasional menjadi lambat pada jutaan baris?'
     options:
       - text: 'Karena LIKE tidak didukung di PostgreSQL'
         correct: false
-        why: 'Didukung; masalahnya cara kerjanya.'
-      - text: 'Karena wildcard di awal mematikan index B-tree sehingga setiap query memindai seluruh tabel; dan tidak ada tokenisasi, stemming, atau ranking'
+        why: 'LIKE didukung. Masalahnya ada pada cara kerjanya, bukan dukungannya.'
+      - text: 'Karena wildcard di awal membuat index tidak terpakai dan setiap query memindai seluruh tabel'
         correct: true
-        why: 'B-tree hanya membantu prefix. Pencarian teks butuh struktur lain: inverted index dari term ke dokumen, plus analisis bahasa dan skor relevansi.'
-      - text: 'Karena teks tidak bisa diindeks'
+        why: 'Index B-tree hanya membantu pencocokan awalan. Pencarian teks juga butuh tokenisasi, normalisasi, dan skor relevansi.'
+      - text: 'Karena teks panjang tidak bisa diindeks'
         correct: false
-        why: 'Bisa, dengan inverted index (termasuk fitur full-text bawaan Postgres).'
-      - text: 'Karena jumlah kolom terlalu banyak'
+        why: 'Teks bisa diindeks dengan inverted index, termasuk fitur full-text bawaan PostgreSQL.'
+      - text: 'Karena jumlah kolom di tabel terlalu banyak'
         correct: false
-        why: 'Tidak relevan.'
-  - q: 'Index pencarian memiliki 5 shard primer, masing-masing 2 replica. Query masuk; apa yang terjadi?'
+        why: 'Jumlah kolom tidak berpengaruh pada masalah ini.'
+  - q: 'Index pencarian punya 5 shard, masing-masing dengan 2 replica. Apa yang terjadi saat satu query masuk?'
     options:
       - text: 'Query dikirim ke satu shard yang berisi semua dokumen'
         correct: false
-        why: 'Dokumen tersebar di 5 shard; tidak ada shard yang punya semuanya.'
-      - text: 'Node koordinator mengirim query ke satu salinan tiap shard (5 shard, primer atau replica), tiap shard mengembalikan top-k lokal, koordinator menggabung dan mengurutkan ulang (scatter-gather)'
+        why: 'Dokumen tersebar di 5 shard. Tidak ada shard yang memegang semuanya.'
+      - text: 'Koordinator mengirim query ke satu salinan tiap shard, lalu menggabungkan hasil terbaik'
         correct: true
-        why: 'Pola scatter-gather dua fase: query fase (skor lokal) lalu fetch fase (ambil dokumen top-k gabungan). Replica menambah throughput baca dan ketahanan.'
-      - text: 'Query dieksekusi di semua 15 salinan'
+        why: 'Ini pola scatter-gather. Tiap shard mengembalikan hasil terbaiknya, lalu koordinator mengurutkan ulang.'
+      - text: 'Query dijalankan di semua 15 salinan sekaligus'
         correct: false
-        why: 'Cukup satu salinan per shard; replica lain melayani query lain.'
-      - text: 'Koordinator membaca database utama'
+        why: 'Cukup satu salinan per shard. Replica lain melayani query yang berbeda.'
+      - text: 'Koordinator membaca langsung dari database utama'
         correct: false
-        why: 'Pencarian dilayani index, bukan DB.'
-  - q: 'Produk diperbarui di database utama; hasil pencarian masih menampilkan harga lama selama beberapa detik. Apakah ini wajar, dan bagaimana desain sinkronisasinya?'
+        why: 'Pencarian dilayani index, bukan database.'
+  - q: 'Produk diperbarui di database, tetapi hasil pencarian masih menampilkan harga lama beberapa detik. Apakah ini wajar?'
     options:
-      - text: 'Tidak wajar; index harus diperbarui dalam transaksi yang sama dengan DB'
+      - text: 'Tidak wajar, index harus diperbarui dalam transaksi yang sama'
         correct: false
-        why: 'Dual-write sinkron ke dua sistem tidak atomik dan menggabungkan availability keduanya.'
-      - text: 'Wajar (near real-time); DB adalah sumber kebenaran, perubahan dialirkan lewat CDC/outbox ke queue, indexer memperbarui index; refresh index per detik; data kritis (harga/stok) bisa diambil ulang dari DB saat menampilkan'
+        why: 'Menulis ke dua sistem dalam satu transaksi tidak atomik dan membuat keduanya saling bergantung.'
+      - text: 'Wajar, index adalah turunan yang mengikuti database lewat CDC dalam hitungan detik'
         correct: true
-        why: 'Index pencarian adalah turunan yang eventually consistent. Pola standar: CDC → queue → indexer, dengan hydration dari DB untuk field yang harus akurat.'
-      - text: 'Index harus dibangun ulang penuh setiap perubahan'
+        why: 'Index pencarian selalu sedikit tertinggal. Data yang harus akurat, seperti harga, bisa diambil ulang dari database saat ditampilkan.'
+      - text: 'Index harus dibangun ulang penuh setiap ada perubahan'
         correct: false
-        why: 'Terlalu mahal; rebuild penuh hanya untuk perubahan skema/analyzer.'
-      - text: 'Pencarian harus langsung ke DB'
+        why: 'Terlalu mahal. Pembangunan ulang penuh hanya untuk perubahan skema atau analyzer.'
+      - text: 'Pencarian harus langsung membaca database'
         correct: false
-        why: 'Kembali ke masalah performa dan relevansi.'
-  - q: 'Apa fungsi analyzer (tokenizer + filter) saat mengindeks dan saat mencari?'
+        why: 'Itu kembali ke masalah performa dan relevansi.'
+  - q: 'Apa fungsi analyzer saat mengindeks dan saat mencari?'
     options:
-      - text: 'Mengompresi dokumen'
+      - text: 'Mengompresi dokumen supaya index lebih kecil'
         correct: false
         why: 'Kompresi dilakukan terpisah pada segmen index.'
-      - text: 'Mengubah teks menjadi term yang dinormalisasi (pecah kata, huruf kecil, buang stopword, stemming) sehingga "Laptop Gaming" di dokumen cocok dengan query "laptop gaming"; analyzer yang sama harus dipakai di kedua sisi'
+      - text: 'Mengubah teks menjadi term yang seragam supaya dokumen dan query bisa bertemu'
         correct: true
-        why: 'Inverted index memetakan term → dokumen; tanpa normalisasi yang konsisten, query dan dokumen tidak pernah bertemu. Bahasa berbeda butuh analyzer berbeda.'
+        why: 'Analyzer memecah kata, menyamakan huruf, dan membuang kata umum. Analyzer yang sama harus dipakai di kedua sisi.'
       - text: 'Mengurutkan hasil berdasarkan tanggal'
         correct: false
-        why: 'Pengurutan terjadi saat ranking, bukan analisis.'
-      - text: 'Mengenkripsi term'
+        why: 'Pengurutan terjadi saat ranking, bukan saat analisis.'
+      - text: 'Mengenkripsi term agar aman'
         correct: false
-        why: 'Bukan peran analyzer.'
+        why: 'Enkripsi bukan tugas analyzer.'
 ---
 
 ## Tujuan belajar
 
 Setelah pelajaran ini kamu bisa:
 
-- Menjelaskan inverted index, analisis teks, dan skor relevansi (TF-IDF/BM25) pada level yang cukup untuk interview.
-- Merancang cluster pencarian: shard, replica, scatter-gather, dan segmen immutable.
-- Menjaga index sinkron dengan database utama lewat CDC/queue, dan tahu kapan mengindeks ulang.
+- Menjelaskan inverted index, analisis teks, dan skor relevansi pada tingkat yang cukup untuk interview.
+- Merancang cluster pencarian dengan shard, replica, dan pola scatter-gather.
+- Menjaga index tetap sinkron dengan database utama lewat CDC, dan tahu kapan harus mengindeks ulang.
 
 ## Masalah yang diselesaikan
 
-Query `WHERE name LIKE '%laptop%'` memindai seluruh tabel, tidak mengenali "Laptops", tidak mengurutkan berdasarkan relevansi, dan tidak bisa memberi faset ("merek: 12 hasil"). Pencarian butuh struktur data sendiri: **inverted index** dari term ke daftar dokumen, dibangun dari teks yang sudah dinormalisasi, dengan skor relevansi.
+Query `WHERE name LIKE '%laptop%'` memindai seluruh tabel. Ia tidak mengenali "Laptops", tidak mengurutkan berdasarkan relevansi, dan tidak bisa memberi hitungan per kategori. Pencarian butuh struktur data sendiri. Struktur itu adalah inverted index, yaitu peta dari setiap kata ke daftar dokumen yang memuatnya.
 
 ## Dari teks ke index
 
 ```mermaid
 flowchart LR
-  D["Dokumen: Laptop Gaming 15 inci"] --> A[Analyzer\ntokenize → lowercase → stopword → stem]
+  D["Dokumen: Laptop Gaming 15 inci"] --> A["Analyzer\ntokenize, lowercase,\nstopword, stem"]
   A --> T["term: laptop, gaming, 15, inci"]
-  T --> II[(Inverted index\nlaptop → doc 7, 12, 40\ngaming → doc 7, 33)]
-  Q["Query laptop gaming"] --> A2[Analyzer yang sama] --> L[Lookup posting list\n& gabung] --> S[Skor BM25,\nurutkan top-k]
+  T --> II[("Inverted index\nlaptop: doc 7, 12, 40\ngaming: doc 7, 33")]
+  Q["Query: laptop gaming"] --> A2["Analyzer yang sama"]
+  A2 --> L["Cari posting list\nlalu gabungkan"]
   II --> L
+  L --> S["Skor BM25,\nurutkan hasil terbaik"]
 ```
 
-- **Posting list**: untuk tiap term, daftar id dokumen (plus frekuensi dan posisi untuk frasa), terkompresi dan terurut agar penggabungan (AND/OR) cepat.
-- **Analyzer**: tokenisasi, lowercase, stopword, stemming, sinonim; bergantung bahasa (Indonesia ≠ Inggris). Harus **sama** saat index dan saat query.
-- **Ranking**: TF-IDF/BM25 (term sering di dokumen ini, jarang di koleksi = relevan), dikombinasikan dengan sinyal bisnis (popularitas, kesegaran, boost field judul) dan terkadang tahap kedua (model ML) untuk top-N.
-- **Fitur lain**: faset/agregasi, filter terstruktur (harga, kategori), highlight, typo tolerance (fuzzy), autocomplete (dibahas di studi kasus typeahead).
+Ada empat bagian yang perlu kamu pahami.
 
-## Segmen immutable
+Posting list adalah daftar dokumen untuk satu term. Daftar ini menyimpan id dokumen, frekuensi, dan kadang posisi kata untuk pencarian frasa. Daftarnya terurut dan terkompresi supaya penggabungan AND dan OR cepat.
 
-Index tidak diubah di tempat. Dokumen baru masuk buffer memori, lalu di-_flush_ menjadi **segmen** kecil yang immutable (mirip SSTable). Query membaca semua segmen dan menggabung hasil; segmen kecil digabung berkala (**merge**) di latar belakang. Penghapusan/update = tandai dokumen lama terhapus + tulis dokumen baru. Konsekuensinya: dokumen baru **terlihat setelah refresh** (default ~1 detik), yang disebut _near real-time_.
+Analyzer mengubah teks menjadi term yang seragam. Langkahnya memecah kata, menyamakan huruf besar kecil, membuang kata umum, dan memotong imbuhan. Setiap bahasa butuh analyzer berbeda. Analyzer yang sama harus dipakai saat mengindeks dan saat mencari.
 
-## Cluster: shard, replica, scatter-gather
+Ranking memberi skor relevansi. Rumus yang lazim adalah BM25. Intinya, term yang sering muncul di dokumen ini tetapi jarang di koleksi dianggap relevan. Skor itu lalu digabung dengan sinyal bisnis seperti popularitas dan kesegaran.
+
+Fitur lain yang sering diminta adalah hitungan per kategori, filter terstruktur, highlight, toleransi salah ketik, dan autocomplete. Autocomplete dibahas di studi kasus typeahead.
+
+## Segmen yang tidak pernah diubah
+
+Index tidak diubah di tempat. Dokumen baru masuk ke buffer memori dulu. Buffer itu lalu ditulis menjadi segmen kecil yang tidak pernah diubah lagi, mirip SSTable di key-value store. Query membaca semua segmen dan menggabungkan hasilnya. Segmen kecil digabung berkala di latar belakang.
+
+Penghapusan dan update bekerja dengan menandai dokumen lama sebagai terhapus, lalu menulis dokumen baru. Akibatnya, dokumen baru baru terlihat setelah refresh, biasanya sekitar satu detik. Inilah yang disebut near real-time.
+
+## Cluster: shard, replica, dan scatter-gather
 
 ```mermaid
 flowchart LR
   C[Client] --> K[Node koordinator]
-  K --> S1[Shard 1\nprimer]
-  K --> S2r[Shard 2\nreplica]
-  K --> S3[Shard 3\nprimer]
+  K --> S1[Shard 1 primer]
+  K --> S2r[Shard 2 replica]
+  K --> S3[Shard 3 primer]
   S1 --> K
   S2r --> K
   S3 --> K
-  K --> R[Gabung top-k,\nurutkan, fetch dokumen]
+  K --> R["Gabung hasil terbaik,\nurutkan, ambil dokumen"]
   I[Indexer] --> S1
   I --> S2[Shard 2 primer] --> S2r
   I --> S3
 ```
 
-- **Shard**: index dipartisi (biasanya hash id dokumen); tiap shard adalah index Lucene mandiri. Jumlah shard primer sulit diubah tanpa reindex; rencanakan dari estimasi ukuran (puluhan GB per shard adalah angka kasar yang sehat).
-- **Replica**: salinan shard untuk throughput baca dan ketahanan; tulis masuk ke primer lalu direplikasi.
-- **Query**: koordinator menyebar ke satu salinan tiap shard, tiap shard menghitung top-k lokal (fase query), koordinator menggabung lalu mengambil dokumen top-k gabungan (fase fetch). Paginasi dalam (halaman 1.000) mahal karena tiap shard harus mengembalikan k × halaman; pakai _search-after_ / cursor.
-- **Routing**: bila query selalu dibatasi tenant, routing dokumen by tenant_id mengirim query ke satu shard saja (hati-hati tenant raksasa).
+Shard adalah potongan index. Dokumen biasanya dibagi berdasarkan hash id. Tiap shard adalah index Lucene yang berdiri sendiri. Jumlah shard primer sulit diubah tanpa mengindeks ulang, jadi rencanakan dari estimasi ukuran. Puluhan GB per shard adalah angka kasar yang sehat.
 
-## Menjaga index sinkron
+Replica adalah salinan shard. Ia menambah kapasitas baca dan ketahanan. Tulisan masuk ke shard primer lalu disalin ke replica.
 
-Index adalah **turunan** dari sumber kebenaran (DB). Jangan dual-write dari aplikasi ke DB dan index; tidak atomik.
+Query berjalan dalam dua fase. Koordinator menyebar query ke satu salinan tiap shard. Tiap shard menghitung hasil terbaiknya secara lokal. Koordinator menggabungkan, mengurutkan, lalu mengambil dokumen untuk hasil gabungan. Paginasi dalam, misalnya halaman ke-1.000, mahal karena tiap shard harus mengembalikan ribuan kandidat. Pakai cursor seperti search-after untuk itu.
+
+Routing bisa menghemat kerja. Kalau query selalu dibatasi satu tenant, kirim dokumen tenant itu ke satu shard. Query pun hanya menyentuh satu shard. Hati-hati dengan tenant raksasa yang membuat satu shard jauh lebih besar.
+
+## Menjaga index tetap sinkron
+
+Index adalah turunan dari sumber kebenaran, yaitu database. Jangan menulis dari aplikasi ke database dan index sekaligus, karena keduanya tidak bisa dijamin sama.
 
 ```mermaid
 flowchart LR
   APP[App] --> DB[(DB utama)]
-  DB --> CDC[CDC / outbox]
-  CDC --> Q[[Queue: product-changes\nkey=product_id]]
-  Q --> IDX[Indexer\nbatch bulk, idempotent, versi]
+  DB --> CDC["CDC atau outbox"]
+  CDC --> Q[["Queue product-changes\nkey = product_id"]]
+  Q --> IDX["Indexer\nbulk, idempotent, berversi"]
   IDX --> ES[(Search cluster)]
   ES -. hasil .-> APP
-  APP -. hydrate harga/stok .-> DB
+  APP -. ambil harga dan stok .-> DB
 ```
 
-- **Indexer** memakai bulk API, dedup by id, dan versi/timestamp agar event lama tidak menimpa yang baru (out-of-order).
-- **Reindex penuh** diperlukan saat analyzer/mapping berubah: bangun index baru di samping yang lama, lalu pindahkan **alias**; tanpa downtime.
-- **Field kritis** (harga, stok) sebaiknya diambil dari DB saat menampilkan hasil, atau diterima sedikit basi dengan jelas.
+Cara kerjanya:
+
+1. Aplikasi menulis hanya ke database.
+2. CDC, yaitu pembacaan log perubahan database, mengirim setiap perubahan ke queue.
+3. Indexer membaca queue dan memperbarui index secara batch.
+4. Indexer memakai versi atau timestamp supaya event lama tidak menimpa event baru.
+5. Aplikasi mengambil data kritis seperti harga dan stok dari database saat menampilkan hasil.
+
+Indexer harus idempotent, artinya memproses event yang sama dua kali tidak merusak apa pun. Dedup dilakukan berdasarkan id dokumen.
+
+Mengindeks ulang penuh diperlukan saat analyzer atau skema berubah. Caranya, bangun index baru di samping index lama, lalu pindahkan alias. Dengan begitu tidak ada downtime.
 
 ## Trade-off ringkas
 
-| Keputusan                                                            | Pilih A bila                                              | Pilih B bila                                       |
-| -------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
-| Full-text DB bawaan (Postgres tsvector) (A) vs cluster pencarian (B) | Volume kecil-sedang, fitur dasar cukup, ingin satu sistem | Faset, relevansi kaya, skala besar, bahasa majemuk |
-| Shard banyak kecil (A) vs sedikit besar (B)                          | Paralelisme query, pertumbuhan                            | Overhead per shard, query kecil sering             |
-| Refresh cepat (A) vs throughput index (B)                            | Konten harus segera terlihat (chat, log)                  | Bulk indexing besar; refresh 30 s+                 |
-| Ranking BM25 saja (A) vs + model ML (B)                              | Awal, sederhana, dapat dijelaskan                         | Ada data klik dan tim yang bisa merawatnya         |
+| Keputusan                                        | Pilih yang pertama bila                                | Pilih yang kedua bila                                                        |
+| ------------------------------------------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Full-text bawaan database atau cluster pencarian | Volume kecil sampai sedang dan fitur dasar sudah cukup | Butuh hitungan per kategori, relevansi kaya, skala besar, atau banyak bahasa |
+| Banyak shard kecil atau sedikit shard besar      | Query butuh paralelisme dan data akan tumbuh           | Query kecil sangat sering dan overhead per shard terasa                      |
+| Refresh cepat atau throughput index              | Konten harus segera terlihat, seperti chat dan log     | Sedang mengindeks massal dan refresh 30 detik masih bisa diterima            |
+| Ranking BM25 saja atau ditambah model ML         | Baru mulai dan ingin hasil yang bisa dijelaskan        | Sudah ada data klik dan tim yang bisa merawat modelnya                       |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Kenapa tidak query database langsung?" → Scan penuh, tanpa relevansi/analisis.
-- "Bagaimana index tetap sinkron?" → CDC/outbox → queue → indexer idempotent; near real-time; hydrate field kritis.
-- "Bagaimana menangani typo dan sinonim?" → Analyzer + fuzzy; sebutkan biaya.
-- "Query lambat di halaman dalam?" → Scatter-gather dan deep paging; search-after.
-- "Ubah analyzer tanpa downtime?" → Reindex ke index baru + alias switch.
-- "Satu shard panas?" → Routing by tenant, pecah tenant besar, replica tambahan.
+- "Kenapa tidak query database langsung?" Karena hasilnya pemindaian penuh tanpa relevansi dan tanpa analisis teks.
+- "Bagaimana index tetap sinkron?" Lewat CDC atau outbox ke queue, lalu indexer yang idempotent. Data kritis diambil dari sumber saat tampil.
+- "Bagaimana menangani salah ketik dan sinonim?" Lewat analyzer dan pencarian fuzzy. Sebutkan juga biayanya.
+- "Kenapa halaman dalam lambat?" Karena scatter-gather harus mengumpulkan kandidat dari semua shard. Pakai search-after.
+- "Bagaimana mengubah analyzer tanpa downtime?" Indeks ulang ke index baru, lalu pindahkan alias.
+- "Bagaimana kalau satu shard sangat panas?" Routing per tenant, pecah tenant besar, dan tambah replica.
 
 ## Ringkasan
 
-1. Pencarian memakai inverted index dari teks yang dianalisis; relevansi dihitung (BM25) dan digabung sinyal bisnis; analyzer harus sama di index dan query.
-2. Cluster membagi index ke shard dan replica; query adalah scatter-gather dua fase; segmen immutable membuat hasil near real-time.
-3. Index adalah turunan DB: sinkronkan lewat CDC/queue dengan indexer idempotent, reindex lewat alias, dan hydrate field kritis dari sumber kebenaran.
+1. Pencarian memakai inverted index dari teks yang sudah dianalisis. Relevansi dihitung dengan BM25 lalu digabung sinyal bisnis, dan analyzer harus sama di index dan query.
+2. Cluster membagi index ke shard dan replica. Query berjalan dua fase lewat scatter-gather, dan segmen yang tidak pernah diubah membuat hasil terlihat dalam sekitar satu detik.
+3. Index adalah turunan database. Sinkronkan lewat CDC dan indexer yang idempotent, indeks ulang lewat alias, dan ambil data kritis dari sumber kebenaran.

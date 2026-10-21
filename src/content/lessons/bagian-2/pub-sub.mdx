@@ -5,7 +5,7 @@ order: 10
 minutes: 35
 type: lesson
 prerequisites: ['bagian-2/message-queue']
-summary: 'Satu kejadian, banyak pendengar: bagaimana pola publish-subscribe membebaskan producer dari mengetahui siapa yang peduli, apa bedanya dengan queue, dan apa yang dibayar untuk fanout.'
+summary: 'Satu kejadian, banyak pendengar: bagaimana pola publish-subscribe membebaskan producer dari mengetahui siapa yang peduli, apa bedanya dengan queue, dan apa harga fanout.'
 sources:
   - title: 'Apache Kafka docs — Consumers & consumer groups'
     url: 'https://kafka.apache.org/documentation/#intro_consumers'
@@ -18,60 +18,60 @@ sources:
   - title: 'Publish–subscribe pattern — Wikipedia'
     url: 'https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern'
 quiz:
-  - q: 'Event "OrderPaid" harus memicu tiga hal: kirim invoice, perbarui stok, dan catat analytics. Tim stok dan analytics dikelola terpisah dan bisa bertambah. Pola mana yang tepat?'
+  - q: 'Event OrderPaid harus memicu invoice, stok, dan analytics yang dikelola tim berbeda dan bisa bertambah. Pola mana yang tepat?'
     options:
       - text: 'Service order memanggil ketiga service secara sinkron'
         correct: false
         why: 'Setiap pendengar baru mengubah kode producer, dan satu pendengar lambat memperlambat pembayaran.'
       - text: 'Satu antrian kerja dengan tiga consumer yang berbagi pesan'
         correct: false
-        why: 'Dalam work queue, satu pesan hanya diterima satu consumer; dua dari tiga tugas tidak terjadi.'
-      - text: 'Publish ke topic "orders"; tiap tim membuat subscription/consumer group sendiri sehingga semua menerima setiap event'
+        why: 'Dalam work queue, satu pesan hanya diterima satu consumer. Dua dari tiga tugas tidak akan terjadi.'
+      - text: 'Publish ke topic orders, tiap tim membuat subscription sendiri'
         correct: true
-        why: 'Inilah pub-sub: producer hanya tahu topic. Setiap subscriber (group) mendapat salinan lengkap aliran, dan pendengar baru ditambahkan tanpa menyentuh producer.'
-      - text: 'Menyimpan event di DB dan membiarkan tiap tim polling tabel'
+        why: 'Inilah pub-sub. Producer hanya tahu topic, dan pendengar baru ditambahkan tanpa menyentuh producer.'
+      - text: 'Simpan event di database lalu tiap tim polling tabel'
         correct: false
-        why: 'Berfungsi tapi menjadikan DB sebagai broker tanpa fitur offset, retensi, dan back pressure yang rapi.'
-  - q: 'Redis Pub/Sub (klasik) mengirim pesan hanya ke subscriber yang sedang terhubung. Konsekuensinya?'
+        why: 'Ini berfungsi, tetapi menjadikan database sebagai broker tanpa fitur offset, retensi, dan back pressure.'
+  - q: 'Redis Pub/Sub klasik hanya mengirim pesan ke subscriber yang sedang terhubung. Apa konsekuensinya?'
     options:
       - text: 'Pesan dijamin sampai ke semua subscriber'
         correct: false
         why: 'Subscriber yang terputus sesaat kehilangan pesan selamanya.'
-      - text: 'Cocok untuk sinyal real-time yang boleh hilang (invalidasi cache, presence), tidak untuk event bisnis yang tidak boleh hilang'
+      - text: 'Cocok untuk sinyal real-time yang boleh hilang, bukan event bisnis'
         correct: true
-        why: 'Fire-and-forget tanpa persistensi. Untuk event yang harus tahan putus koneksi dan bisa diputar ulang, pakai log terpartisi atau Redis Streams.'
-      - text: 'Subscriber harus polling'
+        why: 'Ini fire-and-forget tanpa persistensi. Untuk event yang harus tahan putus koneksi, pakai log terpartisi atau Redis Streams.'
+      - text: 'Subscriber harus melakukan polling'
         correct: false
-        why: 'Redis Pub/Sub adalah push; masalahnya persistensi, bukan mekanisme pengiriman.'
+        why: 'Redis Pub/Sub adalah push. Masalahnya ada di persistensi, bukan mekanisme pengiriman.'
       - text: 'Hanya satu subscriber yang boleh terhubung'
         correct: false
-        why: 'Boleh banyak; semuanya menerima selama terhubung.'
-  - q: 'Dalam Kafka, apa yang terjadi jika dua consumer berada di consumer group yang sama, dan apa bedanya bila di group berbeda?'
+        why: 'Boleh banyak subscriber. Semuanya menerima selama masih terhubung.'
+  - q: 'Dalam Kafka, apa bedanya dua consumer di group yang sama dengan dua consumer di group berbeda?'
     options:
-      - text: 'Group sama: partisi dibagi di antara keduanya (tiap pesan diproses satu consumer); group berbeda: masing-masing menerima seluruh aliran'
+      - text: 'Group sama membagi partisi, group berbeda masing-masing menerima seluruh aliran'
         correct: true
-        why: 'Consumer group adalah unit "satu salinan aliran". Di dalam group, partisi dibagi (work-queue); antar group, semuanya menerima (pub-sub). Satu mekanisme untuk dua pola.'
-      - text: 'Group sama: keduanya menerima semua pesan; group berbeda: pesan dibagi'
+        why: 'Consumer group adalah unit satu salinan aliran. Satu mekanisme untuk pola queue dan pola pub-sub.'
+      - text: 'Group sama menerima semua pesan, group berbeda membagi pesan'
         correct: false
-        why: 'Terbalik.'
-      - text: 'Tidak ada bedanya'
+        why: 'Ini terbalik.'
+      - text: 'Tidak ada bedanya sama sekali'
         correct: false
         why: 'Perbedaan ini justru inti model Kafka.'
       - text: 'Group berbeda tidak boleh membaca topic yang sama'
         correct: false
         why: 'Banyak group membaca topic yang sama adalah pola normal.'
-  - q: 'Subscriber analytics tertinggal 3 jam, sedangkan subscriber invoice real-time. Apakah ini masalah untuk desain pub-sub berbasis log?'
+  - q: 'Subscriber analytics tertinggal 3 jam, sedangkan subscriber invoice real-time. Apakah ini masalah untuk pub-sub berbasis log?'
     options:
-      - text: 'Ya, subscriber lambat memperlambat semua subscriber lain'
+      - text: 'Ya, subscriber lambat memperlambat subscriber lain'
         correct: false
-        why: 'Di log terpartisi, tiap group punya offset sendiri; yang lambat tidak menghambat yang cepat.'
-      - text: 'Tidak untuk subscriber lain, karena tiap group membaca pada lajunya sendiri; tapi lag analytics harus dipantau dan retensi log harus lebih panjang dari lag maksimum agar pesan tidak terhapus sebelum dibaca'
+        why: 'Di log terpartisi, tiap group punya offset sendiri. Yang lambat tidak menghambat yang cepat.'
+      - text: 'Tidak untuk yang lain, tetapi retensi harus lebih panjang dari lag'
         correct: true
-        why: 'Isolasi antar subscriber adalah keuntungan log; harganya adalah retensi yang cukup dan pemantauan lag per group.'
+        why: 'Isolasi antar subscriber adalah keuntungan log. Harganya adalah retensi yang cukup dan pemantauan lag per group.'
       - text: 'Ya, broker akan menolak publish'
         correct: false
         why: 'Broker berbasis log tidak memblokir producer karena satu consumer lambat.'
-      - text: 'Tidak masalah sama sekali, tidak perlu dipantau'
+      - text: 'Tidak masalah dan tidak perlu dipantau'
         correct: false
         why: 'Bila lag melebihi retensi, pesan hilang untuk group itu.'
 ---
@@ -80,22 +80,22 @@ quiz:
 
 Setelah pelajaran ini kamu bisa:
 
-- Menjelaskan perbedaan queue (satu pesan, satu pekerja) dan pub-sub (satu pesan, semua pelanggan), dan kapan masing-masing dipakai.
-- Merancang topic, subscription/consumer group, dan fanout, termasuk pilihan broker yang persisten vs fire-and-forget.
+- Menjelaskan perbedaan queue dan pub-sub, serta kapan masing-masing dipakai.
+- Merancang topic, subscription, dan fanout, termasuk memilih broker yang persisten atau fire-and-forget.
 - Menyebut harga pub-sub: duplikasi kerja, retensi, lag per subscriber, dan skema event yang harus kompatibel.
 
-## Queue vs pub-sub
+## Queue dibandingkan pub-sub
 
-Di message queue, satu pesan diambil **satu** consumer: cocok untuk membagi pekerjaan. Di pub-sub, producer menerbitkan ke **topic** dan setiap **subscriber** menerima salinannya: cocok untuk memberi tahu banyak pihak tentang satu kejadian tanpa producer tahu siapa mereka.
+Di message queue, satu pesan diambil satu consumer. Ini cocok untuk membagi pekerjaan. Di pub-sub, producer menerbitkan ke topic dan setiap subscriber menerima salinannya. Ini cocok untuk memberi tahu banyak pihak tentang satu kejadian tanpa producer tahu siapa mereka.
 
 ```mermaid
 flowchart LR
-  subgraph queue[Work queue: satu pesan → satu worker]
+  subgraph queue[Work queue: satu pesan ke satu worker]
     P1[Producer] --> Q[[queue]]
     Q --> W1[Worker A]
     Q --> W2[Worker B]
   end
-  subgraph pubsub[Pub-sub: satu event → semua subscriber]
+  subgraph pubsub[Pub-sub: satu event ke semua subscriber]
     P2[Producer] --> T[[topic: orders]]
     T --> S1[Invoice service]
     T --> S2[Inventory service]
@@ -103,40 +103,40 @@ flowchart LR
   end
 ```
 
-Keduanya sering disediakan oleh broker yang sama. Di Kafka, **consumer group** menyatukan keduanya: di dalam satu group, partisi dibagi (work queue); antar group, semua menerima aliran penuh (pub-sub).
+Keduanya sering disediakan oleh broker yang sama. Di Kafka, consumer group menyatukan keduanya. Di dalam satu group, partisi dibagi seperti work queue. Antar group, semua menerima aliran penuh seperti pub-sub.
 
 ## Komponen
 
-| Komponen                      | Peran                                                                             |
-| ----------------------------- | --------------------------------------------------------------------------------- |
-| Topic                         | Nama saluran; biasanya per jenis event atau per entitas (`orders`, `user-events`) |
-| Partisi                       | Pembagian topic untuk paralelisme dan urutan per kunci                            |
-| Subscription / consumer group | Satu "salinan aliran" dengan offset/ack sendiri                                   |
-| Broker                        | Menyimpan, mereplikasi, dan menyajikan pesan; terdistribusi                       |
-| Schema registry               | Kontrak format event (Avro/Protobuf/JSON) dan aturan kompatibilitas               |
+| Komponen                         | Perannya                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| Topic                            | Nama saluran, biasanya per jenis event atau per entitas, misalnya orders atau user-events |
+| Partisi                          | Pembagian topic untuk paralelisme dan urutan per kunci                                    |
+| Subscription atau consumer group | Satu salinan aliran dengan offset atau ack sendiri                                        |
+| Broker                           | Menyimpan, mereplikasi, dan menyajikan pesan secara terdistribusi                         |
+| Schema registry                  | Kontrak format event dan aturan kompatibilitasnya                                         |
 
 ## Dua gaya pengiriman
 
-| Gaya                   | Contoh                                                       | Persistensi        | Subscriber offline            | Replay | Cocok untuk                                             |
-| ---------------------- | ------------------------------------------------------------ | ------------------ | ----------------------------- | ------ | ------------------------------------------------------- |
-| Fire-and-forget        | Redis Pub/Sub, Core NATS                                     | Tidak              | Kehilangan pesan              | Tidak  | Invalidasi cache, presence, chat real-time yang toleran |
-| Persisten (log/stream) | Kafka, Pulsar, Google Pub/Sub, Redis Streams, NATS JetStream | Ya, dengan retensi | Menyusul dari offset terakhir | Ya     | Event bisnis, integrasi antar tim, audit                |
+| Gaya            | Contoh                                                       | Persistensi         | Subscriber offline            | Replay     | Cocok untuk                                             |
+| --------------- | ------------------------------------------------------------ | ------------------- | ----------------------------- | ---------- | ------------------------------------------------------- |
+| Fire-and-forget | Redis Pub/Sub, Core NATS                                     | Tidak ada           | Kehilangan pesan              | Tidak bisa | Invalidasi cache, presence, chat real-time yang toleran |
+| Persisten       | Kafka, Pulsar, Google Pub/Sub, Redis Streams, NATS JetStream | Ada, dengan retensi | Menyusul dari offset terakhir | Bisa       | Event bisnis, integrasi antar tim, audit                |
 
-Pertanyaan pertama yang harus dijawab di interview: bolehkah pesan hilang bila subscriber sedang mati? Jika tidak, pilih yang persisten.
+Pertanyaan pertama yang harus kamu jawab di interview: bolehkah pesan hilang bila subscriber sedang mati? Jika tidak boleh, pilih yang persisten.
 
 ## Fanout dan isolasi
 
-Setiap subscriber baru menambah **pembacaan**, bukan **penulisan**: producer menulis sekali, broker melayani N pembaca. Dengan log, tiap group membaca pada lajunya sendiri sehingga subscriber lambat tidak menghambat yang cepat. Harganya: retensi harus melebihi lag terburuk, dan lag per group harus dipantau.
+Setiap subscriber baru menambah pembacaan, bukan penulisan. Producer menulis sekali, lalu broker melayani N pembaca. Dengan log, tiap group membaca pada lajunya sendiri. Subscriber lambat tidak menghambat yang cepat. Harganya, retensi harus melebihi lag terburuk, dan lag per group harus dipantau.
 
-Untuk fanout ke **jutaan** penerima (notifikasi push ke user), pub-sub antar service tidak cukup; dibutuhkan lapisan terpisah (notification service yang menyimpan langganan per user dan mengirim lewat koneksi/push provider). Pub-sub di sini adalah pemicu, bukan jalur ke user akhir.
+Fanout ke jutaan penerima, misalnya notifikasi push ke pengguna, tidak cukup dengan pub-sub antar service. Dibutuhkan notification service yang menyimpan langganan per pengguna dan mengirim lewat koneksi atau push provider. Pub-sub di sini hanya pemicu, bukan jalur ke pengguna akhir.
 
 ## Desain event
 
-- **Nama dan isi**: kejadian masa lalu (`OrderPaid`), berisi id dan data yang cukup agar subscriber tidak perlu memanggil balik producer (atau sengaja minimal, _notification_ vs _event-carried state transfer_; pilih dan jelaskan).
-- **Kompatibilitas skema**: tambah field boleh, hapus/ubah tipe tidak; versi di schema registry. Subscriber lama harus tetap bisa membaca event baru.
-- **Kunci partisi**: entitas yang butuh urutan (order_id, user_id).
-- **Idempotency**: subscriber tetap menghadapi at-least-once; sama seperti consumer queue.
-- **Outbox**: event diterbitkan dari transaksi yang sama dengan perubahan data.
+- Nama dan isi. Gunakan kejadian masa lalu seperti OrderPaid. Sertakan id dan data yang cukup agar subscriber tidak perlu memanggil balik producer. Atau sengaja minimal dan biarkan subscriber mengambil detail sendiri. Pilih salah satu dan jelaskan.
+- Kompatibilitas skema. Menambah field boleh, menghapus atau mengubah tipe tidak boleh. Simpan versi di schema registry. Subscriber lama harus tetap bisa membaca event baru.
+- Kunci partisi. Pilih entitas yang butuh urutan, misalnya order_id atau user_id.
+- Idempotency. Subscriber tetap menghadapi at-least-once, sama seperti consumer queue.
+- Outbox. Terbitkan event dari transaksi yang sama dengan perubahan data.
 
 ```mermaid
 sequenceDiagram
@@ -156,24 +156,24 @@ sequenceDiagram
 
 ## Trade-off ringkas
 
-| Keputusan                                          | Pilih A bila                                             | Pilih B bila                                           |
-| -------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------ |
-| Pub-sub (A) vs panggilan langsung (B)              | Banyak pendengar, boleh eventual, pendengar berubah-ubah | Butuh jawaban sinkron, satu konsumen, alur sederhana   |
-| Fire-and-forget (A) vs persisten (B)               | Pesan boleh hilang, latency minimal                      | Pesan tidak boleh hilang, perlu replay                 |
-| Topic per jenis event (A) vs topic per entitas (B) | Subscriber peduli jenis tertentu                         | Subscriber butuh urutan semua kejadian satu entitas    |
-| Event gemuk (A) vs event kurus + callback (B)      | Mengurangi coupling runtime dan beban producer           | Payload sensitif/besar; subscriber jarang butuh detail |
+| Keputusan                                        | Pilih A bila                                             | Pilih B bila                                                |
+| ------------------------------------------------ | -------------------------------------------------------- | ----------------------------------------------------------- |
+| Pub-sub A atau panggilan langsung B              | Banyak pendengar, boleh eventual, pendengar berubah-ubah | Butuh jawaban sinkron, satu consumer, alur sederhana        |
+| Fire-and-forget A atau persisten B               | Pesan boleh hilang dan latency harus minimal             | Pesan tidak boleh hilang dan perlu replay                   |
+| Topic per jenis event A atau per entitas B       | Subscriber peduli jenis tertentu                         | Subscriber butuh urutan semua kejadian satu entitas         |
+| Event gemuk A atau event kurus dengan callback B | Ingin mengurangi coupling dan beban producer             | Payload sensitif atau besar, subscriber jarang butuh detail |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Bedanya dengan message queue?" → Satu-ke-satu vs satu-ke-banyak; consumer group.
-- "Subscriber baru ingin data sejak kemarin?" → Replay dari offset bila broker persisten dengan retensi cukup.
-- "Subscriber lambat?" → Tidak menghambat yang lain; pantau lag; retensi.
-- "Bagaimana memastikan event dan data konsisten?" → Outbox/CDC.
-- "Skema event berubah?" → Schema registry, kompatibilitas mundur.
-- "Pub-sub ini sampai ke device user?" → Tidak langsung; notification service + push/WebSocket.
+- "Apa bedanya dengan message queue?" Satu-ke-satu dibandingkan satu-ke-banyak. Jelaskan consumer group.
+- "Subscriber baru ingin data sejak kemarin?" Replay dari offset, bila broker persisten dengan retensi cukup.
+- "Subscriber lambat?" Tidak menghambat yang lain. Pantau lag dan atur retensi.
+- "Bagaimana memastikan event dan data konsisten?" Jawab dengan outbox atau CDC.
+- "Skema event berubah?" Schema registry dengan kompatibilitas mundur.
+- "Apakah pub-sub ini sampai ke device pengguna?" Tidak langsung. Butuh notification service dengan push atau WebSocket.
 
 ## Ringkasan
 
-1. Pub-sub mengirim satu event ke semua subscriber dan membebaskan producer dari mengetahui pendengarnya; consumer group menyatukan pola queue dan pub-sub di satu broker.
-2. Pilih broker persisten bila pesan tidak boleh hilang saat subscriber mati; fire-and-forget hanya untuk sinyal real-time yang toleran.
-3. Harganya: idempotency di tiap subscriber, retensi lebih panjang dari lag terburuk, skema event yang kompatibel, dan outbox agar event konsisten dengan data.
+1. Pub-sub mengirim satu event ke semua subscriber dan membebaskan producer dari mengetahui pendengarnya. Consumer group menyatukan pola queue dan pub-sub di satu broker.
+2. Pilih broker persisten bila pesan tidak boleh hilang saat subscriber mati. Fire-and-forget hanya untuk sinyal real-time yang toleran.
+3. Harganya adalah idempotency di tiap subscriber, retensi yang lebih panjang dari lag terburuk, skema event yang kompatibel, dan outbox agar event konsisten dengan data.

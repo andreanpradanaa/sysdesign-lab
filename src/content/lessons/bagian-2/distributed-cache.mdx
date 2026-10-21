@@ -5,7 +5,7 @@ order: 8
 minutes: 45
 type: lesson
 prerequisites: ['bagian-2/key-value-store', 'bagian-2/database']
-summary: 'Komponen yang hampir selalu menjadi jawaban untuk beban baca: strategi baca/tulis, eviction, invalidasi, dan tiga kegagalan klasik (stampede, hot key, penetration) beserta obatnya.'
+summary: 'Komponen yang hampir selalu menjadi jawaban untuk beban baca. Strategi baca dan tulis, cara mengosongkan, cara membatalkan, dan tiga kegagalan klasik beserta obatnya.'
 sources:
   - title: 'System Design Primer — Cache (strategi cache-aside, write-through, write-behind)'
     url: 'https://github.com/donnemartin/system-design-primer#cache'
@@ -16,182 +16,186 @@ sources:
   - title: 'Memcached wiki — Overview & architecture'
     url: 'https://github.com/memcached/memcached/wiki/Overview'
 quiz:
-  - q: 'Key populer kedaluwarsa, dan 5.000 request per detik serentak miss lalu membebani database. Nama masalah dan solusi yang paling tepat?'
+  - q: 'Satu key populer kedaluwarsa, lalu 5.000 request per detik serentak miss dan membebani database. Apa nama masalahnya dan solusinya?'
     options:
-      - text: 'Cache penetration; solusinya bloom filter'
+      - text: 'Cache penetration, solusinya bloom filter'
         correct: false
-        why: 'Penetration adalah request untuk key yang memang tidak ada. Di sini key ada, hanya kedaluwarsa.'
-      - text: 'Cache stampede (thundering herd); solusinya single-flight/lock agar hanya satu request mengisi ulang, atau early refresh sebelum TTL habis'
+        why: 'Penetration adalah request untuk key yang memang tidak ada. Di sini key-nya ada, hanya kedaluwarsa.'
+      - text: 'Cache stampede, solusinya satu pengisi ulang per key atau refresh lebih awal'
         correct: true
-        why: 'Semua request miss bersamaan dan berebut ke DB. Kunci per key (hanya satu yang ke DB, sisanya menunggu), TTL dengan jitter, atau refresh di latar belakang mencegahnya.'
-      - text: 'Hot key; solusinya sharding cache'
+        why: 'Semua request miss bersamaan dan berebut ke database. Kunci per key, TTL dengan unsur acak, atau refresh di latar belakang mencegahnya.'
+      - text: 'Hot key, solusinya memecah cache'
         correct: false
-        why: 'Hot key tentang satu node cache kewalahan oleh satu key; masalah di soal adalah beban DB saat miss.'
-      - text: 'Replication lag; solusinya read-your-writes'
+        why: 'Hot key adalah satu node cache yang kewalahan oleh satu key. Masalah di soal adalah beban database saat miss.'
+      - text: 'Replication lag, solusinya read-your-writes'
         correct: false
         why: 'Tidak ada replica yang terlibat.'
-  - q: 'Aplikasi memakai cache-aside. Data di DB diperbarui, lalu cache dihapus. Sesaat kemudian user masih melihat data lama di cache. Skenario mana yang menjelaskan?'
+  - q: 'Dengan cache-aside, data di database diperbarui lalu cache dihapus. Sesaat kemudian pengguna masih melihat data lama. Skenario mana yang menjelaskan?'
     options:
       - text: 'Cache tidak bisa dihapus'
         correct: false
-        why: 'Penghapusan berhasil; masalahnya urutan kejadian.'
-      - text: 'Race: request A miss dan membaca nilai lama dari DB, request B memperbarui DB lalu menghapus cache, lalu A menulis nilai lama ke cache'
+        why: 'Penghapusan berhasil. Masalahnya ada pada urutan kejadian.'
+      - text: 'Pembaca lama menulis nilai lama ke cache setelah penghapusan terjadi'
         correct: true
-        why: 'Race klasik cache-aside. Mitigasi: TTL agar tidak basi selamanya, delayed double delete, atau mengisi cache dari CDC/binlog alih-alih dari pembaca.'
+        why: 'Ini balapan klasik cache-aside. Mitigasinya TTL, penghapusan kedua yang ditunda, atau mengisi cache dari log perubahan database.'
       - text: 'TTL terlalu pendek'
         correct: false
         why: 'TTL pendek justru mengurangi dampak masalah ini.'
       - text: 'Cache memakai write-through'
         correct: false
-        why: 'Soal menyebut cache-aside; write-through menulis cache dan DB bersamaan.'
-  - q: 'Mana kebijakan eviction yang paling cocok untuk cache dengan distribusi akses long-tail (sedikit key sangat populer)?'
+        why: 'Soal menyebut cache-aside. Write-through menulis cache dan database bersamaan.'
+  - q: 'Kebijakan pengosongan mana yang paling cocok untuk akses yang sangat condong ke sedikit key populer?'
     options:
-      - text: 'FIFO'
+      - text: 'FIFO, membuang yang masuk paling awal'
         correct: false
-        why: 'Membuang key tertua tanpa peduli popularitas; key viral yang masuk lebih dulu akan dibuang.'
-      - text: 'LRU atau LFU (dengan aproksimasi seperti sampling di Redis)'
+        why: 'Membuang key tertua tanpa peduli popularitas. Key viral yang masuk lebih dulu akan dibuang.'
+      - text: 'LRU atau LFU, menjaga yang baru atau sering dipakai'
         correct: true
-        why: 'LRU menjaga yang baru dipakai, LFU menjaga yang sering dipakai; keduanya mempertahankan hot key. Redis memakai aproksimasi sampling agar murah.'
-      - text: 'Random'
+        why: 'Keduanya mempertahankan key panas. Redis memakai versi perkiraan dengan sampling agar murah.'
+      - text: 'Random, membuang key acak'
         correct: false
-        why: 'Mengabaikan popularitas; hit ratio jauh lebih rendah untuk beban long-tail.'
-      - text: 'Tidak perlu eviction, cukup tambah memori'
+        why: 'Mengabaikan popularitas. Hit ratio jauh lebih rendah untuk beban yang condong.'
+      - text: 'Tanpa pengosongan, cukup tambah memori'
         correct: false
-        why: 'Memori selalu terbatas; tanpa eviction cache berhenti menerima tulisan.'
-  - q: 'Satu key (profil selebriti) menerima 100.000 baca/detik dan node cache yang memegangnya jenuh. Mitigasi yang tepat?'
+        why: 'Memori selalu terbatas. Tanpa pengosongan, cache berhenti menerima tulisan.'
+  - q: 'Satu key profil selebriti menerima 100.000 baca per detik dan node cache-nya jenuh. Mitigasi mana yang tepat?'
     options:
       - text: 'Menaikkan TTL key itu'
         correct: false
         why: 'TTL tidak mengurangi jumlah baca ke node yang sama.'
-      - text: 'Menyalin key ke beberapa node (key dengan suffix acak 1..N) atau menambahkan cache lokal in-process dengan TTL singkat di tiap service'
+      - text: 'Menyalin key ke beberapa node atau menambah cache lokal di tiap service'
         correct: true
-        why: 'Hot key diatasi dengan menyebarkan bacaan: replikasi key ke N salinan atau lapisan cache lokal (L1) di aplikasi yang menyerap mayoritas baca.'
+        why: 'Hot key diatasi dengan menyebarkan bacaan. Salinan key dengan akhiran acak atau cache lokal di aplikasi menyerap mayoritas baca.'
       - text: 'Memindahkan key ke database'
         correct: false
-        why: 'Database jauh lebih tidak sanggup menangani 100.000 baca/detik untuk satu baris.'
+        why: 'Database jauh lebih tidak sanggup menangani 100.000 baca per detik untuk satu baris.'
       - text: 'Menghapus key dari cache'
         correct: false
-        why: 'Semua baca akan jatuh ke DB.'
+        why: 'Semua baca akan jatuh ke database.'
 ---
 
 ## Tujuan belajar
 
 Setelah pelajaran ini kamu bisa:
 
-- Menempatkan cache di lapisan yang tepat (client, CDN, aplikasi, in-process, database) dan tahu apa yang di-cache.
-- Memilih strategi cache-aside, read-through, write-through, write-behind, dan menjelaskan race condition yang menyertainya.
-- Mendiagnosis dan mengobati stampede, hot key, dan penetration, serta merancang cluster cache yang tahan node mati.
+- Menempatkan cache di lapisan yang tepat dan tahu apa yang layak di-cache.
+- Memilih antara cache-aside, read-through, write-through, dan write-behind, serta menjelaskan balapan yang menyertainya.
+- Mendiagnosis dan mengobati stampede, hot key, dan penetration, lalu merancang cluster cache yang tahan node mati.
 
 ## Kenapa cache
 
-Dari pelajaran estimasi: baca 4.000 QPS dan tulis 40 QPS. Database bisa melayani puluhan ribu baca per detik, tapi setiap baca yang bisa dihindari adalah latency yang lebih rendah (RAM ~100 ns vs disk/network ~ms) dan ruang untuk tumbuh. Aturan 80/20 membuat cache sangat efektif: sebagian kecil data menghasilkan sebagian besar baca.
+Dari pelajaran estimasi, kita punya 4.000 request baca dan 40 request tulis per detik. Database bisa melayani puluhan ribu baca per detik. Tetapi setiap baca yang bisa dihindari berarti latency lebih rendah dan ruang untuk tumbuh. Memori diakses dalam 100 nanodetik, sedangkan disk dan jaringan dalam milidetik.
+
+Aturan 80/20 membuat cache sangat efektif. Sebagian kecil data menghasilkan sebagian besar baca.
 
 ## Di mana cache berada
 
-| Lapisan          | Contoh                    | Menyimpan                             |
-| ---------------- | ------------------------- | ------------------------------------- |
-| Client / browser | HTTP cache                | Aset statis                           |
-| CDN              | Edge                      | Konten yang bisa dibagi               |
-| In-process (L1)  | Map/LRU di memori service | Konfigurasi, hot key, hasil komputasi |
-| Distributed (L2) | Redis, Memcached cluster  | Objek, hasil query, sesi              |
-| Database         | Buffer pool, query cache  | Halaman data panas                    |
+| Lapisan                            | Contoh                         | Menyimpan apa                           |
+| ---------------------------------- | ------------------------------ | --------------------------------------- |
+| Client atau browser                | Cache HTTP                     | Aset statis                             |
+| CDN                                | Server edge                    | Konten yang bisa dibagi antar pengguna  |
+| Di dalam proses, sering disebut L1 | Map atau LRU di memori service | Konfigurasi, key panas, hasil komputasi |
+| Terdistribusi, sering disebut L2   | Cluster Redis atau Memcached   | Objek, hasil query, sesi                |
+| Database                           | Buffer pool                    | Halaman data yang sering dibaca         |
 
-Modul ini fokus pada **L2**: cache terdistribusi yang dibagi oleh semua instance service.
+Modul ini fokus pada L2, yaitu cache terdistribusi yang dibagi oleh semua instance service.
 
-## Strategi baca/tulis
+## Strategi baca dan tulis
 
 ```mermaid
 flowchart LR
   subgraph aside[Cache-aside]
-    A1[App] -->|1. get| C1[(Cache)]
+    A1[Aplikasi] -->|1. ambil| C1[(Cache)]
     C1 -. miss .-> A1
-    A1 -->|2. baca| D1[(DB)]
-    A1 -->|3. set| C1
+    A1 -->|2. baca| D1[(Database)]
+    A1 -->|3. simpan| C1
   end
   subgraph wt[Write-through]
-    A2[App] -->|tulis| C2[(Cache)]
-    C2 -->|tulis sinkron| D2[(DB)]
+    A2[Aplikasi] -->|tulis| C2[(Cache)]
+    C2 -->|tulis sinkron| D2[(Database)]
   end
   subgraph wb[Write-behind]
-    A3[App] -->|tulis| C3[(Cache)]
-    C3 -. async, batch .-> D3[(DB)]
+    A3[Aplikasi] -->|tulis| C3[(Cache)]
+    C3 -. async, dikumpulkan .-> D3[(Database)]
   end
 ```
 
-| Strategi                  | Cara                                        | Kelebihan                                                                         | Kekurangan                                                            | Kapan                                                |
-| ------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
-| Cache-aside (lazy)        | App cek cache; miss → baca DB → isi cache   | Sederhana; hanya data yang diminta yang di-cache; cache mati = sistem tetap jalan | Miss pertama lambat; race saat update; app harus mengelola invalidasi | Default untuk read-heavy                             |
-| Read-through              | Cache yang membaca DB saat miss             | App lebih sederhana                                                               | Cache harus tahu cara memuat; vendor-specific                         | Library cache (Caffeine, Guava)                      |
-| Write-through             | Tulis ke cache dan DB sinkron               | Cache selalu segar                                                                | Latency tulis naik; data yang tidak pernah dibaca ikut di-cache       | Data yang pasti dibaca setelah ditulis               |
-| Write-behind (write-back) | Tulis ke cache, DB diperbarui async         | Tulis sangat cepat, batch ke DB                                                   | Risiko kehilangan tulisan bila cache mati; kompleks                   | Counter, metrik, beban tulis tinggi yang toleran     |
-| Write-around              | Tulis langsung ke DB, cache diisi saat baca | Cache tidak dipenuhi data dingin                                                  | Baca setelah tulis = miss                                             | Data yang jarang dibaca setelah ditulis (log, arsip) |
+| Strategi      | Cara kerja                                                       | Kelebihan                                                                                | Kekurangan                                                                              | Kapan dipakai                              |
+| ------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Cache-aside   | Aplikasi cek cache dulu. Bila miss, baca database lalu isi cache | Sederhana, hanya data yang diminta yang di-cache, dan sistem tetap jalan bila cache mati | Miss pertama lambat, ada balapan saat update, dan aplikasi mengelola pembatalan sendiri | Default untuk beban baca tinggi            |
+| Read-through  | Cache sendiri yang membaca database saat miss                    | Aplikasi lebih sederhana                                                                 | Cache harus tahu cara memuat, dan terikat vendor                                        | Library cache seperti Caffeine             |
+| Write-through | Tulis ke cache dan database secara sinkron                       | Cache selalu segar                                                                       | Latency tulis naik, dan data yang tidak pernah dibaca ikut di-cache                     | Data yang pasti dibaca setelah ditulis     |
+| Write-behind  | Tulis ke cache, database diperbarui belakangan                   | Tulis sangat cepat dan bisa dikumpulkan                                                  | Tulisan bisa hilang bila cache mati                                                     | Counter dan metrik yang toleran kehilangan |
+| Write-around  | Tulis langsung ke database, cache diisi saat baca                | Cache tidak dipenuhi data dingin                                                         | Baca setelah tulis selalu miss                                                          | Data yang jarang dibaca setelah ditulis    |
 
-### Invalidasi dan race cache-aside
+### Pembatalan dan balapan cache-aside
 
-Saat data berubah: **hapus** key (bukan perbarui), lalu biarkan pembaca berikutnya mengisi ulang. Urutan yang lazim: tulis DB → hapus cache. Tetap ada jendela race (pembaca lama menulis nilai basi setelah penghapusan). Mitigasi berjenjang: TTL sebagai jaring pengaman, _delayed double delete_ (hapus lagi setelah beberapa ratus ms), atau mengisi cache dari **CDC/binlog** (Facebook memakai pendekatan ini) sehingga cache selalu mengikuti DB.
+Saat data berubah, hapus key, jangan perbarui isinya. Biarkan pembaca berikutnya mengisi ulang. Urutan yang lazim adalah tulis database dulu, lalu hapus cache.
 
-## Eviction dan TTL
+Tetap ada celah balapan. Pembaca lama bisa menulis nilai basi setelah penghapusan terjadi. Ada tiga mitigasi berjenjang. Pertama, TTL sebagai jaring pengaman. Kedua, hapus sekali lagi setelah beberapa ratus milidetik. Ketiga, isi cache dari log perubahan database, seperti yang dilakukan Facebook, sehingga cache selalu mengikuti database.
 
-Memori terbatas; saat penuh, sesuatu harus keluar.
+## Pengosongan dan TTL
 
-| Kebijakan     | Menjaga                | Cocok untuk                                      |
-| ------------- | ---------------------- | ------------------------------------------------ |
-| LRU           | Yang baru dipakai      | Beban umum, long-tail                            |
-| LFU           | Yang sering dipakai    | Hot set stabil; tahan terhadap scan sekali lewat |
-| TTL-based     | Yang belum kedaluwarsa | Data dengan masa berlaku jelas                   |
-| FIFO / random | —                      | Jarang tepat; murah                              |
+Memori terbatas. Saat penuh, sesuatu harus keluar.
 
-Redis dan Memcached memakai **aproksimasi** LRU/LFU (sampling) karena LRU eksak mahal. Beri TTL pada hampir semua key: menutup race, membatasi data basi, dan mencegah key yatim. Tambahkan **jitter** pada TTL agar key yang diisi bersamaan tidak kedaluwarsa bersamaan.
+| Kebijakan      | Menjaga apa                | Cocok untuk                            |
+| -------------- | -------------------------- | -------------------------------------- |
+| LRU            | Key yang baru dipakai      | Beban umum yang condong ke sedikit key |
+| LFU            | Key yang sering dipakai    | Kumpulan key panas yang stabil         |
+| Berbasis TTL   | Key yang belum kedaluwarsa | Data dengan masa berlaku jelas         |
+| FIFO atau acak | Tidak ada yang dijaga      | Jarang tepat, hanya murah              |
+
+Redis dan Memcached memakai perkiraan LRU dan LFU dengan sampling, karena LRU yang tepat terlalu mahal. Beri TTL pada hampir semua key. TTL menutup balapan, membatasi data basi, dan mencegah key yatim. Tambahkan unsur acak pada TTL agar key yang diisi bersamaan tidak kedaluwarsa bersamaan.
 
 ## Tiga kegagalan klasik
 
-| Masalah                        | Gejala                                                          | Obat                                                                                                                                      |
-| ------------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Stampede** (thundering herd) | Key populer kedaluwarsa → ribuan miss serentak ke DB            | Single-flight/lock per key (satu yang mengisi, lainnya menunggu), early/background refresh, TTL dengan jitter, serve-stale sambil refresh |
-| **Hot key**                    | Satu key membebani satu node cache                              | Replikasi key ke N salinan (suffix acak), cache lokal L1 di service, batching request                                                     |
-| **Penetration**                | Request untuk key yang tidak ada selalu miss dan menembus ke DB | Negative cache (simpan "tidak ada" dengan TTL pendek), bloom filter di depan                                                              |
+| Masalah     | Gejalanya                                                            | Obatnya                                                                                                                                 |
+| ----------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Stampede    | Key populer kedaluwarsa, lalu ribuan miss serentak menyerbu database | Satu pengisi per key sementara yang lain menunggu, refresh lebih awal, TTL dengan unsur acak, dan layani data lama sambil mengisi ulang |
+| Hot key     | Satu key membebani satu node cache                                   | Salin key ke beberapa node dengan akhiran acak, cache lokal di service, dan gabungkan request                                           |
+| Penetration | Request untuk key yang tidak ada selalu miss dan tembus ke database  | Simpan jawaban "tidak ada" dengan TTL pendek, dan pasang bloom filter di depan                                                          |
 
-Satu lagi yang lebih jarang disebut: **avalanche**, sebagian besar cache mati sekaligus (restart cluster) dan DB tertimpa seluruh beban. Obat: cache warm-up bertahap, rate limit ke DB, circuit breaker, dan kapasitas DB yang tidak mengasumsikan hit ratio 100%.
+Ada satu lagi yang lebih jarang disebut, yaitu avalanche. Sebagian besar cache mati sekaligus, misalnya saat cluster restart, dan database tertimpa seluruh beban. Obatnya pemanasan cache bertahap, pembatasan laju ke database, circuit breaker, dan kapasitas database yang tidak mengasumsikan semua request kena cache.
 
 ## Arsitektur cluster
 
-- **Partisi**: consistent hashing di sisi client (Memcached) atau hash slot 16.384 (Redis Cluster); menambah node memindahkan sebagian kecil key.
-- **Replikasi**: Redis primary-replica per shard; failover otomatis lewat Sentinel/Cluster. Memcached biasanya tanpa replikasi: node mati = miss, dan itu diterima.
-- **Konsistensi**: cache adalah **salinan yang boleh basi**; sumber kebenaran tetap DB. Jangan menaruh data yang butuh konsistensi kuat hanya di cache.
-- **Ukuran**: dari estimasi 80/20; pantau hit ratio (target &gt; 90% untuk read-heavy), eviction rate, dan latency p99 cache.
+- Partisi memakai consistent hashing di sisi client untuk Memcached, atau 16.384 hash slot untuk Redis Cluster. Menambah node hanya memindahkan sebagian kecil key.
+- Replikasi di Redis memakai primary dan replica per shard, dengan failover otomatis. Memcached biasanya tanpa replikasi. Node mati berarti miss, dan itu diterima.
+- Cache adalah salinan yang boleh basi. Sumber kebenaran tetap database. Jangan menaruh data yang butuh konsistensi kuat hanya di cache.
+- Ukuran cache dihitung dari aturan 80/20. Pantau hit ratio, laju pengosongan, dan latency p99 cache. Target hit ratio untuk beban baca tinggi di atas 90 persen.
 
 ```mermaid
 flowchart LR
-  S1[Service] --> L1a[L1 in-process\nTTL 1-5 s]
-  S2[Service] --> L1b[L1 in-process]
-  L1a --> P[Client/proxy\nconsistent hashing]
+  S1[Service] --> L1a[L1 di dalam proses\nTTL 1 sampai 5 detik]
+  S2[Service] --> L1b[L1 di dalam proses]
+  L1a --> P[Client atau proxy\nconsistent hashing]
   L1b --> P
-  P --> N1[(Cache node 1\n+ replica)]
-  P --> N2[(Cache node 2\n+ replica)]
-  P --> N3[(Cache node 3\n+ replica)]
-  N1 -. miss .-> DB[(DB)]
+  P --> N1[("Node cache 1\ndengan replica")]
+  P --> N2[("Node cache 2\ndengan replica")]
+  P --> N3[("Node cache 3\ndengan replica")]
+  N1 -. miss .-> DB[(Database)]
 ```
 
 ## Trade-off ringkas
 
-| Keputusan                                    | Pilih A bila                                               | Pilih B bila                                                |
-| -------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------- |
-| Cache-aside (A) vs write-through (B)         | Read-heavy, toleransi miss pertama                         | Data pasti dibaca setelah ditulis; ingin cache selalu segar |
-| Redis (A) vs Memcached (B)                   | Struktur data, persistence, replikasi, pub/sub             | Cache murni, multi-thread sederhana, memori maksimal        |
-| Hapus key (A) vs perbarui key (B) saat tulis | Hampir selalu; menghindari menulis nilai yang mungkin basi | Komputasi ulang sangat mahal dan urutan tulis terjamin      |
-| L1 + L2 (A) vs L2 saja (B)                   | Hot key, latency sub-ms                                    | Ingin konsistensi antar instance lebih ketat                |
+| Keputusan                                              | Pilih A bila                                              | Pilih B bila                                                   |
+| ------------------------------------------------------ | --------------------------------------------------------- | -------------------------------------------------------------- |
+| Cache-aside sebagai A, write-through sebagai B         | Beban baca tinggi dan miss pertama bisa diterima          | Data pasti dibaca setelah ditulis dan cache harus selalu segar |
+| Redis sebagai A, Memcached sebagai B                   | Butuh struktur data, persistensi, replikasi, atau pub/sub | Cache murni yang sederhana dengan memori maksimal              |
+| Hapus key sebagai A, perbarui key sebagai B saat tulis | Hampir selalu, untuk menghindari nilai basi               | Komputasi ulang sangat mahal dan urutan tulis terjamin         |
+| L1 dan L2 sebagai A, L2 saja sebagai B                 | Ada hot key dan butuh latency di bawah satu milidetik     | Ingin konsistensi antar instance lebih ketat                   |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Apa yang di-cache, dan dengan key apa?" → Objek per ID, hasil query populer; key = jenis + id + versi.
-- "Bagaimana menjaga cache tetap konsisten dengan DB?" → Hapus saat tulis + TTL; akui jendela race dan mitigasinya.
-- "Cache mati, apa yang terjadi?" → DB menerima semua beban; sebutkan avalanche dan pengaman.
-- "Key populer kedaluwarsa bersamaan?" → Stampede: single-flight, jitter, early refresh.
-- "Berapa besar cache-nya?" → 20% data harian; verifikasi dengan hit ratio.
-- "Kenapa tidak write-through saja?" → Latency tulis dan data dingin yang memenuhi cache.
+- "Apa yang di-cache, dan dengan key apa?" Objek per ID dan hasil query populer. Key berisi jenis, ID, dan versi.
+- "Bagaimana menjaga cache tetap konsisten dengan database?" Hapus saat tulis ditambah TTL. Akui ada celah balapan dan sebutkan mitigasinya.
+- "Cache mati, apa yang terjadi?" Database menerima semua beban. Sebutkan avalanche dan pengamannya.
+- "Key populer kedaluwarsa bersamaan?" Stampede. Satu pengisi per key, TTL acak, refresh lebih awal.
+- "Berapa besar cache-nya?" Dua puluh persen data harian. Verifikasi dengan hit ratio.
+- "Kenapa tidak write-through saja?" Latency tulis naik dan data dingin memenuhi cache.
 
 ## Ringkasan
 
-1. Cache adalah salinan yang boleh basi di depan DB; cache-aside dengan hapus-saat-tulis plus TTL adalah default, dan jendela race-nya harus diakui.
-2. Eviction LRU/LFU menjaga hot set; TTL dengan jitter menutup kebocoran dan mencegah kedaluwarsa serentak.
-3. Tiga kegagalan klasik: stampede (single-flight), hot key (replikasi key/L1), penetration (negative cache/bloom filter); cluster dipartisi dengan consistent hashing dan hit ratio dipantau.
+1. Cache adalah salinan yang boleh basi di depan database. Cache-aside dengan hapus saat tulis ditambah TTL adalah default, dan celah balapannya harus diakui.
+2. Pengosongan LRU atau LFU menjaga key panas. TTL dengan unsur acak menutup kebocoran dan mencegah kedaluwarsa serentak.
+3. Tiga kegagalan klasik punya obat masing-masing: stampede dengan satu pengisi, hot key dengan salinan atau L1, penetration dengan jawaban negatif atau bloom filter.

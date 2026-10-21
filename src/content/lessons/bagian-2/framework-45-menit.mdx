@@ -12,7 +12,7 @@ prerequisites:
     'bagian-2/distributed-cache',
     'bagian-2/message-queue',
   ]
-summary: 'Menggabungkan semua building block menjadi satu urutan yang bisa diulang di bawah tekanan: delapan tahap, anggaran waktu, kalimat pembuka tiap tahap, dan checklist yang dipakai mode Mock Interview.'
+summary: 'Menggabungkan semua building block menjadi satu urutan yang bisa diulang di bawah tekanan: delapan tahap, jatah waktu, kalimat pembuka tiap tahap, dan checklist yang dipakai mode Mock Interview.'
 sources:
   - title: 'System Design Primer — How to approach a system design interview question'
     url: 'https://github.com/donnemartin/system-design-primer#how-to-approach-a-system-design-interview-question'
@@ -23,200 +23,205 @@ sources:
   - title: 'HiredInTech — System Design (pendekatan bertahap, gratis)'
     url: 'https://www.hiredintech.com/system-design'
 quiz:
-  - q: 'Setelah 10 menit high-level design, interviewer diam dan tidak mengarahkan. Langkah berikutnya yang paling tepat?'
+  - q: 'Setelah 10 menit high-level design, interviewer diam dan tidak mengarahkan. Apa langkah berikutnya yang paling tepat?'
     options:
-      - text: 'Terus menambah komponen ke diagram sampai diminta berhenti'
+      - text: 'Terus menambah komponen sampai diminta berhenti'
         correct: false
-        why: 'Menambah kotak tanpa arah terlihat seperti mengisi waktu dan membuat sistem over-engineered.'
-      - text: 'Merangkum desain dalam 2 kalimat, menyebut 2-3 komponen yang paling berisiko, dan menawarkan untuk mendalami salah satunya'
+        why: 'Menambah kotak tanpa arah terlihat seperti mengisi waktu dan membuat sistem berlebihan.'
+      - text: 'Merangkum desain, lalu menawarkan dua atau tiga komponen untuk didalami'
         correct: true
-        why: 'Transisi eksplisit dari lebar ke dalam. Rangkuman memberi interviewer kesempatan mengoreksi; tawaran deep dive menunjukkan kamu tahu di mana risikonya.'
-      - text: 'Bertanya "apakah sudah cukup?"'
+        why: 'Ini transisi yang jelas dari lebar ke dalam. Rangkuman memberi interviewer kesempatan mengoreksi.'
+      - text: 'Bertanya apakah desainnya sudah cukup'
         correct: false
-        why: 'Menyerahkan kendali; sebaiknya kamu yang mengusulkan arah.'
+        why: 'Ini menyerahkan kendali. Sebaiknya kamu yang mengusulkan arah.'
       - text: 'Mulai menulis kode untuk salah satu service'
         correct: false
         why: 'System design interview bukan coding interview.'
-  - q: 'Mana urutan tahap yang dipakai framework ini (dan mode Mock Interview)?'
+  - q: 'Mana urutan tahap yang dipakai framework ini dan mode Mock Interview?'
     options:
-      - text: 'High-level design → requirements → estimasi → API → deep dive'
+      - text: 'High-level design, requirements, estimasi, API, deep dive'
         correct: false
         why: 'Menggambar sebelum requirements adalah kesalahan paling umum.'
-      - text: 'Requirements → estimasi → API → skema data → high-level design → deep dive → evaluasi NFR → wrap-up'
+      - text: 'Requirements, estimasi, API, skema data, high-level, deep dive, evaluasi, penutup'
         correct: true
-        why: 'Urutan ini memastikan setiap kotak di diagram punya alasan (requirements + angka) dan setiap deep dive diikuti pengecekan terhadap NFR.'
-      - text: 'Deep dive → high-level → requirements'
+        why: 'Urutan ini memastikan setiap kotak punya alasan dari requirements dan angka, dan setiap deep dive diikuti pengecekan target.'
+      - text: 'Deep dive, high-level design, lalu requirements'
         correct: false
         why: 'Deep dive tanpa gambaran utuh membuat interviewer kehilangan konteks.'
-      - text: 'Requirements → deep dive → wrap-up'
+      - text: 'Requirements, deep dive, lalu penutup'
         correct: false
-        why: 'Melewati estimasi, API, dan high-level yang menjadi dasar deep dive.'
+        why: 'Ini melewati estimasi, API, dan high-level yang menjadi dasar deep dive.'
   - q: 'Interviewer memberi soal yang belum pernah kamu lihat. Apa yang membuat framework tetap berguna?'
     options:
-      - text: 'Framework berisi jawaban untuk semua soal'
+      - text: 'Framework sudah berisi jawaban untuk semua soal'
         correct: false
-        why: 'Tidak ada; framework adalah proses, bukan kunci jawaban.'
-      - text: 'Tahapnya sama untuk soal apa pun: requirements memaksa kamu memahami soal, estimasi menunjukkan skala, dan building block yang sudah dikuasai dirangkai berdasarkan pola akses yang ditemukan'
+        why: 'Tidak ada. Framework adalah proses, bukan kunci jawaban.'
+      - text: 'Tahapnya sama untuk soal apa pun, dan building block dirangkai dari pola akses'
         correct: true
-        why: 'Hampir semua sistem adalah kombinasi building block yang sama (LB, cache, DB, queue, blob, search) dengan pola akses berbeda. Framework mengubah soal asing menjadi urutan langkah yang dikenal.'
+        why: 'Hampir semua sistem adalah kombinasi building block yang sama. Framework mengubah soal asing menjadi langkah yang dikenal.'
       - text: 'Kamu boleh melewati requirements karena soalnya baru'
         correct: false
-        why: 'Justru soal baru paling membutuhkan klarifikasi.'
+        why: 'Soal baru justru paling membutuhkan klarifikasi.'
       - text: 'Framework hanya berlaku untuk soal yang sudah dihafal'
         correct: false
-        why: 'Kebalikannya; hafalan tidak berguna untuk soal baru, proses iya.'
+        why: 'Kebalikannya. Hafalan tidak berguna untuk soal baru, proses yang berguna.'
   - q: 'Di tahap evaluasi, apa yang paling penting untuk disebut?'
     options:
       - text: 'Semua teknologi alternatif yang tidak dipilih'
         correct: false
-        why: 'Terlalu lebar; fokus pada apakah desain memenuhi target.'
-      - text: 'Pengecekan tiap NFR yang ditulis di awal terhadap desain, single point of failure dan bottleneck pertama, serta apa yang akan diubah bila skala naik 10x'
+        why: 'Terlalu lebar. Fokuslah pada apakah desain memenuhi target.'
+      - text: 'Pengecekan tiap target non-fungsional, titik lemah, dan bottleneck pertama saat beban 10 kali'
         correct: true
-        why: 'Evaluasi menutup lingkaran: requirements di awal menjadi alat ukur di akhir. Interviewer melihat apakah kamu jujur tentang kelemahan desainmu.'
-      - text: 'Perkiraan biaya cloud bulanan'
+        why: 'Evaluasi menutup lingkaran. Requirements di awal menjadi alat ukur di akhir.'
+      - text: 'Perkiraan biaya cloud per bulan'
         correct: false
-        why: 'Bagus sebagai bonus, bukan inti.'
+        why: 'Bagus sebagai bonus, bukan inti evaluasi.'
       - text: 'Mengulang seluruh desain dari awal'
         correct: false
-        why: 'Membuang waktu; rangkuman 2 kalimat cukup.'
+        why: 'Membuang waktu. Rangkuman dua kalimat sudah cukup.'
 ---
 
 ## Tujuan belajar
 
 Setelah pelajaran ini kamu bisa:
 
-- Menjalankan delapan tahap yang sama untuk soal apa pun, dengan anggaran waktu yang total 45 menit.
-- Memakai kalimat pembuka dan checklist tiap tahap sehingga tidak ada yang terlewat di bawah tekanan.
+- Menjalankan delapan tahap yang sama untuk soal apa pun, dengan jatah waktu yang totalnya 45 menit.
+- Memakai kalimat pembuka dan checklist tiap tahap supaya tidak ada yang terlewat di bawah tekanan.
 - Merangkai building block dari Bagian 2 berdasarkan pola akses yang ditemukan di requirements dan estimasi.
 
 ## Kenapa butuh framework
 
-Di bawah tekanan, orang kembali ke kebiasaan. Kalau kebiasaannya "langsung menggambar", itulah yang terjadi. Framework adalah kebiasaan yang disengaja: urutan tetap yang membuat setiap keputusan punya alasan dan setiap menit punya tujuan. Mode Mock Interview di platform ini memakai urutan dan anggaran waktu yang sama, jadi latihlah sampai otomatis.
+Di bawah tekanan, orang kembali ke kebiasaan. Kalau kebiasaannya langsung menggambar, itulah yang terjadi. Framework adalah kebiasaan yang disengaja. Urutannya tetap, sehingga setiap keputusan punya alasan dan setiap menit punya tujuan. Mode Mock Interview di platform ini memakai urutan dan jatah waktu yang sama, jadi latihlah sampai otomatis.
 
 ## Delapan tahap
 
 ```mermaid
 flowchart TD
-  R[1. Requirements\n5 mnt] --> E[2. Estimasi\n4 mnt]
-  E --> A[3. API\n4 mnt]
-  A --> D[4. Skema data\n4 mnt]
-  D --> H[5. High-level design\n10 mnt]
-  H --> DD[6. Deep dive\n12 mnt]
-  DD --> EV[7. Evaluasi NFR\n4 mnt]
-  EV --> W[8. Wrap-up\n2 mnt]
-  R -. alat ukur .-> EV
-  E -. angka → keputusan .-> H
+  R["1. Requirements\n5 menit"] --> E["2. Estimasi\n4 menit"]
+  E --> A["3. API\n4 menit"]
+  A --> D["4. Skema data\n4 menit"]
+  D --> H["5. High-level design\n10 menit"]
+  H --> DD["6. Deep dive\n12 menit"]
+  DD --> EV["7. Evaluasi target\n4 menit"]
+  EV --> W["8. Penutup\n2 menit"]
+  R -. menjadi alat ukur .-> EV
+  E -. angka menjadi keputusan .-> H
 ```
 
-### 1. Requirements (5 menit)
+### 1. Requirements, 5 menit
 
-Kalimat pembuka: "Sebelum menggambar, saya ingin memastikan scope-nya."
+Kalimat pembuka: "Sebelum menggambar, saya ingin memastikan cakupannya."
 
-- Functional: 3–5 fitur inti; tulis yang **out of scope** secara eksplisit.
-- Non-functional: skala (DAU, data), latency target, konsistensi vs availability per fitur, durability, keamanan/privasi bila relevan.
-- Tanya: siapa user, rasio baca/tulis, pola trafik (peak), apakah global.
+- Tulis 3 sampai 5 fitur inti, dan tulis juga yang sengaja tidak dibahas.
+- Tulis target non-fungsional dengan angka: skala pengguna dan data, latency, konsistensi atau ketersediaan per fitur, durability, dan keamanan bila relevan.
+- Tanyakan siapa penggunanya, rasio baca dan tulis, pola trafik, dan apakah sistemnya global.
 
-Checklist: fitur inti ditulis · out of scope ditulis · NFR punya angka · asumsi dikonfirmasi.
+Checklist: fitur inti tertulis, cakupan yang dilewati tertulis, target punya angka, asumsi dikonfirmasi.
 
-### 2. Estimasi (4 menit)
+### 2. Estimasi, 4 menit
 
 Kalimat pembuka: "Saya hitung cepat supaya tahu komponen mana yang perlu scaling."
 
-- QPS baca/tulis + peak (2–3x), storage 5 tahun, bandwidth, ukuran cache (80/20).
-- Setiap angka diakhiri keputusan: "jadi butuh cache", "jadi satu DB cukup untuk tulis".
+- Hitung QPS baca dan tulis, lalu puncaknya sekitar 2 sampai 3 kali rata-rata.
+- Hitung storage 5 tahun, bandwidth, dan ukuran cache dengan aturan 80/20.
+- Akhiri setiap angka dengan keputusan, misalnya "jadi butuh cache" atau "jadi satu database cukup untuk tulis".
 
-Checklist: QPS · storage · bandwidth · cache · tiap angka → keputusan.
+Checklist: QPS, storage, bandwidth, cache, dan tiap angka menghasilkan keputusan.
 
-### 3. API (4 menit)
+### 3. API, 4 menit
 
 Kalimat pembuka: "Ini kontrak yang dipakai client."
 
-- Endpoint utama (buat, baca, daftar), parameter, paginasi cursor, idempotency key untuk tulis, auth, rate limit, error utama.
+- Tulis endpoint utama untuk membuat, membaca, dan mendaftar.
+- Sebutkan parameter, paginasi dengan cursor, dan idempotency key untuk request tulis.
+- Sebutkan autentikasi, rate limit, dan error utama.
 
-Checklist: endpoint inti · idempotency · paginasi · error.
+Checklist: endpoint inti, idempotency, paginasi, error.
 
-### 4. Skema data (4 menit)
+### 4. Skema data, 4 menit
 
 Kalimat pembuka: "Pola aksesnya menentukan model datanya."
 
-- Entitas dan relasi, kunci akses utama, pilihan jenis DB dengan alasan (lihat modul database), kandidat shard key, apa yang disimpan di blob store vs DB.
+- Tulis entitas dan relasinya, serta kunci akses utama.
+- Pilih jenis database dengan alasan, lihat modul database.
+- Sebutkan kandidat shard key, dan pisahkan apa yang masuk blob store dari apa yang masuk database.
 
-Checklist: entitas · kunci akses · jenis DB + alasan · shard key · biner ke blob.
+Checklist: entitas, kunci akses, jenis database dengan alasan, shard key, biner ke blob store.
 
-### 5. High-level design (10 menit)
+### 5. High-level design, 10 menit
 
-Kalimat pembuka: "Saya gambar alur end-to-end dulu, baru kita dalami."
+Kalimat pembuka: "Saya gambar alurnya dari awal sampai akhir dulu, baru kita dalami."
 
-- Client → DNS/CDN → LB → service → cache → DB, plus queue/worker untuk kerja async, blob store untuk file, search bila ada pencarian.
-- Jelaskan **satu alur baca** dan **satu alur tulis** end-to-end.
-- Kaitkan ke angka: "4.000 QPS baca lewat cache; 40 tulis ke primary".
+- Gambar dari client ke DNS atau CDN, load balancer, service, cache, dan database. Tambahkan queue dan worker untuk kerja asinkron, blob store untuk file, dan search bila ada pencarian.
+- Jelaskan satu alur baca dan satu alur tulis dari awal sampai akhir.
+- Kaitkan ke angka, misalnya "4.000 request baca per detik lewat cache, 40 tulis ke primary".
 
-Checklist: semua fitur inti punya jalur · alur baca & tulis dijelaskan · komponen diberi nama · angka dirujuk.
+Checklist: semua fitur inti punya jalur, alur baca dan tulis dijelaskan, komponen diberi nama, angka dirujuk.
 
-### 6. Deep dive (12 menit)
+### 6. Deep dive, 12 menit
 
-Kalimat pembuka: "Tiga bagian yang paling berisiko adalah X, Y, Z. Mana yang ingin Anda dalami?"
+Kalimat pembuka: "Tiga bagian yang paling berisiko adalah X, Y, dan Z. Mana yang ingin Anda dalami?"
 
-- Pilih 2–3 komponen kritis: biasanya data (partisi, replikasi, konsistensi), cache (strategi, stampede, hot key), queue (semantik, idempotency, urutan), atau komponen khusus soal (ID generator, geo-index, fanout).
-- Untuk tiap komponen: cara kerja internal, failure mode, alternatif yang ditolak.
+- Pilih 2 sampai 3 komponen kritis. Biasanya data dengan partisi, replikasi, dan konsistensinya. Lalu cache dengan strateginya dan key panasnya. Lalu queue dengan jaminan pengiriman dan urutannya. Atau komponen khusus soal, seperti ID generator atau index geospasial.
+- Untuk tiap komponen, jelaskan cara kerja dalamnya, cara gagalnya, dan alternatif yang ditolak.
 
-Checklist: 2–3 komponen · internal · failure mode · alternatif + alasan · tidak tenggelam &gt; 5 menit di satu komponen tanpa cek ke interviewer.
+Checklist: 2 sampai 3 komponen, cara kerja dalam, cara gagal, alternatif dan alasan, dan tidak lebih dari 5 menit di satu komponen tanpa mengecek ke interviewer.
 
-### 7. Evaluasi NFR (4 menit)
+### 7. Evaluasi target, 4 menit
 
 Kalimat pembuka: "Saya cek lagi terhadap target di awal."
 
-- Tabel cepat: tiap NFR → bagaimana dipenuhi → risiko tersisa.
-- Single point of failure, bottleneck pertama saat 10x, apa yang didegradasi saat komponen X mati.
-- Observability: metrik dan alert utama.
+- Buat tabel cepat: tiap target, cara memenuhinya, risiko yang tersisa.
+- Sebutkan titik yang kalau mati menjatuhkan semuanya, bottleneck pertama saat beban 10 kali, dan apa yang dikurangi saat komponen X mati.
+- Sebutkan metrik dan alert utama.
 
-Checklist: tiap NFR dicek · SPOF · bottleneck 10x · degradasi · monitoring.
+Checklist: tiap target dicek, titik lemah, bottleneck 10 kali, degradasi, pemantauan.
 
-### 8. Wrap-up (2 menit)
+### 8. Penutup, 2 menit
 
-Kalimat pembuka: "Kalau ada waktu lagi, saya akan…"
+Kalimat pembuka: "Kalau ada waktu lagi, saya akan..."
 
-- Rangkuman 2 kalimat, bagian yang paling tidak yakin, perbaikan berikutnya.
+- Rangkum dalam dua kalimat, sebut bagian yang paling tidak kamu yakini, dan sebut perbaikan berikutnya.
 
 ## Peta building block ke sinyal requirements
 
-| Sinyal di requirements/estimasi                | Building block yang biasanya masuk                   |
-| ---------------------------------------------- | ---------------------------------------------------- |
-| Baca ≫ tulis                                   | Cache, read replica, CDN                             |
-| Tulis tinggi / data besar                      | Sharding, KV/wide-column, LSM store                  |
-| Kerja lambat atau rentan gagal di request path | Message queue + worker, task scheduler               |
-| Banyak pihak peduli satu kejadian              | Pub-sub, outbox                                      |
-| File besar                                     | Blob store + presigned URL + CDN                     |
-| Pencarian teks / faset                         | Distributed search via CDC                           |
-| ID unik di banyak node                         | Snowflake / UUID v7                                  |
-| Counter panas                                  | Sharded counter, agregasi memori                     |
-| Abuse / kuota                                  | Rate limiter di gateway                              |
-| Global, latency sensitif                       | DNS geo-routing, multi-region, CDN                   |
-| "Bagaimana kamu tahu ini sehat?"               | Monitoring (RED, SLO alert), logging dengan trace_id |
+| Sinyal di requirements atau estimasi               | Building block yang biasanya masuk                                    |
+| -------------------------------------------------- | --------------------------------------------------------------------- |
+| Baca jauh lebih banyak dari tulis                  | Cache, read replica, CDN                                              |
+| Tulis tinggi atau data besar                       | Sharding, key-value atau wide-column store, LSM store                 |
+| Kerja lambat atau rentan gagal di jalur request    | Message queue dengan worker, task scheduler                           |
+| Banyak pihak peduli satu kejadian                  | Pub-sub, outbox                                                       |
+| File besar                                         | Blob store dengan presigned URL dan CDN                               |
+| Pencarian teks atau faset                          | Distributed search yang diisi lewat CDC                               |
+| ID unik di banyak node                             | ID ala Snowflake atau UUID v7                                         |
+| Counter panas                                      | Sharded counter, agregasi memori                                      |
+| Penyalahgunaan atau kuota                          | Rate limiter di gateway                                               |
+| Global dan sensitif latency                        | DNS geo-routing, multi-region, CDN                                    |
+| Pertanyaan "bagaimana kamu tahu sistem ini sehat?" | Monitoring dengan RED dan alert berbasis SLO, logging dengan trace_id |
 
 ## Manajemen waktu
 
-- Tulis agenda 8 tahap di sudut papan; coret saat selesai.
-- Kalau sebuah tahap melewati anggaran 50%, kunci asumsi dan lanjut; katakan itu keras-keras.
-- Interviewer yang mengarahkan ke satu area berarti itu yang dinilai; ikuti, tapi tetap sisakan 5 menit untuk evaluasi dan wrap-up.
+- Tulis agenda 8 tahap di sudut papan dan coret saat selesai.
+- Kalau sebuah tahap melewati jatahnya 50%, kunci asumsi dan lanjut. Katakan itu keras-keras.
+- Interviewer yang mengarahkan ke satu area berarti area itu yang dinilai. Ikuti, tetapi sisakan 5 menit untuk evaluasi dan penutup.
 
 ## Trade-off: seberapa kaku memakai framework
 
-| Pilihan                       | Kelebihan                              | Kekurangan                                         | Saran                                                              |
-| ----------------------------- | -------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
-| Kaku, urutan selalu sama      | Tidak ada yang terlewat; mudah dilatih | Terasa mekanis bila interviewer punya alur sendiri | Default; sebutkan agendanya di awal agar interviewer bisa mengubah |
-| Adaptif mengikuti interviewer | Terasa kolaboratif                     | Mudah kehilangan tahap (sering evaluasi)           | Ikuti arahan, tapi kembali ke checklist di 5 menit terakhir        |
-| Melompat ke deep dive favorit | Menunjukkan keahlian cepat             | Interviewer tidak melihat gambaran utuh            | Hanya bila interviewer memintanya                                  |
+| Pilihan                        | Kelebihan                                 | Kekurangan                                         | Saran                                                                            |
+| ------------------------------ | ----------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Kaku dengan urutan selalu sama | Tidak ada yang terlewat dan mudah dilatih | Terasa mekanis bila interviewer punya alur sendiri | Jadikan default, dan sebutkan agendanya di awal supaya interviewer bisa mengubah |
+| Adaptif mengikuti interviewer  | Terasa kolaboratif                        | Mudah kehilangan tahap, terutama evaluasi          | Ikuti arahan, tetapi kembali ke checklist di 5 menit terakhir                    |
+| Melompat ke deep dive favorit  | Menunjukkan keahlian dengan cepat         | Interviewer tidak melihat gambaran utuh            | Hanya bila interviewer memintanya                                                |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Mau mulai dari mana?" → Requirements; sebut agenda 8 tahap.
-- "Kita hanya punya 30 menit." → Potong: estimasi 2, API+data 4, HLD 8, deep dive 8, evaluasi 3, wrap-up 1; tetap semua tahap.
-- "Lewati estimasi, langsung desain." → Patuhi, tapi sebutkan asumsi skala dalam satu kalimat karena desain bergantung padanya.
-- "Mana yang paling kamu khawatirkan?" → Jawaban dari tahap evaluasi; selalu siapkan satu.
+- "Mau mulai dari mana?" Dari requirements. Sebutkan agenda 8 tahapnya.
+- "Kita hanya punya 30 menit." Potong jatahnya: estimasi 2, API dan data 4, high-level 8, deep dive 8, evaluasi 3, penutup 1. Semua tahap tetap ada.
+- "Lewati estimasi, langsung desain." Patuhi, tetapi sebutkan asumsi skala dalam satu kalimat karena desain bergantung padanya.
+- "Mana yang paling kamu khawatirkan?" Jawab dari tahap evaluasi. Selalu siapkan satu.
 
 ## Ringkasan
 
-1. Delapan tahap dengan anggaran 45 menit: requirements → estimasi → API → skema data → high-level → deep dive → evaluasi → wrap-up; requirements di awal menjadi alat ukur di akhir.
-2. Setiap tahap punya kalimat pembuka dan checklist; angka dari estimasi harus terlihat sebagai keputusan di high-level design.
-3. Soal baru diubah menjadi kombinasi building block yang dikenal lewat sinyal requirements; latih urutannya di mode Mock Interview sampai otomatis.
+1. Delapan tahap dengan jatah 45 menit: requirements, estimasi, API, skema data, high-level, deep dive, evaluasi, penutup. Requirements di awal menjadi alat ukur di akhir.
+2. Setiap tahap punya kalimat pembuka dan checklist. Angka dari estimasi harus terlihat sebagai keputusan di high-level design.
+3. Soal baru diubah menjadi kombinasi building block yang dikenal lewat sinyal requirements. Latih urutannya di mode Mock Interview sampai otomatis.

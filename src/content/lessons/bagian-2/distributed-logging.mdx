@@ -5,7 +5,7 @@ order: 14
 minutes: 40
 type: lesson
 prerequisites: ['bagian-2/distributed-monitoring', 'bagian-2/message-queue', 'bagian-2/distributed-search']
-summary: 'Ribuan service, satu tempat mencari "kenapa": log terstruktur, agen pengumpul, buffer, penyimpanan terindeks, dan cara menjaga biayanya tetap waras.'
+summary: 'Ribuan service, satu tempat untuk mencari "kenapa": log terstruktur, agen pengumpul, buffer, penyimpanan terindeks, dan cara menjaga biayanya tetap waras.'
 sources:
   - title: 'Jay Kreps — The Log: What every software engineer should know about real-time data’s unifying abstraction'
     url: 'https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying'
@@ -18,142 +18,152 @@ sources:
   - title: 'Google SRE Workbook — Monitoring (logs vs metrics)'
     url: 'https://sre.google/workbook/monitoring/'
 quiz:
-  - q: 'Service menulis log dengan panggilan HTTP sinkron ke server log terpusat. Apa risikonya?'
+  - q: 'Sebuah service menulis log dengan panggilan HTTP langsung ke server log terpusat. Apa risikonya?'
     options:
-      - text: 'Tidak ada; cara ini paling andal'
+      - text: 'Tidak ada risiko, cara ini paling andal'
         correct: false
-        why: 'Justru menggabungkan availability service dengan server log.'
-      - text: 'Request user menjadi lambat atau gagal saat server log lambat/mati, dan lonjakan log menjadi lonjakan panggilan jaringan'
+        why: 'Cara ini justru membuat ketersediaan service bergantung pada server log.'
+      - text: 'Request pengguna ikut lambat atau gagal saat server log bermasalah'
         correct: true
-        why: 'Logging harus non-blocking: tulis ke stdout/file lokal, agen di host membaca dan mengirim secara asinkron dengan buffer dan retry. Service tidak boleh bergantung pada pipeline log.'
-      - text: 'Log akan terduplikasi'
+        why: 'Logging harus tidak memblokir. Tulis ke stdout atau file lokal, lalu biarkan agen mengirimnya secara asinkron.'
+      - text: 'Log pasti terduplikasi di server'
         correct: false
-        why: 'Duplikasi mungkin terjadi pada retry, tapi bukan risiko utama pola sinkron.'
+        why: 'Duplikasi mungkin terjadi saat pengiriman ulang, tetapi bukan risiko utama pola ini.'
       - text: 'Server log tidak bisa menerima HTTP'
         correct: false
-        why: 'Bisa; masalahnya coupling.'
-  - q: 'Kenapa log sebaiknya terstruktur (JSON dengan field) dan memuat trace_id?'
+        why: 'Bisa saja. Masalahnya adalah keterikatan antara service dan server log.'
+  - q: 'Kenapa log sebaiknya terstruktur dalam bentuk JSON dan memuat trace_id?'
     options:
-      - text: 'Supaya ukurannya lebih kecil'
+      - text: 'Supaya ukuran log lebih kecil'
         correct: false
-        why: 'JSON justru sedikit lebih besar; manfaatnya di pencarian dan korelasi.'
-      - text: 'Supaya bisa difilter dan diagregasi per field (service, level, user_id) tanpa regex, dan semua log satu request lintas service bisa dirangkai lewat trace_id'
+        why: 'JSON justru sedikit lebih besar. Manfaatnya ada pada pencarian dan korelasi.'
+      - text: 'Supaya bisa difilter per field dan semua log satu request bisa dirangkai'
         correct: true
-        why: 'Log teks bebas memaksa parsing rapuh. Field eksplisit + trace_id mengubah log dari "grep" menjadi query, dan menghubungkannya dengan trace dan metrik.'
+        why: 'Log teks bebas memaksa parsing yang rapuh. Field yang jelas dan trace_id mengubah log dari grep menjadi query.'
       - text: 'Karena JSON wajib untuk Elasticsearch'
         correct: false
-        why: 'Elasticsearch bisa mem-parse teks; struktur adalah kebutuhan desain, bukan syarat teknis.'
+        why: 'Elasticsearch bisa mem-parse teks. Struktur adalah kebutuhan desain, bukan syarat teknis.'
       - text: 'Supaya log tidak bisa dibaca manusia'
         correct: false
         why: 'Log terstruktur tetap mudah dibaca dengan viewer.'
   - q: 'Biaya penyimpanan log meledak. Langkah mana yang paling efektif tanpa kehilangan kemampuan investigasi?'
     options:
-      - text: 'Menonaktifkan semua log level INFO di produksi'
+      - text: 'Mematikan semua log level INFO di produksi'
         correct: false
-        why: 'Kehilangan konteks saat insiden; terlalu kasar.'
-      - text: 'Retensi bertingkat (panas terindeks beberapa hari, hangat di object storage murah lebih lama), sampling untuk log bervolume tinggi yang repetitif, dan memindahkan angka yang dihitung berulang ke metrik'
+        why: 'Kamu kehilangan konteks saat insiden. Ini terlalu kasar.'
+      - text: 'Retensi bertingkat, sampling untuk log repetitif, dan memindahkan hitungan ke metrik'
         correct: true
-        why: 'Sebagian besar biaya ada di index panas. Pindahkan ke tier murah, sample yang repetitif (sukses 200 yang identik), dan jangan pakai log sebagai pengganti metrik.'
+        why: 'Sebagian besar biaya ada di index panas. Pindahkan ke tier murah dan sample log sukses yang identik.'
       - text: 'Menyimpan log hanya di disk lokal tiap server'
         correct: false
-        why: 'Hilang saat server diganti; tidak bisa dicari lintas service.'
-      - text: 'Mengompresi JSON menjadi teks bebas'
+        why: 'Log hilang saat server diganti dan tidak bisa dicari lintas service.'
+      - text: 'Mengubah JSON menjadi teks bebas'
         correct: false
-        why: 'Kehilangan struktur tanpa penghematan berarti; kompresi dilakukan di storage.'
-  - q: 'Agen log di host mendeteksi backend log tidak bisa dihubungi selama 10 menit. Perilaku yang diinginkan?'
+        why: 'Kamu kehilangan struktur tanpa penghematan berarti. Kompresi dilakukan di storage.'
+  - q: 'Agen log di host tidak bisa menghubungi backend selama 10 menit. Perilaku apa yang diinginkan?'
     options:
       - text: 'Membuang semua log baru'
         correct: false
-        why: 'Kehilangan data saat justru mungkin sedang insiden.'
-      - text: 'Menahan di buffer disk lokal dengan batas ukuran, mengirim ulang dengan backoff saat backend pulih, dan bila buffer penuh membuang yang paling tua sambil mencatat metrik drop'
+        why: 'Kamu kehilangan data justru saat mungkin sedang terjadi insiden.'
+      - text: 'Menahan di buffer disk berbatas, lalu mengirim ulang dengan jeda saat backend pulih'
         correct: true
-        why: 'Buffer lokal menoleransi gangguan pendek; batas dan kebijakan drop eksplisit mencegah disk penuh menjatuhkan aplikasi; metrik drop membuat kehilangan terlihat.'
+        why: 'Buffer lokal menoleransi gangguan pendek. Batas ukuran mencegah disk penuh, dan metrik drop membuat kehilangan terlihat.'
       - text: 'Memblokir aplikasi sampai backend pulih'
         correct: false
         why: 'Pipeline log tidak boleh menjatuhkan aplikasi.'
       - text: 'Mengirim log ke stdout host lain'
         correct: false
-        why: 'Tidak menyelesaikan masalah backend yang tidak tersedia.'
+        why: 'Ini tidak menyelesaikan backend yang tidak tersedia.'
 ---
 
 ## Tujuan belajar
 
 Setelah pelajaran ini kamu bisa:
 
-- Merancang pipeline log: aplikasi → agen → buffer/queue → pemroses → penyimpanan terindeks + arsip → query.
-- Menjelaskan prinsip log terstruktur, korelasi lewat trace_id, dan kenapa logging harus non-blocking.
-- Mengendalikan biaya dan volume: level, sampling, retensi bertingkat, kardinalitas.
+- Merancang pipeline log dari aplikasi, agen, buffer, pemroses, sampai penyimpanan dan query.
+- Menjelaskan prinsip log terstruktur, korelasi lewat trace_id, dan kenapa logging tidak boleh memblokir.
+- Mengendalikan biaya dan volume dengan level, sampling, retensi bertingkat, dan kardinalitas yang terjaga.
 
 ## Masalah yang diselesaikan
 
-Satu server: `tail -f app.log`. Seribu container yang hidup beberapa jam: log tersebar, hilang saat container mati, dan satu request melintasi sepuluh service. Distributed logging mengumpulkan semuanya ke satu tempat yang **bisa dicari**, dengan konteks yang cukup untuk menjawab "kenapa request ini gagal pukul 03:12".
+Di satu server, kamu cukup menjalankan `tail -f app.log`. Di seribu container yang hidup beberapa jam, log tersebar dan hilang saat container mati. Satu request pun melintasi sepuluh service. Distributed logging mengumpulkan semuanya ke satu tempat yang bisa dicari, dengan konteks yang cukup untuk menjawab kenapa sebuah request gagal pukul 03:12.
 
-Peran log dibanding metrik dan trace: log menjawab **kenapa** (detail kejadian), metrik menjawab **ada apa dan seberapa parah**, trace menjawab **di mana**. Log adalah yang paling mahal per kejadian, maka harus dikelola.
+Peran log dibanding dua sinyal lain:
+
+- Log menjawab kenapa, karena berisi detail kejadian.
+- Metrik menjawab ada apa dan seberapa parah.
+- Trace menjawab di mana waktu habis.
+
+Log paling mahal per kejadian, jadi harus dikelola dengan sadar.
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
-  subgraph host[Host / pod]
-    APP[Aplikasi\nlog JSON ke stdout] --> AG["Agen\n(Fluent Bit / OTel collector)\nparse, enrich, buffer disk"]
+  subgraph host[Host atau pod]
+    APP["Aplikasi\nlog JSON ke stdout"] --> AG["Agen\nFluent Bit atau OTel collector\nparse, tambah metadata, buffer disk"]
   end
-  AG --> Q[["Queue / log stream\n(Kafka), partisi by service"]]
-  Q --> PR[Pemroses\nnormalisasi, redaksi PII,\nsampling, routing]
-  PR --> HOT[(Penyimpanan panas terindeks\n3-14 hari)]
-  PR --> COLD[(Arsip object storage\nterkompresi, 1+ tahun)]
-  HOT --> UI[Query & alert\ncari by field, trace_id]
-  COLD -. rehydrate saat perlu .-> UI
+  AG --> Q[["Queue atau log stream\nKafka, partisi per service"]]
+  Q --> PR["Pemroses\nnormalisasi, redaksi PII,\nsampling, routing"]
+  PR --> HOT[("Penyimpanan panas terindeks\n3 sampai 14 hari")]
+  PR --> COLD[("Arsip object storage\nterkompresi, 1 tahun atau lebih")]
+  HOT --> UI["Query dan alert\ncari per field, per trace_id"]
+  COLD -. muat ulang bila perlu .-> UI
 ```
 
-1. **Aplikasi** menulis log terstruktur ke stdout/file lokal; tidak pernah memanggil jaringan untuk log. Field standar: timestamp (UTC, ISO), level, service, versi, host, `trace_id`/`span_id`, `request_id`, pesan, dan field domain.
-2. **Agen per host** (daemon/sidecar) membaca stdout/file, mem-parse, menambah metadata (pod, namespace, region), menyimpan **buffer di disk** dengan batas, dan mengirim asinkron dengan batch, kompresi, backoff. Kegagalan backend tidak menyentuh aplikasi.
-3. **Queue** (Kafka) memisahkan laju produksi dari konsumsi, menyerap lonjakan, dan memungkinkan beberapa consumer (index, arsip, deteksi anomali).
-4. **Pemroses** menormalkan skema, meredaksi data sensitif (PII, token), melakukan sampling, dan merutekan ke tier penyimpanan.
-5. **Penyimpanan**: tier **panas** terindeks (inverted index per field ala Elasticsearch/OpenSearch, atau index-label-saja ala Loki dengan chunk di object storage) untuk pencarian cepat; tier **dingin** di object storage terkompresi untuk kepatuhan dan investigasi jarang.
-6. **Query/alert**: cari by field dan rentang waktu, tampilkan semua log satu `trace_id`, alert pola (mis. lonjakan ERROR per service), dashboard dari log teragregasi.
+Enam tahapnya:
+
+1. Aplikasi menulis log terstruktur ke stdout atau file lokal, dan tidak pernah memanggil jaringan untuk log. Field standarnya adalah timestamp UTC, level, nama service, versi, host, trace_id, request_id, pesan, dan field domain.
+2. Agen di tiap host membaca stdout atau file, mem-parse, lalu menambah metadata seperti nama pod dan region. Agen menyimpan buffer di disk dengan batas ukuran, lalu mengirim secara asinkron dengan batch, kompresi, dan jeda yang membesar saat gagal.
+3. Queue seperti Kafka memisahkan laju produksi dari laju konsumsi. Ia menyerap lonjakan dan memungkinkan beberapa consumer membaca log yang sama.
+4. Pemroses menormalkan skema, meredaksi data sensitif seperti PII dan token, menyampel log yang repetitif, dan merutekan ke tier penyimpanan.
+5. Penyimpanan panas mengindeks log untuk pencarian cepat. Penyimpanan dingin menyimpan arsip terkompresi di object storage untuk kepatuhan dan investigasi yang jarang.
+6. Lapisan query mencari per field dan rentang waktu, menampilkan semua log satu trace_id, dan memicu alert dari pola seperti lonjakan error per service.
+
+Ada dua gaya penyimpanan panas. Gaya pertama mengindeks setiap field dengan inverted index, seperti Elasticsearch atau OpenSearch. Gaya kedua hanya mengindeks label dan menyimpan isi log sebagai chunk di object storage, seperti Loki.
 
 ## Prinsip yang menentukan kualitas
 
-- **Non-blocking**: log tidak boleh memperlambat atau menjatuhkan request. Tulis lokal, kirim asinkron.
-- **Terstruktur**: JSON dengan field; pesan manusia tetap ada, tetapi data di field.
-- **Korelasi**: `trace_id` di setiap baris; propagasi lewat header (W3C Trace Context) antar service.
-- **Idempotent/ordering**: duplikat mungkin terjadi saat retry; timestamp dari sumber + id baris membantu dedup; urutan lintas host tidak dijamin, pakai timestamp sumber dan toleransi.
-- **Keamanan**: redaksi PII/kredensial sebelum penyimpanan, akses berbasis peran, retensi sesuai regulasi.
-- **Skema**: nama field konsisten lintas tim (`user_id` bukan `uid`/`userId`), tipe stabil agar index tidak rusak.
+- Tidak memblokir. Log tidak boleh memperlambat atau menjatuhkan request. Tulis lokal, kirim asinkron.
+- Terstruktur. Pakai JSON dengan field yang jelas. Pesan untuk manusia tetap ada, tetapi data ada di field.
+- Berkorelasi. Setiap baris memuat trace_id. Nilainya diteruskan antar service lewat header, misalnya standar W3C Trace Context.
+- Toleran duplikat. Pengiriman ulang bisa membuat baris ganda. Timestamp sumber dan id baris membantu dedup. Urutan lintas host tidak dijamin, jadi pakai timestamp sumber dan trace untuk urutan sebab akibat.
+- Aman. Redaksi PII dan kredensial sebelum disimpan, akses berbasis peran, dan retensi sesuai regulasi.
+- Konsisten. Nama field sama lintas tim, misalnya selalu `user_id`, dengan tipe yang stabil supaya index tidak rusak.
 
 ## Biaya dan volume
 
-| Tuas               | Cara                                                               | Efek                        |
-| ------------------ | ------------------------------------------------------------------ | --------------------------- |
-| Level              | DEBUG off di produksi, bisa dinaikkan per service sementara        | Volume turun drastis        |
-| Sampling           | Simpan 1% log sukses yang repetitif, 100% error dan request lambat | Volume turun, sinyal tetap  |
-| Retensi bertingkat | Panas 3–14 hari, dingin 1+ tahun di object storage                 | Biaya index turun           |
-| Agregasi ke metrik | Hitung counter di aplikasi, jangan "log lalu hitung"               | Log tinggal untuk konteks   |
-| Kardinalitas index | Index hanya field yang dicari; sisanya disimpan tanpa index        | Index kecil, tulis cepat    |
-| Kompresi dan batch | Di agen dan storage                                                | Bandwidth dan storage turun |
+| Tuas               | Caranya                                                                         | Efeknya                     |
+| ------------------ | ------------------------------------------------------------------------------- | --------------------------- |
+| Level              | Matikan DEBUG di produksi, tetapi bisa dinaikkan sementara per service          | Volume turun drastis        |
+| Sampling           | Simpan 1% log sukses yang repetitif, tetapi 100% untuk error dan request lambat | Volume turun, sinyal tetap  |
+| Retensi bertingkat | Panas 3 sampai 14 hari, dingin 1 tahun atau lebih di object storage             | Biaya index turun           |
+| Pindah ke metrik   | Hitung counter di aplikasi, bukan dengan menghitung baris log                   | Log tinggal untuk konteks   |
+| Kardinalitas index | Index hanya field yang memang dicari, sisanya disimpan tanpa index              | Index kecil dan tulis cepat |
+| Kompresi dan batch | Lakukan di agen dan di storage                                                  | Bandwidth dan storage turun |
 
-Estimasi kasar untuk interview: 1.000 service × 100 baris/detik × 300 byte ≈ 30 MB/s ≈ 2.5 TB/hari mentah; dengan kompresi 5–10x dan retensi bertingkat, tier panas 7 hari ≈ beberapa TB.
+Estimasi kasar untuk interview: 1.000 service dikali 100 baris per detik dikali 300 byte menghasilkan sekitar 30 MB per detik. Itu sekitar 2.5 TB per hari sebelum kompresi. Dengan kompresi 5 sampai 10 kali dan retensi bertingkat, tier panas 7 hari berukuran beberapa TB.
 
 ## Trade-off ringkas
 
-| Keputusan                                                 | Pilih A bila                           | Pilih B bila                                              |
-| --------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------- |
-| Index penuh per field (A) vs index label + grep chunk (B) | Query ad-hoc kaya, analitik log        | Biaya utama, query biasanya by service + waktu + trace_id |
-| Agen per host (A) vs sidecar per pod (B)                  | Hemat sumber daya, platform seragam    | Isolasi konfigurasi per aplikasi, multi-tenant            |
-| Queue di tengah (A) vs agen langsung ke storage (B)       | Skala besar, banyak consumer, lonjakan | Setup kecil, ingin sederhana                              |
-| Sampling di agen (A) vs di pemroses (B)                   | Hemat bandwidth sejak sumber           | Keputusan sampling butuh konteks global                   |
+| Keputusan                                     | Pilih yang pertama bila                           | Pilih yang kedua bila                                                         |
+| --------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Index penuh per field atau index label saja   | Butuh query ad-hoc yang kaya dan analitik log     | Biaya adalah faktor utama dan query biasanya per service, waktu, dan trace_id |
+| Agen per host atau sidecar per pod            | Ingin hemat sumber daya dan platform seragam      | Butuh isolasi konfigurasi per aplikasi atau multi-tenant                      |
+| Queue di tengah atau agen langsung ke storage | Skala besar, banyak consumer, dan lonjakan sering | Setup kecil dan ingin sederhana                                               |
+| Sampling di agen atau di pemroses             | Ingin hemat bandwidth sejak sumber                | Keputusan sampling butuh konteks global                                       |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Bagaimana menemukan semua log satu request lintas service?" → trace_id di setiap baris, propagasi header.
-- "Pipeline log mati, aplikasi terdampak?" → Tidak boleh: stdout + agen + buffer disk + drop terukur.
-- "Berapa biaya dan bagaimana mengendalikannya?" → Estimasi volume, sampling, retensi bertingkat, kardinalitas.
-- "Bagaimana log sensitif ditangani?" → Redaksi di pemroses, RBAC, retensi.
-- "Urutan log lintas host?" → Tidak dijamin; timestamp sumber, toleransi, trace untuk urutan kausal.
-- "Alert dari log?" → Pola/laju ERROR per service; tetapi SLO alert sebaiknya dari metrik.
+- "Bagaimana menemukan semua log satu request lintas service?" Lewat trace_id di setiap baris dan propagasi header.
+- "Pipeline log mati, apakah aplikasi terdampak?" Tidak boleh. Aplikasi menulis ke stdout, agen menyimpan buffer di disk, dan drop dihitung sebagai metrik.
+- "Berapa biayanya dan bagaimana mengendalikannya?" Estimasi volume dulu, lalu sampling, retensi bertingkat, dan kardinalitas.
+- "Bagaimana log sensitif ditangani?" Redaksi di pemroses, akses berbasis peran, dan retensi terbatas.
+- "Bagaimana urutan log lintas host?" Tidak dijamin. Pakai timestamp sumber dengan toleransi, dan trace untuk urutan sebab akibat.
+- "Bisakah alert dari log?" Bisa untuk pola error per service. Alert untuk SLO sebaiknya dari metrik.
 
 ## Ringkasan
 
-1. Pipeline: aplikasi menulis log terstruktur ke stdout, agen per host mengirim asinkron dengan buffer, queue menyerap lonjakan, pemroses meredaksi dan menyampel, penyimpanan panas terindeks dan arsip dingin.
-2. trace_id di setiap baris mengubah log dari potongan terpisah menjadi cerita satu request; logging tidak pernah boleh memblokir atau menjatuhkan aplikasi.
+1. Pipeline log terdiri dari aplikasi yang menulis log terstruktur, agen yang mengirim asinkron dengan buffer, queue yang menyerap lonjakan, pemroses yang meredaksi dan menyampel, serta penyimpanan panas dan arsip dingin.
+2. Trace_id di setiap baris mengubah log yang terpisah menjadi cerita satu request. Logging tidak pernah boleh memblokir atau menjatuhkan aplikasi.
 3. Biaya dikendalikan lewat level, sampling, retensi bertingkat, index selektif, dan memindahkan hitungan ke metrik.
