@@ -919,15 +919,24 @@ select:focus {
 .quiz fieldset {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 1rem 1.1rem 0.8rem;
+  padding: 1.1rem 1.1rem 0.8rem;
   margin: 1.1rem 0;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
 .quiz legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 0.6rem;
   font-weight: 600;
-  padding: 0 0.5em;
+  line-height: 1.45;
   color: var(--fg);
+}
+.quiz fieldset::after {
+  content: '';
+  display: block;
+  clear: both;
 }
 .quiz .opt {
   border-radius: 10px;
