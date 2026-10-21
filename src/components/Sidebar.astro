@@ -16,11 +16,16 @@ const typeBadge: Record<string, string> = { case: 'kasus', postmortem: 'outage' 
     <div class="small muted" data-progress-text>
       0/0 selesai · 0%
     </div>
-    <div class="progress" role="progressbar" aria-label="Progress belajar">
+    <div class="progress" role="progressbar" aria-label="Progress belajar" style="margin-top:0.35rem">
       <div data-progress-bar></div>
     </div>
-    <p style="margin:0.6rem 0 0">
-      <a class="btn btn-primary small" data-continue-link href="#">
+    <p style="margin:0.7rem 0 0">
+      <a
+        class="btn btn-primary small"
+        data-continue-link
+        href="#"
+        style="white-space:normal;text-align:left;width:100%"
+      >
         Mulai belajar
       </a>
     </p>
@@ -35,9 +40,11 @@ const typeBadge: Record<string, string> = { case: 'kasus', postmortem: 'outage' 
       ))}
     </ul>
   </nav>
-  {modules.map((m) => (
+  {modules.map((m, i) => (
     <section>
-      <h2 title={m.description}>{m.title}</h2>
+      <h2 title={m.description}>
+        Bagian {i + 1} · {m.title}
+      </h2>
       <ul>
         {m.items.map((it) =>
           it.available ? (
@@ -64,14 +71,3 @@ const typeBadge: Record<string, string> = { case: 'kasus', postmortem: 'outage' 
     </section>
   ))}
 </aside>
-
-<style>
-  .mobile-nav {
-    display: none;
-  }
-  @media (max-width: 900px) {
-    .mobile-nav {
-      display: block;
-    }
-  }
-</style>

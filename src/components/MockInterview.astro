@@ -13,7 +13,8 @@ const scale = Array.from({ length: SCALE_MAX - SCALE_MIN + 1 }, (_, i) => SCALE_
 <div class="mock-grid" id="mock" data-mock={mockId} data-minutes={minutes}>
   <div>
     <section class="card">
-      <h2 style="margin-top:0">Checklist tahap</h2>
+      <span class="eyebrow">Tahap 1–8</span>
+      <h2 style="margin:0.2rem 0 0.4rem;border:0;padding:0">Checklist tahap</h2>
       <p class="small muted">
         Anggaran waktu per tahap hanya panduan. Tahap yang "seharusnya" sedang berjalan ditandai.
       </p>
@@ -29,7 +30,8 @@ const scale = Array.from({ length: SCALE_MAX - SCALE_MIN + 1 }, (_, i) => SCALE_
     </section>
 
     <section class="card" style="margin-top:1rem">
-      <h2 style="margin-top:0">Rubrik penilaian mandiri</h2>
+      <span class="eyebrow">Penilaian</span>
+      <h2 style="margin:0.2rem 0 0.4rem;border:0;padding:0">Rubrik penilaian mandiri</h2>
       <p class="small muted">
         Skala {SCALE_MIN}–{SCALE_MAX}. Isi setelah selesai, dengan jujur. Arahkan kursor ke kriteria untuk
         melihat deskripsi nilai 4.
@@ -81,7 +83,8 @@ const scale = Array.from({ length: SCALE_MAX - SCALE_MIN + 1 }, (_, i) => SCALE_
     </section>
   </div>
 
-  <aside class="card" style="position:sticky;top:calc(var(--header-h) + 1rem)">
+  <aside class="card timer-card">
+    <span class="eyebrow">Timer</span>
     <div class="timer" id="timer" aria-live="off">
       {String(minutes).padStart(2, '0')}:00
     </div>

@@ -1,69 +1,111 @@
 ---
 import Base from '../layouts/Base.astro';
 import { publishedLessons, sidebarModel } from '../lib/content';
+import { getCollection } from 'astro:content';
 import { lessonHref, href } from '../lib/url';
 
 const lessons = await publishedLessons();
 const modules = sidebarModel(lessons);
+const mocks = await getCollection('mocks');
 const totalPlanned = modules.reduce((a, m) => a + m.items.length, 0);
+const totalMinutes = lessons.reduce((a, l) => a + l.data.minutes, 0);
+const typeBadge: Record<string, string> = { case: 'studi kasus', postmortem: 'postmortem' };
 ---
 
-<Base title="Beranda">
-  <h1>Belajar System Design, satu modul tiap malam</h1>
-  <p class="muted">
-    Kurikulum 4 bagian, {totalPlanned} topik, {lessons.length} sudah tersedia. Progress disimpan di browser
-    ini (localStorage), tidak ada akun.
-  </p>
-  <p class="btn-row">
-    <a class="btn btn-primary" data-continue-link href="#">
-      Mulai belajar
-    </a>
-    <a class="btn" href={href('/mock')}>
-      Mock interview
-    </a>
-    <a class="btn" href={href('/cheatsheet')}>
-      Cheat sheet
-    </a>
-  </p>
-
-  <div class="card" style="margin:1.5rem 0">
-    <div class="small muted" data-progress-text>
-      0/0 selesai · 0%
+<Base title="Beranda" width="wide">
+  <section class="hero">
+    <span class="eyebrow">Kurikulum System Design · Bahasa Indonesia</span>
+    <h1>
+      Belajar system design <span class="grad">satu modul tiap malam.</span>
+    </h1>
+    <p class="lead">
+      Empat bagian dari fondasi sampai postmortem outage nyata, dengan kuis beralasan, mock interview 45
+      menit, dan cheat sheet. Semua konten orisinal dari sumber gratis. Progress tersimpan di browser ini,
+      tanpa akun.
+    </p>
+    <div class="btn-row">
+      <a class="btn btn-primary" data-continue-link href="#">
+        Mulai belajar
+      </a>
+      <a class="btn" href={href('/mock')}>
+        Mock interview
+      </a>
+      <a class="btn btn-ghost" href={href('/cheatsheet')}>
+        Cheat sheet →
+      </a>
     </div>
-    <div class="progress" style="margin-top:0.4rem">
-      <div data-progress-bar></div>
+    <div class="stats">
+      <div class="stat">
+        <b>{lessons.length}</b>
+        <span>pelajaran dari {totalPlanned} direncanakan</span>
+      </div>
+      <div class="stat">
+        <b>{mocks.length}</b>
+        <span>soal mock interview</span>
+      </div>
+      <div class="stat">
+        <b>{Math.round(totalMinutes / 60)} jam</b>
+        <span>estimasi total belajar</span>
+      </div>
+      <div class="stat">
+        <b data-progress-percent>0%</b>
+        <span>progress kamu</span>
+      </div>
     </div>
-  </div>
+  </section>
 
   {modules.map((m, i) => (
     <section>
-      <h2>
-        Bagian {i + 1} — {m.title}
-      </h2>
-      <p class="muted">{m.description}</p>
-      <ol>
-        {m.items.map((it) => (
-          <li data-lesson-id={it.id}>
-            {it.available ? (
-              <a href={lessonHref(it.id)}>
-                <span data-title>{it.title}</span>
-              </a>
-            ) : (
-              <span class="muted">
-                <span data-title>{it.title}</span> <span class="badge">segera</span>
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Bagian {i + 1}</span>
+          <h2>{m.title}</h2>
+        </div>
+        <span class="muted small">{m.description}</span>
+      </div>
+      <div class="lesson-cards">
+        {m.items.map((it, j) =>
+          it.available ? (
+            <a class="lesson-card card-hover" href={lessonHref(it.id)} data-lesson-id={it.id}>
+              <span class="num">
+                <span class="check" aria-hidden="true">
+                  ✓
+                </span>
+                {String(j + 1).padStart(2, '0')}
               </span>
-            )}
-            {it.minutes && <span class="small muted"> · {it.minutes} mnt</span>}
-          </li>
-        ))}
-      </ol>
+              <span class="t" data-title>
+                {it.title}
+              </span>
+              <span class="m">
+                {it.minutes && <span class="badge">⏱ {it.minutes} mnt</span>}
+                {it.type && typeBadge[it.type] && (
+                  <span class="badge badge-accent">{typeBadge[it.type]}</span>
+                )}
+              </span>
+            </a>
+          ) : (
+            <div class="lesson-card soon">
+              <span class="num">
+                <span class="check" aria-hidden="true"></span>
+                {String(j + 1).padStart(2, '0')}
+              </span>
+              <span class="t" data-title>
+                {it.title}
+              </span>
+              <span class="m">
+                <span class="badge">segera</span>
+              </span>
+            </div>
+          ),
+        )}
+      </div>
     </section>
   ))}
 
-  <section>
-    <h2>Cara belajar yang disarankan</h2>
-    <ol>
-      <li>Baca pelajaran, gambar ulang diagramnya di kertas tanpa melihat.</li>
+  <section class="card" style="margin-top:2.6rem">
+    <span class="eyebrow">Cara belajar yang disarankan</span>
+    <ol style="margin-bottom:0">
+      <li>Baca pelajaran, lalu gambar ulang diagramnya di kertas tanpa melihat.</li>
       <li>Kerjakan kuis; baca penjelasan untuk opsi yang salah, bukan hanya yang benar.</li>
       <li>
         Setelah satu studi kasus, lakukan mock interview 45 menit untuk kasus itu dan isi rubrik dengan jujur.

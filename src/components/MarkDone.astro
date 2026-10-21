@@ -6,6 +6,9 @@ const { lessonId } = Astro.props;
 ---
 
 <div class="done-bar" id="mark-done" data-lesson={lessonId}>
+  <span style="font-size:1.4rem" aria-hidden="true">
+    🎯
+  </span>
   <button type="button" id="mark-done-btn" class="btn-primary">
     Tandai selesai
   </button>

@@ -1,6 +1,6 @@
 # Peta fitur — sysdesign-lab
 
-Platform belajar System Design pribadi (statis, gratis, open source). Tidak ada Figma; desain langsung di kode dengan token CSS di `src/styles/global.css`.
+Platform belajar System Design pribadi (statis, gratis, open source). Tidak ada Figma; desain langsung di kode dengan token CSS di `src/styles/global.css` (font Inter/JetBrains Mono dari Google Fonts, aksen gradasi indigo→violet→sky, dark mode via `html[data-theme]`, breakpoint 900px untuk drawer dan 1100px untuk TOC).
 
 ## Peta halaman
 

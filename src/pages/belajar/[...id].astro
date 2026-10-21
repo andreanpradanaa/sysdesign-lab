@@ -4,7 +4,7 @@ import Base from '../../layouts/Base.astro';
 import Quiz from '../../components/Quiz.astro';
 import MarkDone from '../../components/MarkDone.astro';
 import { publishedLessons, prevNext } from '../../lib/content';
-import { moduleOf } from '../../data/curriculum';
+import { moduleOf, CURRICULUM } from '../../data/curriculum';
 import { lessonHref } from '../../lib/url';
 
 export async function getStaticPaths() {
@@ -13,24 +13,27 @@ export async function getStaticPaths() {
 }
 
 const { entry, lessons } = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 const { data } = entry;
 const mod = moduleOf(entry.id);
+const modIndex = CURRICULUM.findIndex((m) => m.id === mod?.id) + 1;
 const { prev, next } = prevNext(lessons, entry.id);
 const byId = new Map(lessons.map((l) => [l.id, l]));
 const typeLabel = { lesson: 'Pelajaran', case: 'Studi kasus', postmortem: 'Postmortem' }[data.type];
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 ---
 
-<Base title={data.title} description={data.summary} currentId={entry.id}>
+<Base title={data.title} description={data.summary} currentId={entry.id} width="lesson">
   <article>
-    <p class="small muted" style="margin:0">
-      {mod?.title} · {typeLabel}
-    </p>
+    <span class="eyebrow">
+      Bagian {modIndex} · {mod?.title} · {typeLabel}
+    </span>
     <h1>{data.title}</h1>
     <div class="lesson-meta">
       <span class="badge">⏱ ±{data.minutes} menit</span>
+      {data.quiz.length > 0 && <span class="badge">✎ {data.quiz.length} soal kuis</span>}
       {data.prerequisites.length > 0 && (
-        <span class="badge">
+        <span class="badge" style="white-space:normal">
           Prasyarat:{' '}
           {data.prerequisites.map((p, i) => (
             <>
@@ -45,13 +48,11 @@ const typeLabel = { lesson: 'Pelajaran', case: 'Studi kasus', postmortem: 'Postm
         </span>
       )}
     </div>
-    {data.summary && (
-      <p class="muted">
-        <em>{data.summary}</em>
-      </p>
-    )}
+    {data.summary && <p class="lesson-summary">{data.summary}</p>}
 
-    <Content />
+    <div class="prose">
+      <Content />
+    </div>
 
     <section class="sources">
       <h2>Sumber referensi</h2>
@@ -73,8 +74,66 @@ const typeLabel = { lesson: 'Pelajaran', case: 'Studi kasus', postmortem: 'Postm
     <MarkDone lessonId={entry.id} />
 
     <nav class="lesson-nav" aria-label="Pelajaran sebelum/sesudah">
-      <span>{prev && <a href={lessonHref(prev.id)}>← {prev.data.title}</a>}</span>
-      <span>{next && <a href={lessonHref(next.id)}>{next.data.title} →</a>}</span>
+      {prev ? (
+        <a class="prev" href={lessonHref(prev.id)}>
+          <span class="lbl">← Sebelumnya</span>
+          <span>{prev.data.title}</span>
+        </a>
+      ) : (
+        <span></span>
+      )}
+      {next && (
+        <a class="next" href={lessonHref(next.id)}>
+          <span class="lbl">Berikutnya →</span>
+          <span>{next.data.title}</span>
+        </a>
+      )}
     </nav>
   </article>
+
+  <aside class="toc" aria-label="Daftar isi">
+    <h4>Di halaman ini</h4>
+    <ul id="toc-list">
+      {toc.map((h) => (
+        <li class={`depth-${h.depth}`}>
+          <a href={`#${h.slug}`}>{h.text}</a>
+        </li>
+      ))}
+      {data.quiz.length > 0 && (
+        <li class="depth-2">
+          <a href="#quiz">Kuis</a>
+        </li>
+      )}
+    </ul>
+  </aside>
+
+  <script>
+    // Sorot entri TOC sesuai heading yang sedang terlihat.
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('#toc-list a'));
+    if (links.length) {
+      const byId = new Map(links.map((a) => [a.getAttribute('href')!.slice(1), a]));
+      const targets = Array.from(byId.keys())
+        .map((id) => document.getElementById(id))
+        .filter(Boolean) as HTMLElement[];
+      let current: HTMLAnchorElement | undefined;
+      const setActive = (id: string) => {
+        const a = byId.get(id);
+        if (!a || a === current) return;
+        current?.classList.remove('active');
+        a.classList.add('active');
+        current = a;
+      };
+      const io = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((e) => e.isIntersecting)
+            .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+          if (visible[0]) setActive(visible[0].target.id);
+        },
+        { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
+      );
+      targets.forEach((t) => io.observe(t));
+      if (targets[0]) setActive(targets[0].id);
+    }
+  </script>
 </Base>

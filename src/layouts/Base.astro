@@ -9,11 +9,14 @@ interface Props {
   description?: string;
   /** id pelajaran yang sedang dibuka (untuk highlight sidebar) */
   currentId?: string;
+  /** lebar konten: default 760px; 'wide' untuk beranda/cheat sheet; 'lesson' untuk layout dengan TOC */
+  width?: 'default' | 'wide' | 'lesson';
 }
 const {
   title,
   description = 'Platform belajar System Design pribadi, gratis dan open source.',
   currentId,
+  width = 'default',
 } = Astro.props;
 const lessons = await publishedLessons();
 const available = availableIds(lessons);
@@ -30,6 +33,7 @@ const navLinks = [
   { label: 'Kuis', to: href('/kuis'), match: (p: string) => p.startsWith(href('/kuis')) },
   { label: 'Cheat Sheet', to: href('/cheatsheet'), match: (p: string) => p.startsWith(href('/cheatsheet')) },
 ];
+const contentClass = width === 'wide' ? 'content-wide' : width === 'lesson' ? 'lesson-layout' : 'content';
 ---
 
 <!doctype html>
@@ -38,6 +42,9 @@ const navLinks = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    <meta name="theme-color" content="#4f46e5" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
     <title>{title} · SysDesign Lab</title>
     <script is:inline>
@@ -66,6 +73,9 @@ const navLinks = [
           ☰
         </button>
         <a class="brand" href={href('/')}>
+          <span class="brand-mark" aria-hidden="true">
+            SD
+          </span>
           SysDesign Lab
         </a>
         <nav aria-label="Utama">
@@ -76,13 +86,19 @@ const navLinks = [
           ))}
         </nav>
         <span class="spacer"></span>
+        <div class="header-progress" aria-hidden="true">
+          <span data-progress-short>0/0</span>
+          <div class="progress">
+            <div data-progress-bar></div>
+          </div>
+        </div>
         <button id="theme-toggle" class="icon-btn" aria-label="Ganti tema">
           ☾
         </button>
       </header>
       <Sidebar modules={modules} currentId={currentId} navLinks={navLinks} />
       <main class="main">
-        <div class="content">
+        <div class={contentClass}>
           <slot />
         </div>
       </main>

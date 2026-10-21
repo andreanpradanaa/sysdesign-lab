@@ -33,6 +33,7 @@ Legenda: Belum mulai · Berjalan · Selesai · Terblokir. Bar = 10 blok, tiap bl
 - [x] Mock interview: timer 45 menit, checklist tahap, rubrik 1–4, catatan, riwayat
 - [x] Cheat sheet
 - [x] Dark mode, responsif (drawer mobile), mermaid client-side
+- [x] Redesign "premium": Inter + JetBrains Mono, token warna + gradasi aksen, header kaca dengan progress, hero + statistik + kartu kurikulum, TOC di halaman pelajaran, kartu navigasi prev/next, kuis & mock bergaya kartu
 - [ ] (opsional) Ekspor/impor progress JSON
 
 ## Bagian 1 — Fondasi

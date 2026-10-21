@@ -20,6 +20,12 @@ function syncProgressUI(): void {
   document.querySelectorAll<HTMLElement>('[data-progress-text]').forEach((el) => {
     el.textContent = `${done}/${total} selesai · ${percent}%`;
   });
+  document.querySelectorAll<HTMLElement>('[data-progress-short]').forEach((el) => {
+    el.textContent = `${done}/${total}`;
+  });
+  document.querySelectorAll<HTMLElement>('[data-progress-percent]').forEach((el) => {
+    el.textContent = `${percent}%`;
+  });
 
   const next = nextLesson(state, available);
   document.querySelectorAll<HTMLAnchorElement>('[data-continue-link]').forEach((a) => {
