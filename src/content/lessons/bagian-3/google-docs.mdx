@@ -5,7 +5,7 @@ order: 11
 minutes: 65
 type: case
 prerequisites: ['bagian-3/whatsapp', 'bagian-2/pub-sub', 'bagian-1/abstraksi-distributed-system']
-summary: 'Banyak orang mengetik di dokumen yang sama secara bersamaan tanpa saling menimpa: operasi sebagai unit perubahan, Operational Transformation vs CRDT, satu server per dokumen sebagai pengurut, snapshot plus log operasi, dan presence kursor.'
+summary: 'Banyak orang mengetik di dokumen yang sama tanpa saling menimpa: operasi sebagai satuan perubahan, Operational Transformation dibandingkan CRDT, satu server per dokumen sebagai pengurut, snapshot ditambah log operasi, dan kursor orang lain.'
 sources:
   - title: 'Operational transformation — Wikipedia'
     url: 'https://en.wikipedia.org/wiki/Operational_transformation'
@@ -18,97 +18,97 @@ sources:
   - title: 'crdt.tech — Resources on Conflict-free Replicated Data Types'
     url: 'https://crdt.tech/'
 quiz:
-  - q: 'Dua user mengetik bersamaan pada dokumen "abc": A menyisipkan "X" di posisi 1, B menghapus karakter di posisi 2. Kenapa menerapkan operasi mentah dalam urutan berbeda di tiap client menghasilkan dokumen berbeda?'
+  - q: 'Dua pengguna mengetik bersamaan pada teks "abc". A menyisipkan "X" di posisi 1, B menghapus posisi 2. Kenapa hasilnya bisa berbeda di tiap client?'
     options:
-      - text: 'Karena jaringan mengubah isi operasi'
+      - text: 'Karena jaringan mengubah isi operasi saat dikirim'
         correct: false
-        why: 'Isi tidak berubah; posisinya yang menjadi tidak valid setelah operasi lain diterapkan.'
-      - text: 'Karena posisi dalam operasi B mengacu ke dokumen sebelum sisipan A; setelah A diterapkan, "posisi 2" menunjuk karakter berbeda. Operasi harus ditransformasi (OT) atau memakai identitas posisi yang stabil (CRDT)'
+        why: 'Isi operasi tidak berubah di jaringan. Posisinya yang menjadi tidak valid setelah operasi lain diterapkan.'
+      - text: 'Karena posisi di operasi B mengacu ke dokumen sebelum sisipan A diterapkan'
         correct: true
-        why: 'Inilah inti masalah kolaborasi: operasi berbasis indeks tidak komutatif. OT menyesuaikan indeks terhadap operasi concurrent; CRDT memberi tiap karakter ID unik sehingga sisip/hapus merujuk ID, bukan indeks.'
-      - text: 'Karena B tidak punya izin'
+        why: 'Operasi berbasis indeks tidak komutatif. OT menyesuaikan indeks terhadap operasi lain, sedangkan CRDT memberi tiap karakter identitas tetap.'
+      - text: 'Karena B tidak punya izin untuk menghapus'
         correct: false
-        why: 'Izin tidak terkait konvergensi.'
-      - text: 'Karena dokumen tidak disimpan'
+        why: 'Izin tidak berkaitan dengan masalah konvergensi.'
+      - text: 'Karena dokumen belum disimpan ke server'
         correct: false
-        why: 'Penyimpanan tidak memengaruhi urutan penerapan.'
-  - q: 'Mengapa desain berbasis OT lazimnya memakai satu server per dokumen sebagai pengurut (sequencer) operasi?'
+        why: 'Penyimpanan tidak memengaruhi urutan penerapan operasi di tiap client.'
+  - q: 'Kenapa desain berbasis OT biasanya memakai satu server per dokumen sebagai pengurut operasi?'
     options:
-      - text: 'Karena OT membutuhkan urutan total operasi agar transformasi sederhana (client hanya mentransformasi terhadap operasi server, bukan terhadap semua client lain), dan server adalah tempat alami untuk menetapkan urutan dan versi'
+      - text: 'Karena OT butuh urutan total, dan server tempat alami untuk menetapkannya'
         correct: true
-        why: 'Dengan server sebagai sumber urutan, tiap client cukup menyimpan operasi yang belum di-ack dan mentransformasinya terhadap operasi masuk. Tanpa server, transformasi n-arah (TP2) jauh lebih sulit.'
+        why: 'Dengan satu pengurut, client hanya mentransformasi operasinya terhadap operasi server. Tanpa pengurut, transformasi banyak arah jauh lebih sulit.'
       - text: 'Karena satu dokumen tidak bisa disimpan di dua server'
         correct: false
-        why: 'Bisa; ini tentang urutan, bukan penyimpanan.'
-      - text: 'Karena OT tidak bekerja offline'
+        why: 'Dokumen bisa disimpan di banyak server. Ini soal urutan, bukan penyimpanan.'
+      - text: 'Karena OT tidak bisa bekerja saat client offline'
         correct: false
-        why: 'OT bisa menampung operasi offline dan mentransformasinya saat tersambung.'
-      - text: 'Karena server harus merender dokumen'
+        why: 'OT bisa menampung operasi offline dan mentransformasinya saat tersambung kembali.'
+      - text: 'Karena server yang harus merender dokumen'
         correct: false
-        why: 'Rendering di client.'
-  - q: 'Server dokumen D mati saat 50 user sedang mengedit. Bagaimana sistem pulih tanpa kehilangan editan?'
+        why: 'Rendering terjadi di client. Server hanya mengurutkan dan menyimpan.'
+  - q: 'Server dokumen mati saat 50 orang sedang mengedit. Bagaimana sistem pulih tanpa kehilangan editan?'
     options:
       - text: 'Semua editan sejak sesi dimulai hilang'
         correct: false
-        why: 'Desain yang benar menyimpan operasi durable sebelum ack.'
-      - text: 'Operasi yang sudah di-ack sudah durable di log operasi; server pengganti (dipilih lewat lease) memuat snapshot terakhir + replay log, client tersambung ulang, mengirim ulang operasi yang belum di-ack (dedup by client id + seq), dan menerima operasi yang terlewat sejak versi terakhir mereka'
+        why: 'Desain yang benar menyimpan operasi secara permanen sebelum mengirim konfirmasi.'
+      - text: 'Server pengganti memuat snapshot dan log, lalu client mengirim ulang operasi yang belum dikonfirmasi'
         correct: true
-        why: 'Snapshot + log per dokumen adalah sumber kebenaran; server hanya pengurut yang bisa diganti. Versi yang dibawa client membuat sinkronisasi ulang presisi.'
-      - text: 'Dokumen dikunci sampai admin memulihkan'
+        why: 'Snapshot dan log adalah sumber kebenaran, sedangkan server hanya pengurut yang bisa diganti. Versi yang dibawa client membuat sinkronisasi ulang tepat.'
+      - text: 'Dokumen dikunci sampai admin memulihkannya secara manual'
         correct: false
-        why: 'Pemulihan harus otomatis dalam detik.'
-      - text: 'Client terakhir yang tersambung menang'
+        why: 'Pemulihan harus otomatis dalam hitungan detik.'
+      - text: 'Client yang terakhir tersambung menjadi pemenang'
         correct: false
-        why: 'Mengabaikan editan client lain.'
+        why: 'Ini mengabaikan editan client lain.'
   - q: 'Kapan CRDT lebih dipilih daripada OT untuk editor kolaboratif?'
     options:
-      - text: 'Selalu, karena CRDT tidak butuh server'
+      - text: 'Selalu, karena CRDT tidak membutuhkan server sama sekali'
         correct: false
-        why: 'CRDT tetap butuh cara menyebarkan operasi dan menyimpan; dan punya overhead metadata per karakter.'
-      - text: 'Saat ingin sinkronisasi peer-to-peer/offline-first, atau tidak ingin satu server per dokumen sebagai pengurut; harganya metadata per karakter (tombstone, ID) yang membuat dokumen lebih besar dan perlu garbage collection'
+        why: 'CRDT tetap butuh cara menyebarkan dan menyimpan operasi. Ia juga menambah metadata per karakter.'
+      - text: 'Saat sinkronisasi peer-to-peer atau offline-first lebih penting daripada ukuran dokumen'
         correct: true
-        why: 'OT: server pengurut, dokumen ramping, transformasi rumit. CRDT: komutatif by design, bebas server pengurut, metadata lebih besar. Produk dengan server pusat sering memilih OT atau CRDT yang dioptimalkan (Yjs) sesuai kebutuhan.'
-      - text: 'Saat dokumen hanya diedit satu orang'
+        why: 'CRDT komutatif sejak awal, jadi tidak perlu pengurut. Harganya adalah metadata dan tombstone yang membuat dokumen lebih besar.'
+      - text: 'Saat dokumen hanya diedit oleh satu orang'
         correct: false
-        why: 'Tanpa concurrency, keduanya tidak dibutuhkan.'
-      - text: 'Saat server lebih kuat'
+        why: 'Tanpa pengeditan bersamaan, OT maupun CRDT tidak dibutuhkan.'
+      - text: 'Saat server punya CPU yang lebih kuat'
         correct: false
-        why: 'Kekuatan server bukan faktor pembeda.'
+        why: 'Kekuatan server bukan faktor pembeda antara keduanya.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: teks kaya (format) atau teks polos dulu? Berapa editor bersamaan per dokumen (puluhan vs ribuan)? Offline editing? Riwayat versi dan komentar? Ukuran dokumen maksimum?
+Tanyakan dulu. Teks polos atau teks berformat? Berapa editor bersamaan per dokumen, puluhan atau ribuan? Apakah pengeditan offline didukung? Apakah riwayat versi dan komentar termasuk? Berapa ukuran dokumen maksimum?
 
 ### Functional
 
-- Beberapa user mengedit dokumen yang sama secara real-time; setiap orang melihat perubahan orang lain dalam sub-detik; tidak ada editan yang hilang; semua akhirnya melihat dokumen yang sama.
-- Presence: kursor dan seleksi orang lain.
-- Riwayat versi; kembalikan ke versi lama.
-- Izin: pemilik, editor, komentator, pembaca; tautan berbagi.
-- Out of scope: komentar (ringkas), teks kaya penuh (disebut), offline berhari-hari (disebut), spreadsheet.
+- Beberapa pengguna mengedit dokumen yang sama secara real-time. Setiap orang melihat perubahan orang lain dalam waktu kurang dari satu detik. Tidak ada editan yang hilang, dan semua akhirnya melihat dokumen yang sama.
+- Pengguna melihat kursor dan seleksi orang lain.
+- Dokumen punya riwayat versi dan bisa dikembalikan ke versi lama.
+- Izin terdiri dari pemilik, editor, pemberi komentar, dan pembaca, ditambah tautan berbagi.
+- Di luar cakupan: komentar, teks berformat penuh, offline berhari-hari, dan spreadsheet.
 
 ### Non-functional
 
-| NFR               | Target                                                                               | Alasan           |
-| ----------------- | ------------------------------------------------------------------------------------ | ---------------- |
-| Latency propagasi | &lt; 200 ms antar editor di region sama                                              | Terasa "bersama" |
-| Konsistensi       | Konvergen (eventual) untuk isi; urutan total per dokumen; tidak ada editan hilang    | Inti produk      |
-| Durability        | Setiap operasi yang di-ack tersimpan                                                 | Dokumen kerja    |
-| Availability      | 99.99% baca; 99.9% tulis kolaboratif dengan degradasi ke mode baca                   | —                |
-| Skala             | 100 juta dokumen aktif/bulan, 10 juta editor bersamaan; dokumen biasanya 1–20 editor | Kolaborasi tim   |
+| Target            | Nilai                                                                                      | Alasan                                     |
+| ----------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| Latency propagasi | Di bawah 200 ms antar editor di region yang sama                                           | Terasa seperti mengetik bersama            |
+| Konsistensi       | Semua client konvergen ke isi yang sama, urutan total per dokumen, tidak ada editan hilang | Inti produk                                |
+| Durability        | Setiap operasi yang dikonfirmasi tersimpan permanen                                        | Dokumen kerja orang                        |
+| Availability      | 99.99% untuk membaca, 99.9% untuk mengedit bersama dengan degradasi ke mode baca           | Pembacaan lebih sering daripada pengeditan |
+| Skala             | 100 juta dokumen aktif per bulan, 10 juta editor bersamaan, 1 sampai 20 editor per dokumen | Kolaborasi tim                             |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 10 juta editor bersamaan; tiap editor aktif menghasilkan ~2 operasi/detik saat mengetik (dibatch per 50–100 ms); 1 juta dokumen aktif bersamaan dengan rata-rata 3 editor; dokumen rata-rata 50 KB; operasi ~50 B.
+Asumsi: 10 juta editor bersamaan, dan tiap editor aktif menghasilkan 2 operasi per detik saat mengetik. Operasi dikumpulkan tiap 50 sampai 100 ms. Ada 1 juta dokumen aktif dengan rata-rata 3 editor. Dokumen berukuran 50 KB dan operasi 50 byte.
 
-- Operasi masuk: 10M × 2 / (sebagian besar waktu idle, faktor 0.2) ≈ **4 juta op/detik** puncak; tiap op di-ack, disimpan ke log, dan disebarkan ke rata-rata 2 editor lain → 8 juta push/detik.
-- Log operasi: 4M × 50 B ≈ 200 MB/s append; per hari ~15 TB mentah; dipadatkan lewat snapshot dan hanya menyimpan log sejak snapshot terakhir + riwayat versi terkompresi.
-- Koneksi persisten: 10 juta → ~10–30 server koneksi (seperti kasus WhatsApp).
-- Server dokumen: 1 juta dokumen aktif; satu proses ringan per dokumen (state di memori ~ ratusan KB) → ratusan GB memori total, tersebar di ratusan node.
-- Storage dokumen: 100M × 50 KB ≈ 5 TB + riwayat.
+- Operasi masuk: 10 juta kali 2 operasi, dikalikan faktor aktif 0.2, menghasilkan sekitar 4 juta operasi per detik pada puncak. Tiap operasi dikonfirmasi, disimpan ke log, dan diteruskan ke rata-rata 2 editor lain. Artinya sekitar 8 juta push per detik.
+- Log operasi: 4 juta kali 50 byte adalah 200 MB per detik. Sehari sekitar 15 TB mentah. Snapshot berkala memadatkannya, dan hanya log sejak snapshot terakhir yang disimpan panas.
+- Koneksi persisten: 10 juta koneksi membutuhkan 10 sampai 30 server koneksi, seperti pada kasus WhatsApp.
+- Server dokumen: 1 juta dokumen aktif, masing-masing proses ringan dengan state ratusan KB. Totalnya ratusan GB memori yang tersebar di ratusan node.
+- Penyimpanan dokumen: 100 juta kali 50 KB adalah 5 TB, ditambah riwayat.
 
-Keputusan: lapisan koneksi terpisah; server dokumen stateful sebagai pengurut, dipartisi by doc_id dengan lease; log operasi append-only + snapshot berkala; pub-sub untuk presence.
+Keputusannya: lapisan koneksi terpisah, server dokumen yang memegang state sebagai pengurut, dipartisi menurut id dokumen dengan lease, log operasi yang hanya ditambah plus snapshot berkala, dan pub-sub untuk kursor.
 
 ## 3. API design
 
@@ -128,7 +128,7 @@ WebSocket (per dokumen, setelah auth)
 ← SNAPSHOT { version, content }                saat client terlalu tertinggal
 ```
 
-`baseVersion` memberi tahu server operasi ini dibuat pada versi berapa; server mentransformasi terhadap operasi yang masuk setelah versi itu.
+Field `baseVersion` memberi tahu server operasi ini dibuat pada versi berapa. Server mentransformasinya terhadap operasi yang masuk setelah versi itu.
 
 ## 4. Skema data
 
@@ -141,7 +141,7 @@ acl(doc_id, principal, role)
 presence (memori saja): doc_id → {user_id → cursor, last_seen}
 ```
 
-Dokumen pada versi v = snapshot terakhir ≤ v + replay `doc_ops` dari snapshot sampai v. Operasi dalam representasi OT (retain/insert/delete dengan atribut format untuk teks kaya) atau CRDT update.
+Dokumen pada versi tertentu dibangun dari snapshot terakhir sebelum versi itu, ditambah pemutaran ulang operasi sampai versi itu. Operasi memakai bentuk OT, yaitu retain, insert, dan delete, dengan atribut format bila teks berformat.
 
 ## 5. High-level design
 
@@ -149,24 +149,36 @@ Dokumen pada versi v = snapshot terakhir ≤ v + replay `doc_ops` dari snapshot 
 flowchart LR
   A[Editor A] <-->|WebSocket| CS[Connection servers]
   B[Editor B] <-->|WebSocket| CS
-  CS --> RT[(Routing: doc → doc server\nlease)]
+  CS --> RT[("Routing: doc → doc server\nlease")]
   CS --> DS["Doc server untuk doc D\n(pengurut OT, state di memori)"]
-  DS --> LOG[(Op log\nappend-only, replikasi)]
-  DS --> SNAP[(Snapshot store\nblob)]
+  DS --> LOG[("Op log\nappend-only, replikasi")]
+  DS --> SNAP[("Snapshot store\nblob")]
   DS --> PR[Presence pub-sub]
   PR --> CS
-  API["Doc API\n(muat, riwayat, ACL)"] --> META[(Docs DB)]
+  API["Doc API\n(muat, riwayat, ACL)"] --> META[("Docs DB")]
   API --> SNAP
   API --> LOG
   CMP[Compactor\nsnapshot berkala] --> LOG
   CMP --> SNAP
 ```
 
-**Muat dokumen**: client HTTP GET → snapshot terbaru + op sejak snapshot (atau server dokumen mengirim keadaan terkini) → client membangun dokumen pada versi v → buka WebSocket ke doc server D (connection server mencari pemilik D di routing; bila belum ada, dipilih dan diberi lease).
+Alur memuat dokumen:
 
-**Edit**: client menerapkan operasi lokal segera (optimistic), mengirim OP dengan baseVersion → doc server mentransformasi terhadap op versi &gt; baseVersion, menetapkan versi baru, menulis ke log (durable, replikasi) → ACK ke pengirim, OP ke editor lain → client lain mentransformasi op masuk terhadap op lokal yang belum di-ack lalu menerapkan.
+1. Client meminta dokumen lewat HTTP.
+2. API mengembalikan snapshot terbaru beserta operasi sejak snapshot itu.
+3. Client membangun dokumen pada versi terakhir.
+4. Client membuka WebSocket ke server dokumen. Connection server mencari pemilik dokumen di routing. Bila belum ada, satu server dipilih dan diberi lease, yaitu hak kepemilikan berbatas waktu yang harus diperpanjang.
 
-**Presence**: kursor dipublikasikan ke topic dokumen, diteruskan ke editor lain; tidak disimpan.
+Alur mengedit:
+
+1. Client menerapkan operasi secara lokal seketika, tanpa menunggu server.
+2. Client mengirim operasi beserta versi dasarnya.
+3. Server dokumen mentransformasi operasi itu terhadap operasi yang masuk setelah versi dasar.
+4. Server dokumen menetapkan versi baru dan menulis operasi ke log secara permanen.
+5. Server dokumen mengirim konfirmasi ke pengirim dan operasi ke editor lain.
+6. Client lain mentransformasi operasi masuk terhadap operasi lokalnya yang belum dikonfirmasi, lalu menerapkannya.
+
+Alur kursor: posisi kursor dipublikasikan ke topic dokumen dan diteruskan ke editor lain. Kursor tidak disimpan.
 
 ## 6. Detailed design
 
@@ -177,71 +189,86 @@ sequenceDiagram
   participant A as Client A (v10)
   participant S as Doc server (v10)
   participant B as Client B (v10)
-  A->>A: terapkan lokal: insert "X"@1 (pending)
-  A->>S: OP(base=10, insert X@1)
-  B->>B: terapkan lokal: delete @2 (pending)
-  B->>S: OP(base=10, delete @2)
-  S->>S: v11 = A.op, transform(B.op vs A.op) → delete @3
-  S-->>A: ACK(v11)
-  S-->>B: OP(v11, insert X@1)
-  B->>B: transform pending(delete@2) vs insert X@1 → delete@3, terapkan OP masuk
-  S->>S: v12 = delete @3
-  S-->>B: ACK(v12)
-  S-->>A: OP(v12, delete @3)
-  Note over A,B: keduanya: "aXc" → konvergen
+  A->>A: terapkan lokal insert X di posisi 1, status pending
+  A->>S: OP base=10, insert X di 1
+  B->>B: terapkan lokal delete posisi 2, status pending
+  B->>S: OP base=10, delete di 2
+  S->>S: v11 = operasi A, lalu transform operasi B menjadi delete di 3
+  S-->>A: ACK v11
+  S-->>B: OP v11, insert X di 1
+  B->>B: transform pending delete di 2 menjadi delete di 3, terapkan OP masuk
+  S->>S: v12 = delete di 3
+  S-->>B: ACK v12
+  S-->>A: OP v12, delete di 3
+  Note over A,B: keduanya menjadi aXc dan konvergen
 ```
 
-- Client menyimpan **satu** operasi pending gabungan (compose) dan buffer berikutnya; mengirim op berikutnya hanya setelah ACK (pola Wave) menyederhanakan transformasi menjadi terhadap satu arah saja.
-- Server mentransformasi op client terhadap semua op sejak `baseVersion` (biasanya 0–beberapa op; ambil dari memori).
-- Fungsi transform untuk teks: retain/insert/delete; aturan tie-break deterministik (mis. sisipan di posisi sama diurutkan by versi server/author id) agar semua konvergen.
-- Teks kaya: operasi membawa atribut (bold, heading) sebagai bagian dari retain/insert; transform menjaga atribut.
+Client menyimpan satu operasi tertunda hasil gabungan dan menyangga operasi berikutnya. Client mengirim operasi berikutnya hanya setelah konfirmasi diterima. Pola ini, yang dipakai Google Wave, membuat transformasi hanya terhadap satu arah.
+
+Server mentransformasi operasi client terhadap semua operasi sejak versi dasarnya. Biasanya hanya nol sampai beberapa operasi, dan semuanya ada di memori.
+
+Fungsi transform untuk teks menangani retain, insert, dan delete. Aturan pemecah seri harus deterministik, misalnya sisipan di posisi sama diurutkan menurut versi server, agar semua client konvergen. Untuk teks berformat, operasi membawa atribut seperti tebal dan judul, dan transform menjaganya.
 
 ### 6.2 Alternatif: CRDT
 
-Tiap karakter punya ID unik (client id + counter) dan posisi relatif terhadap tetangga (RGA/YATA). Sisip = "karakter baru setelah ID X"; hapus = tombstone. Komutatif: urutan penerapan tidak penting, jadi server hanya penyimpan/penyebar, bukan pengurut; sinkronisasi peer-to-peer dan offline-first alami. Harga: metadata per karakter dan tombstone (dokumen 50 KB bisa menjadi beberapa MB tanpa GC); GC aman hanya saat semua replika telah melihat penghapusan. Pilih OT untuk arsitektur dengan server pusat dan dokumen ramping; CRDT (Yjs-like) untuk offline-first/peer-to-peer.
+CRDT adalah struktur data yang hasilnya sama berapa pun urutan operasinya. Setiap karakter diberi id unik dari client dan counter, serta posisi relatif terhadap tetangganya. Sisipan berarti "karakter baru setelah id X". Penghapusan hanya menandai karakter sebagai tombstone, yaitu penanda terhapus yang tetap disimpan.
+
+Karena komutatif, server hanya menyimpan dan menyebarkan, bukan mengurutkan. Sinkronisasi peer-to-peer dan offline-first menjadi alami. Harganya adalah metadata per karakter dan tombstone. Dokumen 50 KB bisa menjadi beberapa MB tanpa pembersihan, dan pembersihan hanya aman setelah semua replika melihat penghapusan.
+
+Pilih OT untuk arsitektur dengan server pusat dan dokumen ramping. Pilih CRDT untuk offline-first atau peer-to-peer.
 
 ### 6.3 Server dokumen: kepemilikan dan kegagalan
 
-- Satu dokumen = satu pemilik (doc server) pada satu waktu, dicatat di routing store dengan **lease** (TTL + heartbeat). Partisi doc_id → node via consistent hashing; migrasi saat rebalancing: pemilik lama berhenti menerima, flush, lepas lease; pemilik baru memuat.
-- State di memori: versi saat ini, ~100 op terakhir (untuk transform), daftar client. Semua op **ditulis ke log (quorum) sebelum ACK**.
-- Kegagalan: lease kedaluwarsa → node lain mengambil, memuat snapshot + replay log; client reconnect membawa `lastVersion` dan op pending (`clientId, seq`) → server mengirim op yang terlewat, menerima ulang pending dengan dedup.
-- Dokumen panas (ribuan editor, mis. dokumen publik): batasi editor aktif (lainnya read-only dengan update push), batch op per 100 ms, dan kompresi; satu pengurut tetap cukup karena op per dokumen dibatasi manusia mengetik.
+Satu dokumen dimiliki satu server dokumen pada satu waktu. Kepemilikan dicatat di routing store dengan lease yang diperpanjang lewat heartbeat. Dokumen dipetakan ke node lewat consistent hashing. Saat rebalancing, pemilik lama berhenti menerima, menulis sisa operasi, dan melepas lease. Pemilik baru memuat dokumen.
+
+State di memori berisi versi saat ini, sekitar 100 operasi terakhir untuk transformasi, dan daftar client. Semua operasi ditulis ke log dengan quorum sebelum konfirmasi dikirim.
+
+Pemulihan saat server mati:
+
+1. Lease kedaluwarsa dan node lain mengambil alih.
+2. Node baru memuat snapshot dan memutar ulang log.
+3. Client tersambung ulang sambil membawa versi terakhir dan operasi tertundanya.
+4. Server mengirim operasi yang terlewat, lalu menerima ulang operasi tertunda dengan dedup berdasarkan id client dan nomor urut.
+
+Dokumen panas dengan ribuan editor ditangani dengan membatasi editor aktif. Sisanya hanya membaca dengan pembaruan push. Operasi dikumpulkan tiap 100 ms dan dikompresi. Satu pengurut tetap cukup, karena laju operasi per dokumen dibatasi kecepatan manusia mengetik.
 
 ### 6.4 Snapshot, log, dan riwayat
 
-- Compactor membuat snapshot tiap N op (mis. 1.000) atau T menit; log sebelum snapshot dipindahkan ke penyimpanan dingin (riwayat), bukan dihapus.
-- Riwayat versi: titik bernama (versi) + kemampuan merekonstruksi versi apa pun dari snapshot terdekat + replay; "restore" = operasi baru yang mengubah isi ke versi lama (riwayat tetap linear).
-- Muat awal untuk pembaca: snapshot via CDN/cache untuk dokumen publik populer.
+Compactor membuat snapshot tiap 1.000 operasi atau tiap beberapa menit. Log sebelum snapshot dipindahkan ke penyimpanan dingin sebagai riwayat, bukan dihapus.
 
-### 6.5 Presence dan kursor
+Riwayat versi berupa titik bernama, dan versi apa pun bisa dibangun dari snapshot terdekat ditambah pemutaran ulang. Mengembalikan versi lama berarti membuat operasi baru yang mengubah isi ke versi itu, sehingga riwayat tetap lurus.
 
-Kursor adalah posisi dalam dokumen; saat op lain masuk, posisi kursor orang lain ditransformasi di client (sama seperti op). Dikirim best-effort dengan throttle (≤ 10/s), via pub-sub per dokumen, tanpa persist; hilang saat disconnect (TTL).
+Pembaca dokumen publik yang populer mendapat snapshot dari CDN atau cache.
+
+### 6.5 Kursor
+
+Kursor adalah posisi dalam dokumen. Saat operasi lain masuk, posisi kursor orang lain ditransformasi di client dengan cara yang sama seperti operasi. Kursor dikirim tanpa jaminan, paling banyak 10 kali per detik, lewat pub-sub per dokumen, dan hilang saat koneksi putus.
 
 ### 6.6 Izin dan keamanan
 
-ACL dicek saat membuka koneksi dan di-cache di doc server; perubahan ACL mempublikasikan event yang memutus sesi yang kehilangan hak. Tautan berbagi = token dengan peran. Semua op mencatat author untuk audit.
+Daftar izin diperiksa saat koneksi dibuka dan disimpan di cache server dokumen. Perubahan izin menerbitkan event yang memutus sesi yang kehilangan hak. Tautan berbagi adalah token dengan peran. Setiap operasi mencatat penulisnya untuk audit.
 
 ### 6.7 Lapisan koneksi
 
-Seperti kasus WhatsApp: connection server stateful ringan; routing dokumen → doc server; reconnect dengan jitter; batching op per 50–100 ms di client untuk mengurangi jumlah pesan.
+Seperti kasus WhatsApp: connection server memegang socket tanpa logika bisnis, routing memetakan dokumen ke server dokumen, dan client tersambung ulang dengan jeda acak. Client mengumpulkan operasi tiap 50 sampai 100 ms untuk mengurangi jumlah pesan.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                     | Dipenuhi oleh                                                                             | Risiko tersisa                                                                              |
-| ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Latency &lt; 200 ms     | Optimistic local apply, satu hop ke doc server, push langsung                             | Editor di region jauh dari pemilik dokumen: tempatkan doc server di region mayoritas editor |
-| Konvergen, tidak hilang | OT dengan server pengurut, log durable sebelum ACK, dedup clientId+seq, resync by version | Bug fungsi transform = divergensi; uji dengan fuzzing dan properti konvergensi              |
-| Durability              | Log quorum + snapshot + riwayat dingin                                                    | Compactor mati: log tumbuh; alert                                                           |
-| Availability            | Doc server pengganti via lease (detik), degradasi ke read-only bila log store tulis gagal | Routing store adalah titik kritis: replikasi, cache di connection server                    |
-| Skala                   | Partisi by doc_id, connection layer horizontal, op per dokumen dibatasi kecepatan manusia | Dokumen raksasa (MB): paginasi/seksi sebagai dokumen terpisah                               |
+| Target                     | Cara memenuhi                                                                                    | Risiko yang tersisa                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Latency di bawah 200 ms    | Penerapan lokal seketika, satu hop ke server dokumen, push langsung                              | Editor di region jauh dari pemilik dokumen. Tempatkan server dokumen di region mayoritas editor |
+| Konvergen dan tidak hilang | OT dengan pengurut, log permanen sebelum konfirmasi, dedup, sinkronisasi ulang berdasarkan versi | Bug fungsi transform menyebabkan divergensi. Uji dengan masukan acak dan sifat konvergensi      |
+| Durability                 | Log dengan quorum, snapshot, riwayat dingin                                                      | Compactor mati membuat log membengkak. Pasang alert                                             |
+| Availability               | Server pengganti lewat lease dalam detik, degradasi ke mode baca bila log tidak bisa ditulis     | Routing store adalah titik kritis. Replikasi dan cache di connection server                     |
+| Skala                      | Partisi menurut id dokumen, lapisan koneksi horizontal, laju operasi dibatasi manusia            | Dokumen berukuran MB dipecah per bagian sebagai dokumen terpisah                                |
 
-Bottleneck 10x: throughput log store (partisi by doc_id, batch) dan jumlah doc server (horizontal). SPOF: tidak ada per dokumen setelah lease; routing store direplikasi.
+Bottleneck pertama saat beban naik 10 kali adalah throughput log store dan jumlah server dokumen. Keduanya horizontal. Tidak ada titik lemah tunggal per dokumen berkat lease, dan routing store direplikasi.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Offline selama satu jam lalu tersambung?" → Client menyimpan op pending; server mentransformasi terhadap ratusan op sejak baseVersion (ambil dari log); konflik besar tetap konvergen meski hasilnya mungkin "aneh"; CRDT lebih alami untuk ini.
-- "Komentar yang menempel pada teks?" → Anchor sebagai range yang ikut ditransformasi oleh op (seperti kursor), disimpan sebagai entitas terpisah dengan referensi versi.
-- "Spreadsheet?" → Model operasi per sel + dependensi formula; pengurutan sama, tetapi evaluasi ulang formula di server/klien.
-- "Bagaimana menguji kebenaran OT?" → Property-based: urutan op acak di n client harus konvergen; pasangan transform memenuhi TP1.
-- "Dokumen dengan 10.000 pembaca live?" → Pembaca tidak membuka sesi edit; menerima snapshot + op lewat fan-out pub-sub/CDN push; pengurut tetap satu.
-- "Multi-region aktif-aktif?" → OT butuh satu pengurut: pilih region pemilik per dokumen; CRDT memungkinkan penulis di banyak region tanpa pengurut, dengan biaya metadata.
+- "Pengguna offline satu jam lalu tersambung?" Client menyimpan operasi tertunda. Server mentransformasinya terhadap ratusan operasi sejak versi dasar. Hasilnya tetap konvergen walau mungkin terasa aneh. CRDT lebih alami untuk kasus ini.
+- "Komentar yang menempel pada teks?" Jangkarnya adalah rentang yang ikut ditransformasi seperti kursor, disimpan terpisah dengan referensi versi.
+- "Spreadsheet?" Operasi per sel ditambah ketergantungan rumus. Pengurutannya sama, tetapi rumus dihitung ulang di server atau client.
+- "Bagaimana menguji kebenaran OT?" Uji berbasis sifat: urutan operasi acak di banyak client harus konvergen, dan pasangan transform memenuhi properti TP1.
+- "Dokumen dengan 10.000 pembaca live?" Pembaca tidak membuka sesi edit. Mereka menerima snapshot dan operasi lewat pub-sub atau CDN, dan pengurutnya tetap satu.
+- "Beberapa region aktif bersamaan?" OT butuh satu pengurut, jadi pilih region pemilik per dokumen. CRDT memungkinkan penulis di banyak region tanpa pengurut, dengan biaya metadata.

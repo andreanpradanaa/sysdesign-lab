@@ -6,7 +6,7 @@ minutes: 55
 type: case
 prerequisites:
   ['bagian-2/database', 'bagian-2/distributed-cache', 'bagian-2/distributed-search', 'bagian-3/uber']
-summary: 'Menemukan tempat dalam radius tertentu dari posisi user: membandingkan geohash, quadtree, dan index grid heksagonal; memisahkan data bisnis yang jarang berubah dari pencarian geospasial yang sangat sering dibaca.'
+summary: 'Menemukan tempat dalam radius tertentu dari posisi pengguna: membandingkan geohash, quadtree, dan grid heksagonal, lalu memisahkan data bisnis yang jarang berubah dari pencarian lokasi yang sangat sering dibaca.'
 sources:
   - title: 'Geohash — Wikipedia'
     url: 'https://en.wikipedia.org/wiki/Geohash'
@@ -19,96 +19,96 @@ sources:
   - title: 'Uber Engineering — H3: Hexagonal Hierarchical Spatial Index'
     url: 'https://www.uber.com/blog/h3/'
 quiz:
-  - q: 'Kenapa index B-tree pada kolom latitude dan satu lagi pada longitude tidak cukup untuk query "semua tempat dalam radius 1 km"?'
+  - q: 'Kenapa index B-tree terpisah pada kolom latitude dan longitude tidak cukup untuk query radius 1 km?'
     options:
       - text: 'Karena B-tree tidak bisa menyimpan angka desimal'
         correct: false
-        why: 'Bisa; masalahnya dimensi.'
-      - text: 'Karena tiap index hanya membatasi satu dimensi: range latitude ±1 km masih mencakup pita selebar seluruh dunia; irisan dua range tetap memindai banyak baris sebelum menghitung jarak nyata'
+        why: 'B-tree bisa menyimpan desimal. Masalahnya ada pada jumlah dimensi, bukan tipe data.'
+      - text: 'Karena tiap index hanya membatasi satu dimensi, sehingga banyak baris tetap dipindai'
         correct: true
-        why: 'Data 2D butuh index yang menjaga kedekatan spasial: geohash/S2/H3 (mengubah 2D menjadi string/ID 1D yang terurut) atau struktur pohon (quadtree, R-tree/GiST).'
-      - text: 'Karena latitude dan longitude disimpan sebagai string'
+        why: 'Rentang latitude 1 km masih mencakup pita selebar dunia. Data dua dimensi butuh index yang menjaga kedekatan spasial.'
+      - text: 'Karena latitude dan longitude disimpan sebagai teks'
         correct: false
-        why: 'Tipe tidak relevan.'
-      - text: 'Karena query radius memerlukan join'
+        why: 'Tipe penyimpanan tidak mengubah masalahnya. Index satu dimensi tetap tidak mengenal kedekatan di dua arah.'
+      - text: 'Karena query radius selalu memerlukan join tabel'
         correct: false
-        why: 'Tidak ada join.'
-  - q: 'Dengan geohash presisi 6 (sel ~1.2 km × 0.6 km), user di tepi sel mencari radius 1 km. Masalah apa yang muncul dan solusinya?'
+        why: 'Tidak ada join dalam query radius. Yang dibutuhkan adalah struktur index yang cocok untuk ruang dua dimensi.'
+  - q: 'Pengguna berada di tepi sel geohash dan mencari radius 1 km. Apa masalahnya dan bagaimana solusinya?'
     options:
-      - text: 'Tidak ada masalah; satu sel cukup'
+      - text: 'Tidak ada masalah, satu sel sudah cukup'
         correct: false
-        why: 'Tempat di sel sebelah yang jaraknya 100 m akan terlewat.'
-      - text: 'Tempat dekat di sel tetangga terlewat; solusinya query sel user + 8 sel tetangga (prefix geohash masing-masing), lalu filter by jarak nyata'
+        why: 'Tempat yang jaraknya hanya 100 meter tetapi berada di sel sebelah akan terlewat.'
+      - text: 'Tempat di sel tetangga terlewat, jadi query harus mencakup sel sekitar lalu menyaring jarak'
         correct: true
-        why: 'Masalah batas sel adalah sifat semua grid. Ring tetangga + filter jarak menjamin kelengkapan; untuk radius lebih besar, turunkan presisi atau perbesar ring.'
-      - text: 'Gunakan presisi 12 agar lebih akurat'
+        why: 'Masalah batas sel adalah sifat semua grid. Sel pengguna ditambah delapan tetangga dan saringan jarak nyata menjamin kelengkapan.'
+      - text: 'Pakai presisi 12 agar sel lebih kecil dan lebih akurat'
         correct: false
-        why: 'Sel lebih kecil memperburuk masalah batas (lebih banyak sel harus dicek).'
-      - text: 'Simpan setiap tempat di semua sel'
+        why: 'Sel lebih kecil justru memperburuk masalah batas. Makin banyak sel yang harus diperiksa untuk radius yang sama.'
+      - text: 'Simpan setiap tempat di semua sel yang berdekatan'
         correct: false
-        why: 'Duplikasi tanpa batas.'
-  - q: 'Quadtree vs geohash untuk 200 juta tempat dengan kepadatan sangat tidak merata (kota padat, gurun kosong). Mana pernyataan yang tepat?'
+        why: 'Ini menggandakan data tanpa batas yang jelas dan menyulitkan pembaruan.'
+  - q: 'Untuk 200 juta tempat dengan kepadatan sangat tidak merata, apa yang membedakan quadtree dari geohash?'
     options:
-      - text: 'Geohash selalu lebih baik karena sederhana'
+      - text: 'Geohash selalu lebih baik karena lebih sederhana'
         correct: false
-        why: 'Geohash membagi dunia merata; sel kota padat bisa berisi puluhan ribu tempat, sel gurun kosong.'
-      - text: 'Quadtree membagi sel hanya saat penuh (mis. &gt; 100 tempat), sehingga sel kecil di kota dan besar di gurun; query k-nearest lebih efisien, tetapi strukturnya pohon di memori yang harus dipartisi dan direplikasi sendiri, sedangkan geohash cukup string terurut di DB/KV apa pun'
+        why: 'Geohash membagi dunia merata. Sel kota padat bisa berisi puluhan ribu tempat sementara sel gurun kosong.'
+      - text: 'Quadtree memecah sel hanya saat penuh, tetapi strukturnya harus kamu kelola sendiri di memori'
         correct: true
-        why: 'Trade-off: adaptif vs sederhana. Banyak sistem memakai geohash/S2 di penyimpanan dan quadtree/k-d tree di memori untuk query nearest.'
-      - text: 'Quadtree tidak bisa menangani penambahan tempat baru'
+        why: 'Quadtree adaptif terhadap kepadatan dan efisien untuk pencarian terdekat. Harganya adalah pohon yang harus dipartisi dan direplikasi sendiri.'
+      - text: 'Quadtree tidak bisa menerima penambahan tempat baru'
         correct: false
-        why: 'Bisa; sel dipecah saat penuh.'
-      - text: 'Keduanya tidak bisa menangani 200 juta tempat'
+        why: 'Quadtree bisa menerima data baru. Sel dipecah saat jumlah isinya melewati batas.'
+      - text: 'Keduanya tidak sanggup menangani 200 juta tempat'
         correct: false
-        why: '200 juta × ~50 B ≈ 10 GB; muat di memori beberapa node.'
-  - q: 'Data bisnis (jam buka, menu, rating) berubah jarang, tetapi pencarian "restoran dekat saya" terjadi 10.000 QPS. Desain penyimpanan yang tepat?'
+        why: 'Dua ratus juta tempat berukuran sekitar 10 GB. Angka ini muat di memori beberapa node.'
+  - q: 'Data bisnis jarang berubah, tetapi pencarian tempat terdekat mencapai 10.000 query per detik. Desain penyimpanan mana yang tepat?'
     options:
-      - text: 'Semua di satu tabel relasional yang dibaca langsung tiap query'
+      - text: 'Satu tabel relasional yang dibaca langsung setiap query'
         correct: false
-        why: 'Query radius + join detail pada 10.000 QPS membebani DB; detail bisnis pun besar.'
-      - text: 'Index geospasial (id, lat, lng, cell, kategori ringkas) di memori/KV terpartisi dan direplikasi untuk query, DB relasional sebagai sumber kebenaran detail bisnis dengan cache objek; perubahan dialirkan ke index via CDC/event'
+        why: 'Query radius ditambah join detail pada 10.000 query per detik akan membebani database.'
+      - text: 'Index lokasi ringkas di memori untuk mencari, database untuk detail, disinkronkan lewat event'
         correct: true
-        why: 'Read-heavy dengan dua pola akses berbeda: cari by lokasi (index ringkas) lalu hydrate by id (cache objek). Pemisahan ini memberi skala baca tanpa mengorbankan konsistensi sumber.'
-      - text: 'Hanya cache, tanpa DB'
+        why: 'Pencarian by lokasi dan pengambilan detail by id adalah dua pola akses berbeda. Memisahkannya memberi skala baca tanpa mengorbankan sumber kebenaran.'
+      - text: 'Semua data hanya di cache tanpa database'
         correct: false
-        why: 'Cache bukan sumber kebenaran; data bisnis harus durable.'
-      - text: 'Simpan detail bisnis di dalam index geospasial'
+        why: 'Cache bukan sumber kebenaran. Data bisnis harus tersimpan permanen di database.'
+      - text: 'Detail bisnis lengkap disimpan di dalam index lokasi'
         correct: false
-        why: 'Index menjadi besar dan setiap perubahan detail memaksa menulis ulang index.'
+        why: 'Index menjadi besar, dan setiap perubahan detail memaksa penulisan ulang index.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: radius maksimum? Hasil diurutkan by jarak, rating, atau relevansi? Seberapa sering bisnis berubah? Apakah perlu pencarian teks ("sushi") digabung lokasi? Ulasan termasuk?
+Mulailah dengan bertanya. Berapa radius maksimum yang didukung? Hasil diurutkan menurut jarak, rating, atau gabungan keduanya? Seberapa sering data bisnis berubah? Apakah pencarian teks seperti "sushi" perlu digabung dengan lokasi? Apakah ulasan termasuk?
 
 ### Functional
 
-- Cari tempat dalam radius r dari (lat, lng), dengan filter kategori dan teks opsional, diurutkan by jarak atau skor.
-- Lihat detail tempat (jam, foto, rating, ulasan ringkas).
-- Pemilik menambah/mengubah tempat; perubahan terlihat dalam menit.
-- Out of scope: menulis ulasan (dibahas ringkas), rekomendasi, iklan, reservasi.
+- Pengguna mencari tempat dalam radius tertentu dari koordinatnya. Hasil bisa disaring menurut kategori dan teks, lalu diurutkan menurut jarak atau skor.
+- Pengguna membuka detail tempat: jam buka, foto, rating, dan ringkasan ulasan.
+- Pemilik menambah atau mengubah data tempat. Perubahan terlihat dalam hitungan menit.
+- Di luar cakupan: menulis ulasan, rekomendasi, iklan, dan reservasi.
 
 ### Non-functional
 
-| NFR               | Target                                                                  | Alasan                       |
-| ----------------- | ----------------------------------------------------------------------- | ---------------------------- |
-| Latency pencarian | p99 &lt; 200 ms                                                         | Interaktif saat peta digeser |
-| Availability      | 99.99% baca                                                             | Produk inti                  |
-| Konsistensi       | Eventual (menit) untuk perubahan tempat; detail yang dilihat harus utuh | Read-heavy                   |
-| Skala             | 200 juta tempat, 100 juta DAU, 10.000+ QPS pencarian                    | Global                       |
-| Kelengkapan       | Tidak melewatkan tempat di dalam radius                                 | Kepercayaan                  |
+| Target            | Nilai                                                                              | Alasan                                                  |
+| ----------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Latency pencarian | p99 di bawah 200 ms                                                                | Pengguna menggeser peta dan mengharapkan hasil langsung |
+| Availability      | 99.99% untuk pembacaan                                                             | Pencarian adalah fitur inti produk                      |
+| Konsistensi       | Eventual dalam hitungan menit untuk perubahan tempat                               | Beban didominasi pembacaan                              |
+| Skala             | 200 juta tempat, 100 juta pengguna aktif harian, lebih dari 10.000 query per detik | Layanan global                                          |
+| Kelengkapan       | Tidak ada tempat di dalam radius yang terlewat                                     | Kepercayaan pengguna                                    |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 200 juta tempat; 100 juta DAU dengan 5 pencarian/hari; detail tempat 2 KB + foto di blob; perubahan 1% tempat/hari.
+Asumsi: 200 juta tempat, 100 juta pengguna aktif harian dengan 5 pencarian per hari, detail tempat 2 KB, foto di blob store, dan 1% tempat berubah per hari.
 
-- Pencarian: 100M × 5 / 10^5 ≈ **5.000 QPS**, puncak 15.000.
-- Index geospasial: 200M × (id 8 B + lat/lng 16 B + cell 8 B + flag 8 B ≈ 40 B) ≈ **8 GB**; muat di memori, dipartisi by wilayah dan direplikasi.
-- Detail: 200M × 2 KB ≈ 400 GB di DB; cache objek untuk tempat populer (20% × 400 GB = 80 GB).
-- Tulis: 2 juta perubahan/hari ≈ 25/s; trivial; index diperbarui via stream.
-- Hasil per query: ambil ≤ 100 kandidat dari index, hydrate 20 untuk halaman pertama = 20 multi-get cache per query → 100.000–300.000 cache get/s.
+- Pencarian: 100 juta kali 5 dibagi 100 ribu detik menghasilkan sekitar 5.000 query per detik. Puncaknya sekitar 15.000.
+- Index lokasi: setiap tempat butuh sekitar 40 byte untuk id, koordinat, sel, dan penanda kategori. Totalnya sekitar 8 GB. Angka ini muat di memori, lalu dipartisi per wilayah dan direplikasi.
+- Detail: 200 juta kali 2 KB menghasilkan sekitar 400 GB di database. Cache objek untuk 20% tempat populer butuh sekitar 80 GB.
+- Penulisan: 2 juta perubahan per hari, atau sekitar 25 per detik. Angka ini kecil. Index diperbarui lewat aliran event.
+- Hasil per query: index mengembalikan paling banyak 100 kandidat, lalu 20 di antaranya diambil detailnya dari cache. Artinya 100 ribu sampai 300 ribu pembacaan cache per detik.
 
-Keputusan: index ringkas di memori, detail di DB + cache, sinkronisasi async; tidak ada sharding DB untuk tulis (25/s), tetapi partisi index untuk lokalitas dan replikasi untuk throughput.
+Keputusannya: index ringkas di memori, detail di database dengan cache, sinkronisasi asinkron. Database tidak perlu di-shard untuk 25 penulisan per detik. Index dipartisi untuk lokalitas dan direplikasi untuk throughput.
 
 ## 3. API design
 
@@ -120,7 +120,7 @@ POST /v1/places          (pemilik; auth)  → 202, menunggu verifikasi
 PATCH /v1/places/{id}    (pemilik)        → 202
 ```
 
-Radius dibatasi (mis. 50 km) dan hasil dipotong (k-nearest 100) agar biaya terikat. Cursor berisi posisi dalam daftar yang sudah diurutkan dan hash parameter.
+Radius dibatasi, misalnya 50 km, dan hasil dipotong pada 100 tempat terdekat agar biaya query terikat. Cursor berisi posisi dalam daftar yang sudah diurutkan beserta hash parameter pencarian.
 
 ## 4. Skema data
 
@@ -131,14 +131,14 @@ photos(place_id, blob_key, order)
 reviews(id, place_id, user_id, rating, text, created_at)  -- shard by place_id
 
 -- Index geospasial (memori/KV, turunan):
-cell_index: cell_id → [ {place_id, lat, lng, category_bits, rating_bucket} ]   -- diurutkan/di-bucket
+cell_index: cell_id → [ {place_id, lat, lng, category_bits, rating_bucket} ]
 place_cell: place_id → cell_id  (untuk update: hapus dari sel lama)
 
 -- Cache objek: place:{id} → detail ringkas (TTL jam, dihapus saat update)
 -- Search cluster (opsional): index teks tempat dengan geo_point untuk q + lokasi
 ```
 
-Pilihan sel: geohash presisi 6 (±1 km) atau H3 res 8; presisi dipilih dari radius umum. Satu tempat hanya di satu sel.
+Sel dipilih dengan geohash presisi 6, yaitu kotak sekitar 1 km, atau H3 resolusi 8. Presisi mengikuti radius yang paling sering dicari. Satu tempat hanya tercatat di satu sel.
 
 ## 5. High-level design
 
@@ -146,83 +146,101 @@ Pilihan sel: geohash presisi 6 (±1 km) atau H3 res 8; presisi dipilih dari radi
 flowchart LR
   C[Client] --> GW[API gateway]
   GW --> SS[Search service]
-  SS --> GI[(Geo index\nmemori, partisi by wilayah,\nreplika)]
-  SS --> OC[(Place cache)]
-  OC -. miss .-> PDB[(Places DB)]
-  SS --> TX[(Search cluster\nteks + geo)]
+  SS --> GI[("Geo index\nmemori, partisi per wilayah,\nreplika")]
+  SS --> OC[("Place cache")]
+  OC -. miss .-> PDB[("Places DB")]
+  SS --> TX[("Search cluster\nteks dan geo")]
   GW --> PS["Place service\n(CRUD, verifikasi)"]
   PS --> PDB
-  PDB --> CDC[CDC / outbox] --> Q[[Queue: place-changed]]
+  PDB --> CDC["CDC / outbox"] --> Q[["Queue: place-changed"]]
   Q --> IDX[Index updater] --> GI
   Q --> IDX2[Text indexer] --> TX
   Q --> INV[Cache invalidator] --> OC
-  C -->|foto| CDN[CDN] --> BLOB[(Blob)]
+  C -->|foto| CDN[CDN] --> BLOB[("Blob")]
 ```
 
-**Alur pencarian**: client → search service → hitung sel user + ring tetangga sesuai radius → ambil kandidat dari partisi index (satu atau dua partisi di batas wilayah) → filter kategori/radius nyata (haversine) → urutkan (jarak atau skor gabungan jarak+rating) → ambil top-k → hydrate 20 dari cache objek → respons. Bila ada `q` teks: query search cluster dengan filter geo_distance, lalu hydrate.
+Alur pencarian:
 
-**Alur perubahan**: pemilik → place service → DB → CDC → queue → index updater memindahkan tempat antar sel (jika lokasi berubah) atau memperbarui atribut ringkas; cache objek dihapus; text indexer memperbarui dokumen. Terlihat dalam detik–menit.
+1. Client mengirim koordinat, radius, dan filter ke search service.
+2. Search service menghitung sel pengguna dan sel tetangga sesuai radius.
+3. Search service mengambil kandidat dari partisi index. Di batas wilayah, dua partisi ditanya.
+4. Search service menyaring kandidat menurut kategori dan jarak nyata dengan rumus haversine.
+5. Search service mengurutkan hasil menurut jarak atau skor gabungan, lalu mengambil 20 teratas.
+6. Search service mengambil detail 20 tempat itu dari cache objek dan mengembalikan respons.
+
+Bila ada kata kunci teks, search service bertanya ke search cluster dengan filter jarak, lalu mengambil detailnya dengan cara yang sama.
+
+Alur perubahan:
+
+1. Pemilik mengirim perubahan ke place service.
+2. Place service menulis ke database. CDC, yaitu mekanisme yang membaca perubahan database sebagai aliran event, mengirimkannya ke queue.
+3. Index updater memindahkan tempat ke sel baru bila lokasinya berubah, atau memperbarui atribut ringkasnya.
+4. Cache invalidator menghapus entri cache tempat itu.
+5. Text indexer memperbarui dokumen di search cluster. Perubahan terlihat dalam detik sampai menit.
 
 ## 6. Detailed design
 
 ### 6.1 Memilih index geospasial
 
-| Pendekatan              | Cara                                  | Kelebihan                                                                          | Kekurangan                                                                                | Cocok                           |
-| ----------------------- | ------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------- |
-| Geohash (string prefix) | 2D → string base32; sel = prefix      | Sederhana, bisa di DB/KV apa pun (index B-tree pada string), range query by prefix | Sel seragam (padat vs kosong), bentuk persegi panjang, batas sel; tetangga perlu dihitung | Default untuk penyimpanan       |
-| S2 / H3 (cell id)       | Kurva Hilbert / heksagon hirarkis     | Sel lebih seragam secara luas; H3 ring tetangga mudah; hirarki resolusi            | Butuh library; id 64-bit                                                                  | Index memori, analitik          |
-| Quadtree                | Pohon; sel dipecah saat &gt; N tempat | Adaptif terhadap kepadatan; k-nearest efisien (telusuri sel terdekat)              | Struktur memori yang harus dibangun, dipartisi, direplikasi; update menyeimbangkan pohon  | Query nearest di memori         |
-| R-tree / GiST (PostGIS) | Pohon bounding box                    | Query spasial lengkap di SQL                                                       | Throughput terbatas DB tunggal                                                            | Skala kecil-menengah, prototipe |
+| Pendekatan       | Cara kerja                                                        | Kelebihan                                                               | Kekurangan                                                              | Cocok untuk                      |
+| ---------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------- |
+| Geohash          | Koordinat diubah menjadi string, dan sel adalah awalan string itu | Sederhana dan bisa disimpan di database apa pun lewat index pada string | Sel seragam, bentuk persegi panjang, dan tetangga harus dihitung        | Penyimpanan default              |
+| S2 atau H3       | Kurva Hilbert atau heksagon berjenjang                            | Luas sel lebih seragam dan tetangga mudah dicari                        | Butuh pustaka khusus dan id 64 bit                                      | Index di memori dan analitik     |
+| Quadtree         | Pohon yang memecah sel saat isinya melewati batas                 | Menyesuaikan kepadatan dan cepat untuk pencarian terdekat               | Struktur memori yang harus dibangun, dipartisi, dan direplikasi sendiri | Pencarian terdekat di area padat |
+| R-tree atau GiST | Pohon kotak pembatas di PostGIS                                   | Query spasial lengkap di SQL                                            | Throughput dibatasi satu database                                       | Skala kecil sampai menengah      |
 
-Pilihan: **geohash/H3 di penyimpanan dan index memori** (partisi, replikasi mudah), dengan **quadtree opsional** di memori tiap partisi untuk k-nearest yang cepat pada area padat. Jelaskan batas sel dan ring tetangga dalam setiap pilihan.
+Pilihannya adalah geohash atau H3 untuk penyimpanan dan index memori, karena partisi dan replikasinya mudah. Quadtree bisa ditambahkan di memori tiap partisi untuk pencarian terdekat di area padat. Apa pun pilihannya, jelaskan masalah batas sel dan cara mengatasinya dengan sel tetangga.
 
 ```mermaid
 flowchart LR
-  U[User lat,lng radius 1 km] --> G[geohash6 user: 'qqgux']
-  G --> N[8 tetangga: 'qqguv','qqguy',…]
-  N --> F["Ambil kandidat 9 sel\n(≈ ratusan tempat)"]
-  F --> H[Filter haversine ≤ 1 km\n+ kategori]
-  H --> S[Urutkan & top-k]
+  U[Pengguna di lat,lng\nradius 1 km] --> G[geohash6 pengguna: qqgux]
+  G --> N[8 sel tetangga]
+  N --> F[Ambil kandidat dari 9 sel]
+  F --> H[Saring jarak nyata dan kategori]
+  H --> S[Urutkan dan ambil top-k]
 ```
 
 ### 6.2 Partisi dan replikasi index
 
-- Partisi by wilayah (kumpulan sel) ke node; wilayah dipilih agar beban merata (kota besar = wilayah sendiri). Query di batas wilayah menyentuh 2 node.
-- Replikasi: index adalah turunan, dibangun ulang dari DB; tiap partisi punya beberapa replika read-only; update dari queue diterapkan ke semua replika (idempotent, versi per tempat).
-- Rebuild: snapshot periodik dari DB untuk node baru, lalu catch-up dari queue (offset).
+Index dipartisi per wilayah, yaitu kumpulan sel yang ditempatkan di satu node. Kota besar mendapat wilayah sendiri agar beban merata. Query di batas wilayah menyentuh dua node.
 
-### 6.3 Ranking
+Index adalah data turunan yang bisa dibangun ulang dari database. Tiap partisi punya beberapa replika yang hanya melayani pembacaan. Pembaruan dari queue diterapkan ke semua replika dengan nomor versi per tempat, sehingga pembaruan yang sama aman diterapkan dua kali.
 
-Skor = w1 × f(jarak) + w2 × rating × log(review_count) + w3 × kecocokan teks + w4 × buka sekarang. Hitung di search service untuk ≤ 100 kandidat; murah. Personalisasi (riwayat) sebagai ekstensi di tahap kedua.
+Node baru dibangun dari snapshot database berkala, lalu mengejar sisa perubahan dari queue mulai offset tertentu.
+
+### 6.3 Pemeringkatan
+
+Skor adalah gabungan beberapa faktor: jarak, rating dikalikan logaritma jumlah ulasan, kecocokan teks, dan status buka saat ini. Perhitungan dilakukan di search service untuk paling banyak 100 kandidat, jadi murah. Personalisasi dari riwayat pengguna bisa ditambahkan belakangan sebagai tahap kedua.
 
 ### 6.4 Detail dan ulasan
 
-- Detail dari cache objek (cache-aside, hapus saat update); foto via CDN.
-- Ulasan: shard by place_id, halaman pertama di-cache; rating agregat dihitung ulang asinkron saat ulasan baru (counter + rata-rata; sharded counter untuk tempat viral).
+Detail diambil dari cache objek dengan pola cache-aside. Entri dihapus saat ada perubahan. Foto disajikan lewat CDN.
+
+Ulasan di-shard menurut id tempat, dan halaman pertamanya di-cache. Rating agregat dihitung ulang secara asinkron saat ulasan baru masuk. Tempat yang viral memakai sharded counter agar satu baris tidak menjadi titik panas.
 
 ### 6.5 Konsistensi dan pembaruan
 
-- Tempat baru menunggu verifikasi (status `pending`) sebelum masuk index.
-- Perubahan lokasi: index updater menghapus dari sel lama dan menambah ke sel baru; antara dua langkah, tempat bisa muncul dua kali atau tidak sama sekali sesaat; versi per tempat membuat pembaca mengabaikan entri basi.
-- Lag index dipantau; SLA "terlihat dalam 5 menit".
+- Tempat baru berstatus menunggu verifikasi sebelum masuk index.
+- Perubahan lokasi membuat index updater menghapus tempat dari sel lama lalu menambahkannya ke sel baru. Di antara dua langkah itu, tempat bisa muncul dua kali atau tidak sama sekali sesaat. Nomor versi membuat pembaca mengabaikan entri yang basi.
+- Keterlambatan index dipantau. Targetnya terlihat dalam 5 menit.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                 | Dipenuhi oleh                                                       | Risiko tersisa                                                               |
-| ------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| p99 &lt; 200 ms     | Index memori lokal, ≤ 9 sel, hydrate dari cache                     | Area sangat padat: ribuan kandidat per sel; quadtree/sel lebih kecil adaptif |
-| Availability 99.99% | Index replika, stateless search service, cache; DB hanya untuk miss | Kehilangan semua replika partisi: rebuild dari snapshot (menit)              |
-| Eventual (menit)    | CDC → queue → index/ cache invalidasi                               | Lag saat backlog; prioritas perubahan lokasi                                 |
-| Kelengkapan         | Ring tetangga + filter jarak nyata                                  | Radius besar (50 km) → turunkan presisi, bukan ring 1.000 sel                |
-| Skala               | Index 8 GB terpartisi/replika; tulis kecil                          | Hot wilayah (pusat kota saat makan siang): replika tambahan                  |
+| Target               | Cara memenuhi                                                                     | Risiko yang tersisa                                                                                |
+| -------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| p99 di bawah 200 ms  | Index memori lokal, paling banyak 9 sel, detail dari cache                        | Area sangat padat bisa punya ribuan kandidat per sel. Quadtree atau sel adaptif menjadi jawabannya |
+| Availability 99.99%  | Replika index, search service tanpa state, cache. Database hanya untuk cache miss | Kehilangan semua replika partisi memaksa pembangunan ulang dari snapshot dalam hitungan menit      |
+| Eventual dalam menit | CDC ke queue, lalu ke index dan invalidasi cache                                  | Antrean menumpuk saat lonjakan. Perubahan lokasi diprioritaskan                                    |
+| Kelengkapan          | Sel tetangga ditambah saringan jarak nyata                                        | Radius besar membutuhkan presisi sel yang lebih rendah, bukan ribuan sel                           |
+| Skala                | Index 8 GB terpartisi dan direplikasi, penulisan kecil                            | Wilayah pusat kota saat jam makan siang butuh replika tambahan                                     |
 
-Bottleneck 10x: cache objek (hydrate) dan partisi index wilayah populer; keduanya horizontal via replika. SPOF: queue perubahan; cluster terreplikasi; index tetap melayani data lama bila queue mati.
+Bottleneck pertama saat beban naik 10 kali adalah cache objek dan partisi index wilayah populer. Keduanya diatasi dengan menambah replika. Titik lemah tunggalnya adalah queue perubahan. Queue dijalankan sebagai cluster, dan index tetap melayani data lama bila queue mati.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Pencarian teks + lokasi ('sushi dekat saya')?" → Search cluster dengan filter geo_distance dan skor gabungan, atau filter teks di kandidat sel bila kecil.
-- "Objek yang bergerak (pengemudi)?" → Update tinggi; lihat kasus Uber: index memori dengan TTL, tanpa DB per ping.
-- "Polygon ('dalam wilayah Menteng') bukan radius?" → Pecah polygon menjadi himpunan sel (S2 covering), query sel, filter point-in-polygon.
-- "Pagination stabil saat data berubah?" → Cursor berisi skor+id terakhir; hasil baru di antara dua halaman diterima.
-- "Multi-region?" → Index per region geografis secara alami lokal; DB primary per region atau global dengan replika baca.
-- "Mengukur kualitas pencarian?" → CTR hasil, rasio hasil kosong, latency per partisi.
+- "Bagaimana pencarian teks digabung lokasi, misalnya sushi dekat saya?" Pakai search cluster dengan filter jarak dan skor gabungan. Bila kandidat sedikit, saring teks di hasil sel.
+- "Bagaimana kalau objeknya bergerak, seperti pengemudi?" Pembaruannya sangat sering. Lihat kasus Uber: index memori dengan masa kedaluwarsa, tanpa menulis ke database tiap ping.
+- "Bagaimana mencari dalam polygon, bukan radius?" Pecah polygon menjadi himpunan sel, query sel-sel itu, lalu saring titik yang benar-benar di dalam polygon.
+- "Bagaimana paginasi tetap stabil saat data berubah?" Cursor menyimpan skor dan id terakhir. Hasil baru yang muncul di antara dua halaman diterima.
+- "Bagaimana dengan banyak region?" Index per wilayah geografis secara alami lokal. Database memakai primary per region atau primary global dengan replika baca.
+- "Bagaimana mengukur kualitas pencarian?" Rasio klik hasil, rasio hasil kosong, dan latency per partisi.

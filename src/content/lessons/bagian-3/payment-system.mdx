@@ -5,7 +5,7 @@ order: 12
 minutes: 65
 type: case
 prerequisites: ['bagian-2/database', 'bagian-2/message-queue', 'bagian-1/abstraksi-distributed-system']
-summary: 'Sistem di mana "kira-kira" tidak boleh ada: idempotency di setiap batas, ledger double-entry sebagai sumber kebenaran, integrasi dengan payment service provider yang tidak bisa dipercaya sepenuhnya, dan rekonsiliasi sebagai pengaman terakhir.'
+summary: 'Sistem yang tidak boleh "kira-kira": idempotency di setiap batas, ledger double-entry sebagai sumber kebenaran, integrasi dengan penyedia pembayaran yang tidak bisa dipercaya sepenuhnya, dan rekonsiliasi sebagai pengaman terakhir.'
 sources:
   - title: 'Stripe docs — Idempotent requests'
     url: 'https://docs.stripe.com/api/idempotent_requests'
@@ -18,98 +18,98 @@ sources:
   - title: 'PCI Security Standards Council — PCI DSS (ringkasan)'
     url: 'https://www.pcisecuritystandards.org/standards/pci-dss/'
 quiz:
-  - q: 'Client mengirim POST /payments, koneksi putus sebelum respons, lalu client mengulang. Apa yang mencegah user ditagih dua kali?'
+  - q: 'Client mengirim POST /payments, koneksi putus sebelum respons, lalu client mengulang. Apa yang mencegah tagihan ganda?'
     options:
-      - text: 'Payment service provider (PSP) otomatis mendeteksi duplikat'
+      - text: 'Penyedia pembayaran otomatis mendeteksi permintaan yang sama'
         correct: false
-        why: 'PSP mendukung idempotency key, tetapi kalau sistem kita membuat dua permintaan dengan key berbeda, PSP melihat dua pembayaran sah.'
-      - text: 'Idempotency key dari client disimpan bersama hasil di sistem kita sebelum memanggil PSP; permintaan ulang dengan key sama mengembalikan hasil yang sama (atau menunggu bila masih diproses), dan key yang sama diteruskan ke PSP'
+        why: 'Penyedia mendukung idempotency key, tetapi dua permintaan dengan key berbeda tetap dianggap dua pembayaran sah.'
+      - text: 'Idempotency key dari client disimpan bersama hasilnya sebelum penyedia dipanggil'
         correct: true
-        why: 'Idempotency di setiap batas: client → kita, kita → PSP. Key disimpan dalam transaksi yang sama dengan pembuatan record pembayaran agar tidak ada jendela balapan.'
-      - text: 'Client dilarang mengulang'
+        why: 'Key disimpan dalam transaksi yang sama dengan record pembayaran. Permintaan ulang dengan key sama mendapat hasil yang sama, dan key diteruskan ke penyedia.'
+      - text: 'Client dilarang mengulang permintaan pembayaran'
         correct: false
-        why: 'Jaringan putus adalah hal biasa; retry harus aman.'
-      - text: 'Menunggu 30 detik sebelum memproses'
+        why: 'Jaringan putus adalah hal biasa. Pengulangan harus aman, bukan dilarang.'
+      - text: 'Server menunggu 30 detik sebelum memproses permintaan'
         correct: false
-        why: 'Tidak menjamin apa pun.'
-  - q: 'Kenapa saldo tidak disimpan sebagai satu kolom yang di-UPDATE, melainkan diturunkan dari ledger append-only double-entry?'
+        why: 'Menunggu tidak menjamin apa pun tentang duplikasi.'
+  - q: 'Kenapa saldo tidak disimpan sebagai satu kolom yang diperbarui, melainkan diturunkan dari ledger double-entry?'
     options:
-      - text: 'Karena UPDATE lebih lambat dari INSERT'
+      - text: 'Karena perintah UPDATE lebih lambat daripada INSERT'
         correct: false
-        why: 'Performa bukan alasannya.'
-      - text: 'Karena ledger memberi jejak audit lengkap dan tidak bisa diubah, setiap transaksi harus seimbang (debit = kredit) sehingga kesalahan terdeteksi, dan saldo pada titik waktu mana pun bisa direkonstruksi; kolom saldo hanyalah cache/materialisasi yang bisa direkonsiliasi'
+        why: 'Performa bukan alasannya. Alasannya ada pada jejak audit dan deteksi kesalahan.'
+      - text: 'Karena ledger memberi jejak audit lengkap dan setiap transaksi harus seimbang'
         correct: true
-        why: 'Prinsip akuntansi yang berusia ratusan tahun: uang tidak diciptakan atau hilang, hanya berpindah antar akun. Ini membuat bug dan fraud terlihat sebagai ketidakseimbangan.'
-      - text: 'Karena regulasi melarang kolom saldo'
+        why: 'Uang tidak diciptakan atau hilang, hanya berpindah antar akun. Bug dan fraud terlihat sebagai ketidakseimbangan, dan saldo bisa dibangun ulang kapan saja.'
+      - text: 'Karena regulasi melarang kolom saldo di database'
         correct: false
-        why: 'Kolom saldo boleh ada sebagai turunan.'
-      - text: 'Karena ledger tidak butuh database'
+        why: 'Kolom saldo boleh ada sebagai turunan yang direkonsiliasi dari ledger.'
+      - text: 'Karena ledger tidak memerlukan database sama sekali'
         correct: false
-        why: 'Ledger disimpan di DB transaksional.'
-  - q: 'Kita memanggil PSP untuk menagih kartu; panggilan timeout. Status pembayaran di sisi kita?'
+        why: 'Ledger tetap disimpan di database transaksional.'
+  - q: 'Panggilan ke penyedia pembayaran untuk menagih kartu kena timeout. Apa status pembayaran di sisi kita?'
     options:
-      - text: 'Gagal; tandai failed dan beri tahu user'
+      - text: 'Gagal, jadi tandai failed dan minta pengguna membayar lagi'
         correct: false
-        why: 'PSP mungkin sudah menagih; menandai failed lalu user bayar lagi = tagihan ganda.'
-      - text: 'Tidak diketahui (pending); jangan tandai sukses maupun gagal; lakukan query status ke PSP dengan idempotency key/referensi, atau tunggu webhook, dan tetap pending sampai ada jawaban pasti; rekonsiliasi menangkap yang tertinggal'
+        why: 'Penyedia mungkin sudah menagih. Meminta bayar lagi berarti tagihan ganda.'
+      - text: 'Tidak diketahui, jadi tetap pending sampai status pasti didapat'
         correct: true
-        why: 'Timeout = ketidaktahuan, bukan kegagalan. State machine pembayaran harus punya status "pending/unknown" yang diselesaikan oleh polling, webhook, atau rekonsiliasi.'
-      - text: 'Sukses; PSP hampir pasti menerima'
+        why: 'Timeout berarti ketidaktahuan, bukan kegagalan. Status diselesaikan lewat pemeriksaan status, webhook, atau rekonsiliasi.'
+      - text: 'Sukses, karena penyedia hampir pasti menerimanya'
         correct: false
-        why: 'Mengasumsikan sukses bisa mengirim barang tanpa dibayar.'
-      - text: 'Ulang langsung dengan idempotency key baru'
+        why: 'Menganggap sukses bisa mengirim barang tanpa dibayar.'
+      - text: 'Ulangi langsung dengan idempotency key yang baru'
         correct: false
-        why: 'Key baru = pembayaran baru di PSP.'
-  - q: 'Webhook dari PSP bisa datang dua kali, terlambat, atau di luar urutan (refund.succeeded sebelum charge.succeeded). Bagaimana consumer webhook dirancang?'
+        why: 'Key baru berarti pembayaran baru di sisi penyedia.'
+  - q: 'Webhook dari penyedia bisa datang dua kali, terlambat, atau tidak berurutan. Bagaimana penerimanya dirancang?'
     options:
-      - text: 'Proses setiap webhook apa adanya'
+      - text: 'Proses setiap webhook apa adanya begitu datang'
         correct: false
-        why: 'Duplikat dan urutan salah akan merusak state.'
-      - text: 'Verifikasi tanda tangan, simpan event mentah dengan event id (unique), ack cepat, proses async secara idempotent; jangan percaya payload untuk state final tetapi tarik status terbaru dari PSP (atau terapkan transisi state machine yang menolak urutan tidak valid dan menunda event yang datang terlalu awal)'
+        why: 'Duplikat dan urutan yang salah akan merusak status pembayaran.'
+      - text: 'Verifikasi tanda tangan, simpan dengan id unik, lalu tarik status terbaru dari penyedia'
         correct: true
-        why: 'Webhook adalah pemberitahuan at-least-once tanpa jaminan urutan. Dedup by event id, idempotency, dan verifikasi ke sumber adalah pola standar.'
-      - text: 'Tolak webhook yang terlambat'
+        why: 'Webhook adalah pemberitahuan tanpa jaminan urutan. Dedup berdasarkan id dan verifikasi ke sumber adalah pola standar.'
+      - text: 'Tolak semua webhook yang datang terlambat'
         correct: false
-        why: 'Terlambat bukan berarti tidak valid.'
-      - text: 'Hanya memakai polling, tanpa webhook'
+        why: 'Terlambat bukan berarti tidak valid. Isinya tetap perlu diproses.'
+      - text: 'Hanya memakai polling dan mengabaikan webhook'
         correct: false
-        why: 'Polling boleh sebagai pelengkap; webhook memberi latency lebih rendah.'
+        why: 'Polling boleh sebagai pelengkap, tetapi webhook memberi latency lebih rendah.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: kita pedagang (menerima pembayaran untuk produk sendiri) atau platform (menerima dan membayar ke penjual, seperti marketplace)? Metode: kartu, e-wallet, transfer bank? Apakah kita memproses kartu sendiri (PCI DSS penuh) atau lewat PSP? Mata uang? Refund dan sengketa?
+Tanyakan dulu. Apakah kita pedagang yang menerima pembayaran untuk produk sendiri, atau platform yang juga membayar penjual seperti marketplace? Metode apa saja: kartu, e-wallet, transfer bank? Apakah kita memproses kartu sendiri atau lewat penyedia pembayaran? Satu mata uang atau banyak? Apakah refund dan sengketa termasuk?
 
-Asumsi: platform marketplace yang memakai PSP (Stripe-like) untuk kartu/e-wallet, pay-in dari pembeli, pay-out ke penjual, satu mata uang.
+Asumsi kasus ini: marketplace yang memakai penyedia pembayaran seperti Stripe untuk kartu dan e-wallet. Pembeli membayar, platform memotong fee, penjual dibayar terjadwal, dan hanya satu mata uang.
 
 ### Functional
 
-- Pay-in: pembeli membayar pesanan; hasil sukses/gagal; metode kartu dan e-wallet lewat PSP.
-- Ledger: mencatat semua pergerakan uang (pembeli → platform → penjual, fee, refund).
-- Pay-out: transfer ke penjual terjadwal.
-- Refund penuh/sebagian; rekonsiliasi harian dengan laporan PSP.
-- Out of scope: pemrosesan kartu sendiri, deteksi fraud mendalam (disebut), multi-mata uang, pajak.
+- Pay-in: pembeli membayar pesanan lewat penyedia pembayaran, dan hasilnya sukses atau gagal.
+- Ledger mencatat semua pergerakan uang: dari pembeli ke platform, ke penjual, fee, dan refund.
+- Pay-out: transfer ke penjual sesuai jadwal.
+- Refund penuh atau sebagian, dan rekonsiliasi harian dengan laporan penyedia.
+- Di luar cakupan: memproses kartu sendiri, deteksi fraud mendalam, banyak mata uang, dan pajak.
 
 ### Non-functional
 
-| NFR          | Target                                                                                    | Alasan                                                          |
-| ------------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Correctness  | Tidak ada tagihan ganda, tidak ada uang hilang/tercipta; ledger seimbang                  | Inti                                                            |
-| Konsistensi  | Kuat untuk ledger dan state pembayaran; eventual untuk tampilan                           | Uang                                                            |
-| Reliability  | At-least-once + idempotent di semua batas; toleran PSP lambat/timeout                     | Integrasi eksternal rapuh                                       |
-| Availability | 99.99% untuk memulai pembayaran; degradasi anggun saat PSP down                           | Pendapatan                                                      |
-| Keamanan     | Data kartu tidak pernah menyentuh server kita (tokenisasi), audit lengkap, akses terbatas | PCI DSS, kepercayaan                                            |
-| Skala        | 1 juta transaksi/hari, puncak 100/detik                                                   | Marketplace menengah; correctness lebih penting dari throughput |
+| Target       | Nilai                                                                                | Alasan                                      |
+| ------------ | ------------------------------------------------------------------------------------ | ------------------------------------------- |
+| Kebenaran    | Tidak ada tagihan ganda, tidak ada uang hilang atau tercipta, ledger selalu seimbang | Inti sistem                                 |
+| Konsistensi  | Kuat untuk ledger dan status pembayaran, eventual untuk tampilan                     | Ini uang                                    |
+| Reliability  | Setiap operasi aman diulang di semua batas, toleran terhadap penyedia yang lambat    | Integrasi eksternal rapuh                   |
+| Availability | 99.99% untuk memulai pembayaran, dengan degradasi anggun saat penyedia mati          | Pendapatan                                  |
+| Keamanan     | Data kartu tidak pernah menyentuh server kita, audit lengkap, akses terbatas         | Kepatuhan PCI DSS dan kepercayaan           |
+| Skala        | 1 juta transaksi per hari, puncak 100 per detik                                      | Kebenaran lebih penting daripada throughput |
 
 ## 2. Estimasi kapasitas
 
-- Transaksi: 10^6 / 10^5 ≈ **10/detik** rata-rata, puncak 100/detik; sangat kecil dibanding sistem lain, sehingga desain mengutamakan correctness, bukan sharding.
-- Ledger: tiap pembayaran ≈ 4–8 entri (pay-in, fee, pending payout, dsb.) → ~8 juta entri/hari × 200 B ≈ 1.6 GB/hari; 5 tahun ≈ 3 TB; satu DB relasional dengan partisi by waktu cukup.
-- Panggilan PSP: 100/detik puncak, latency 300 ms–2 s; timeout dan antrian retry harus dirancang.
-- Webhook masuk: ~2–3 per transaksi → ratusan/detik puncak.
-- Rekonsiliasi: laporan harian jutaan baris, batch malam.
+- Transaksi: 1 juta per hari dibagi 100 ribu detik menghasilkan sekitar 10 per detik. Puncaknya 100 per detik. Angka ini kecil, jadi desain mengutamakan kebenaran, bukan sharding.
+- Ledger: tiap pembayaran menghasilkan 4 sampai 8 baris. Sekitar 8 juta baris per hari kali 200 byte adalah 1.6 GB per hari. Lima tahun sekitar 3 TB, cukup untuk satu database relasional dengan partisi menurut waktu.
+- Panggilan ke penyedia: 100 per detik pada puncak, dengan latency 300 ms sampai 2 detik. Timeout dan antrean pengulangan harus dirancang.
+- Webhook masuk: 2 sampai 3 per transaksi, jadi ratusan per detik pada puncak.
+- Rekonsiliasi: laporan harian jutaan baris diproses batch malam hari.
 
-Keputusan: DB relasional transaksional (PostgreSQL) sebagai inti, queue untuk pekerjaan async (webhook, payout, notifikasi), tanpa cache di jalur tulis.
+Keputusannya: database relasional transaksional sebagai inti, queue untuk pekerjaan asinkron seperti webhook dan payout, dan tanpa cache di jalur tulis.
 
 ## 3. API design
 
@@ -125,7 +125,7 @@ POST /webhooks/psp                         (dari PSP; verifikasi tanda tangan; 2
 GET  /v1/ledger/accounts/{id}/balance      → saldo (materialisasi) + as_of
 ```
 
-Semua endpoint tulis memakai idempotency key; respons disimpan 24 jam. `requires_action` untuk 3-D Secure/otentikasi tambahan; client menyelesaikan lewat SDK PSP, hasil akhir datang lewat webhook.
+Semua endpoint tulis memakai idempotency key, dan responsnya disimpan 24 jam. Status `requires_action` dipakai untuk otentikasi tambahan seperti 3-D Secure. Client menyelesaikannya lewat SDK penyedia, dan hasil akhirnya datang lewat webhook.
 
 ## 4. Skema data
 
@@ -147,22 +147,22 @@ psp_events(event_id PK, type, payload, received_at, processed_at)  -- dedup webh
 reconciliation_runs(date, psp_total, ledger_total, diff, status)
 ```
 
-Uang disimpan sebagai **integer minor unit** (sen), bukan float. Kolom `status` adalah state machine; transisi divalidasi dan dicatat di `payment_events`.
+Uang disimpan sebagai bilangan bulat dalam satuan terkecil, misalnya sen, bukan bilangan desimal. Kolom status mengikuti state machine. Setiap transisi divalidasi dan dicatat di tabel event.
 
 ## 5. High-level design
 
 ```mermaid
 flowchart LR
-  C[Client + PSP SDK\ntokenisasi kartu] --> GW[API gateway\nauth, rate limit]
+  C[Client dan PSP SDK\ntokenisasi kartu] --> GW[API gateway\nauth, rate limit]
   GW --> PS[Payment service]
-  PS --> DB[("Payments DB\n+ idempotency + ledger")]
-  PS --> PSP[PSP eksternal]
+  PS --> DB[("Payments DB\nidempotency dan ledger")]
+  PS --> PSP[Penyedia pembayaran]
   PSP -->|webhook| WH[Webhook receiver\nverifikasi, simpan, ack]
   WH --> Q[["Queue: psp-events"]]
   Q --> WP[Webhook processor\nidempotent]
   WP --> DB
   PS --> OB[["Outbox → payment-events"]]
-  OB --> NOTIF[Notifikasi / order service]
+  OB --> NOTIF[Notifikasi dan order service]
   SCH[Scheduler] --> PO[Payout service] --> PSP
   PO --> DB
   SCH --> REC[Rekonsiliasi harian] --> DB
@@ -170,9 +170,16 @@ flowchart LR
   REC --> ALERT[Alert selisih]
 ```
 
-**Alur pay-in**: client mendapat token metode dari PSP SDK (data kartu tidak lewat kita) → `POST /payments` dengan idempotency key → payment service dalam satu transaksi DB: cek/insert `idempotency_keys`, insert `payments(pending)`, event → commit → panggil PSP dengan key yang sama → sukses: transisi `succeeded`, tulis journal entry (debit psp_receivable, kredit seller_payable + platform_fee), outbox event → respons; timeout/unknown: tetap `pending`, job status-check dijadwalkan; webhook menyelesaikan.
+Alur pay-in:
 
-**Alur refund dan payout** memakai pola yang sama: record + idempotency + panggilan PSP + journal entry + penyelesaian lewat webhook/polling.
+1. Client meminta token metode pembayaran dari SDK penyedia. Data kartu tidak pernah lewat server kita.
+2. Client memanggil endpoint pembayaran dengan idempotency key.
+3. Payment service membuka satu transaksi database: memeriksa dan menyimpan key, membuat record pembayaran berstatus pending, dan mencatat event.
+4. Payment service memanggil penyedia dengan key yang sama.
+5. Bila penyedia sukses, status menjadi succeeded, baris ledger ditulis, dan event diterbitkan lewat outbox. Outbox adalah tabel event yang ditulis dalam transaksi yang sama lalu diteruskan ke queue.
+6. Bila timeout atau hasilnya tidak diketahui, status tetap pending dan pemeriksaan status dijadwalkan. Webhook atau pemeriksaan itu menyelesaikannya.
+
+Alur refund dan payout memakai pola yang sama: record, idempotency, panggilan ke penyedia, baris ledger, lalu penyelesaian lewat webhook atau polling.
 
 ## 6. Detailed design
 
@@ -184,80 +191,92 @@ sequenceDiagram
   participant P as Payment service
   participant D as DB
   participant X as PSP
-  C->>P: POST /payments (Idem-Key k1)
-  P->>D: tx: INSERT idempotency(k1, hash) + payments(pending)
-  D-->>P: ok (atau: k1 sudah ada → kembalikan respons tersimpan / 409 bila hash beda / tunggu bila in-progress)
-  P->>X: charge(amount, token, Idempotency-Key k1)
+  C->>P: POST /payments dengan Idem-Key k1
+  P->>D: tx INSERT idempotency k1 dan payments pending
+  D-->>P: ok, atau k1 sudah ada
+  P->>X: charge dengan Idempotency-Key k1
   alt sukses
     X-->>P: charge id ch_1
-    P->>D: tx: payments → succeeded, journal entry, outbox, simpan respons untuk k1
-  else timeout / 5xx
+    P->>D: tx payments succeeded, journal entry, outbox, simpan respons k1
+  else timeout atau 5xx
     P->>D: payments tetap pending, jadwalkan status-check
-    Note over P,X: status-check memanggil GET charge by k1 / psp_ref
+    Note over P,X: status-check memanggil GET charge dengan k1 atau psp_ref
   end
-  P-->>C: 201 { status }
+  P-->>C: 201 dengan status
 ```
 
-- Key disimpan **sebelum** efek samping eksternal, dalam transaksi yang sama dengan record pembayaran; request ulang saat masih in-progress mendapat 409/menunggu, bukan eksekusi kedua.
-- Hash payload disimpan untuk menolak key yang dipakai ulang dengan isi berbeda.
-- Key diteruskan ke PSP sehingga retry kita pun idempotent di sisi mereka.
-- Semua consumer internal (webhook processor, payout, notifikasi) idempotent by id event/record.
+Prinsipnya ada empat:
+
+- Key disimpan sebelum ada efek samping eksternal, dalam transaksi yang sama dengan record pembayaran. Permintaan ulang saat masih diproses mendapat respons 409 atau menunggu, bukan eksekusi kedua.
+- Hash isi permintaan disimpan untuk menolak key yang dipakai ulang dengan isi berbeda.
+- Key diteruskan ke penyedia, sehingga pengulangan dari kita juga aman di sisi mereka.
+- Semua pemroses internal, yaitu webhook, payout, dan notifikasi, aman diulang berdasarkan id event atau record.
 
 ### 6.2 State machine pembayaran
 
-`created → pending → succeeded | failed | requires_action → (succeeded|failed)`; `succeeded → partially_refunded | refunded`; `disputed` dari succeeded. Transisi divalidasi dengan `version` (optimistic lock); event di luar urutan dari webhook ditunda (requeue dengan delay) atau diselesaikan dengan menarik status terbaru dari PSP.
+Status bergerak dari created ke pending, lalu ke succeeded, failed, atau requires_action. Dari requires_action, status berakhir di succeeded atau failed. Dari succeeded, status bisa menjadi partially_refunded, refunded, atau disputed.
+
+Setiap transisi divalidasi dengan kolom versi sebagai kunci optimistik. Event dari webhook yang datang tidak berurutan ditunda dan diantrekan ulang, atau diselesaikan dengan menarik status terbaru dari penyedia.
 
 ### 6.3 Ledger double-entry
 
-Setiap kejadian bisnis = satu journal entry dengan ≥ 2 baris yang seimbang:
+Double-entry berarti setiap kejadian bisnis dicatat sebagai satu entri dengan minimal dua baris yang seimbang. Jumlah debit selalu sama dengan jumlah kredit.
 
-| Kejadian                           | Debit                                          | Kredit                                             |
-| ---------------------------------- | ---------------------------------------------- | -------------------------------------------------- |
-| Pay-in Rp100.000, fee platform 10% | psp_receivable 100.000                         | seller_payable:123 90.000; platform_revenue 10.000 |
-| PSP menyetor ke rekening bank kita | bank 100.000                                   | psp_receivable 100.000                             |
-| Payout ke penjual                  | seller_payable:123 90.000                      | bank 90.000                                        |
-| Refund penuh                       | seller_payable 90.000; platform_revenue 10.000 | psp_receivable 100.000                             |
+| Kejadian                                 | Debit                                             | Kredit                                            |
+| ---------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
+| Pay-in Rp100.000 dengan fee platform 10% | psp_receivable 100.000                            | seller_payable 90.000 dan platform_revenue 10.000 |
+| Penyedia menyetor ke rekening bank kita  | bank 100.000                                      | psp_receivable 100.000                            |
+| Payout ke penjual                        | seller_payable 90.000                             | bank 90.000                                       |
+| Refund penuh                             | seller_payable 90.000 dan platform_revenue 10.000 | psp_receivable 100.000                            |
 
-- Baris ledger **tidak pernah diubah**; koreksi = entry pembalik.
-- Invarian Σdebit = Σkredit diperiksa di aplikasi dan oleh job audit; saldo per akun dimaterialisasi (`account_balances`) dan diverifikasi ulang dari ledger secara berkala.
-- Saldo penjual yang bisa ditarik = seller_payable yang sudah "settled" oleh PSP (ada entry bank), bukan sekadar succeeded; ini mencegah membayar sebelum uang benar-benar masuk.
+Baris ledger tidak pernah diubah. Koreksi dilakukan dengan entri pembalik. Keseimbangan diperiksa di aplikasi dan oleh job audit. Saldo per akun disimpan sebagai turunan dan diverifikasi ulang dari ledger secara berkala.
 
-### 6.4 Integrasi PSP: timeout, retry, webhook
+Saldo penjual yang bisa ditarik hanya bagian yang sudah disetor penyedia ke bank kita, bukan sekadar pembayaran yang berstatus sukses. Aturan ini mencegah kita membayar sebelum uangnya benar-benar masuk.
 
-- Timeout 10–30 s; retry hanya dengan idempotency key sama, backoff; circuit breaker bila PSP mengembalikan 5xx beruntun → status `pending`, user diberi tahu "sedang diproses".
-- Webhook: verifikasi tanda tangan HMAC + timestamp (anti-replay), simpan `psp_events` dengan `event_id` unik (dedup), balas 200 segera, proses dari queue; untuk state final, **tarik** objek dari PSP (`GET /charges/{id}`) alih-alih mempercayai payload.
-- Status-check job untuk pembayaran `pending` lebih dari N menit; rekonsiliasi untuk yang lolos semuanya.
-- Multi-PSP (ekstensi): abstraksi provider, routing by metode/negara, failover untuk pay-in baru bila satu PSP down (pembayaran yang sudah dimulai tetap di PSP asal).
+### 6.4 Integrasi penyedia: timeout, pengulangan, webhook
+
+Timeout dipasang 10 sampai 30 detik. Pengulangan hanya memakai idempotency key yang sama, dengan jeda yang membesar. Bila penyedia mengembalikan error server beruntun, circuit breaker menahan panggilan baru, status tetap pending, dan pengguna diberi tahu bahwa pembayaran sedang diproses.
+
+Penanganan webhook:
+
+1. Verifikasi tanda tangan HMAC dan stempel waktu untuk mencegah pemutaran ulang.
+2. Simpan event dengan id unik sebagai dedup, lalu balas 200 segera.
+3. Proses event dari queue secara asinkron.
+4. Untuk status akhir, tarik objek pembayaran dari penyedia alih-alih mempercayai isi webhook.
+
+Pemeriksaan status berjalan untuk pembayaran yang pending lebih dari beberapa menit. Rekonsiliasi menangkap yang lolos dari semua itu.
+
+Banyak penyedia adalah perluasan: lapisan abstraksi provider, routing menurut metode atau negara, dan pengalihan untuk pay-in baru bila satu penyedia mati. Pembayaran yang sudah dimulai tetap di penyedia asalnya.
 
 ### 6.5 Rekonsiliasi
 
-Harian: unduh settlement report PSP → bandingkan per transaksi dengan `payments` dan ledger (jumlah, fee, status) → selisih masuk antrian investigasi dengan alert; otomatis memperbaiki kasus yang jelas (webhook hilang → tarik status). Rekonsiliasi adalah pengaman terakhir, bukan pengganti idempotency.
+Setiap hari sistem mengunduh laporan penyelesaian dari penyedia. Laporan dibandingkan per transaksi dengan tabel pembayaran dan ledger: jumlah, fee, dan status. Selisih masuk antrean investigasi dengan alert. Kasus yang jelas, misalnya webhook yang hilang, diperbaiki otomatis dengan menarik status. Rekonsiliasi adalah pengaman terakhir, bukan pengganti idempotency.
 
 ### 6.6 Keamanan dan kepatuhan
 
-- Tokenisasi: nomor kartu hanya menyentuh PSP (iframe/SDK); kita menyimpan token; scope PCI minimal (SAQ A).
-- Enkripsi at-rest dan in-transit, akses ledger read-only kecuali service tertentu, audit log semua akses manual, secret di vault dengan rotasi.
-- Fraud dasar: velocity check per akun/kartu/IP, rules, dan skor dari PSP; blokir sebelum memanggil PSP.
-- Amount selalu integer minor unit; validasi mata uang dan pembulatan di satu tempat.
+- Tokenisasi: nomor kartu hanya menyentuh penyedia lewat iframe atau SDK. Kita menyimpan token saja, sehingga lingkup PCI DSS minimal.
+- Enkripsi saat disimpan dan saat dikirim, akses ledger hanya baca kecuali untuk service tertentu, audit log untuk semua akses manual, dan secret di vault dengan rotasi.
+- Fraud dasar: pembatasan laju per akun, kartu, dan IP, aturan sederhana, dan skor dari penyedia. Transaksi mencurigakan diblokir sebelum penyedia dipanggil.
+- Jumlah uang selalu bilangan bulat satuan terkecil. Validasi mata uang dan pembulatan dilakukan di satu tempat.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                     | Dipenuhi oleh                                                                                         | Risiko tersisa                                                                                                                               |
-| ----------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tidak ada tagihan ganda | Idempotency key disimpan sebelum efek samping, diteruskan ke PSP, status unknown tidak dianggap gagal | Client yang membuat key baru untuk pesanan sama: tautkan key ke order_id dan tolak pembayaran kedua untuk order yang sudah pending/succeeded |
-| Ledger seimbang         | Double-entry, append-only, invarian dicek, rekonsiliasi                                               | Bug mapping akun: terdeteksi oleh rekonsiliasi, bukan dicegah                                                                                |
-| Toleran PSP             | Timeout, retry idempotent, circuit breaker, webhook + polling + rekonsiliasi                          | PSP down lama: pay-in tertunda; multi-PSP sebagai mitigasi                                                                                   |
-| Availability 99.99%     | DB primary + sync replica + failover, service stateless, queue durable                                | Kehilangan primary: failover dengan sync replica agar tidak ada transaksi hilang                                                             |
-| Keamanan                | Tokenisasi, enkripsi, least privilege, audit                                                          | Insider: pemisahan tugas dan review                                                                                                          |
-| Skala                   | 100 tps trivial untuk satu DB; partisi ledger by waktu                                                | Pertumbuhan 100x: shard by account/payer dengan ledger per shard dan rekonsiliasi lintas shard                                               |
+| Target                    | Cara memenuhi                                                                                              | Risiko yang tersisa                                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Tidak ada tagihan ganda   | Key disimpan sebelum efek samping, diteruskan ke penyedia, dan status tidak diketahui tidak dianggap gagal | Client membuat key baru untuk pesanan sama. Tautkan key ke id pesanan dan tolak pembayaran kedua untuk pesanan yang sudah aktif |
+| Ledger seimbang           | Double-entry, hanya tambah, keseimbangan diperiksa, rekonsiliasi                                           | Salah memetakan akun terdeteksi oleh rekonsiliasi, bukan dicegah                                                                |
+| Toleran terhadap penyedia | Timeout, pengulangan idempotent, circuit breaker, webhook ditambah polling dan rekonsiliasi                | Penyedia mati lama menunda pay-in. Banyak penyedia adalah mitigasinya                                                           |
+| Availability 99.99%       | Database primary dengan replika sinkron dan failover, service tanpa state, queue permanen                  | Failover memakai replika sinkron agar tidak ada transaksi yang hilang                                                           |
+| Keamanan                  | Tokenisasi, enkripsi, hak akses minimal, audit                                                             | Ancaman orang dalam ditahan dengan pemisahan tugas dan review                                                                   |
+| Skala                     | 100 transaksi per detik ringan untuk satu database, ledger dipartisi menurut waktu                         | Pertumbuhan 100 kali memaksa shard menurut akun, dengan ledger per shard dan rekonsiliasi lintas shard                          |
 
-Bottleneck: tidak di throughput, melainkan di latency PSP dan operasional (sengketa, rekonsiliasi). SPOF: DB primary (failover sync) dan PSP (multi-provider).
+Bottleneck sistem ini bukan throughput, melainkan latency penyedia dan beban operasional seperti sengketa dan rekonsiliasi. Titik lemah tunggalnya adalah database primary, yang ditangani failover sinkron, dan penyedia pembayaran, yang ditangani dengan banyak penyedia.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Dua service (order dan payment) harus konsisten: order dibayar tetapi stok habis?" → Saga dengan kompensasi (refund) atau reservasi stok sebelum tagih; status order mengikuti event pembayaran dari outbox.
-- "Bagaimana multi-mata uang?" → Akun per mata uang, entry FX dengan kurs tercatat, jangan konversi di ledger secara implisit.
-- "Bagaimana memastikan ledger tidak dimanipulasi?" → Append-only dengan hak tulis terbatas, hash chain per akun (opsional), audit eksternal.
-- "User menekan bayar dua kali di dua tab?" → Idempotency per order: satu pembayaran aktif per order; kedua menerima 409 dengan referensi pembayaran pertama.
-- "Bagaimana menguji sistem ini?" → Sandbox PSP, injeksi kegagalan (timeout, webhook duplikat/terbalik), property test invarian ledger, replay event produksi ke staging.
-- "Skala 10.000 tps?" → Shard by payer/account, ledger per shard, agregasi global async; idempotency store terpartisi by key; PSP paralel.
+- "Order dan payment adalah dua service. Bagaimana kalau pembayaran sukses tetapi stok habis?" Pakai saga dengan kompensasi berupa refund, atau pesan stok sebelum menagih. Status pesanan mengikuti event pembayaran dari outbox.
+- "Bagaimana banyak mata uang?" Akun per mata uang, entri kurs dengan nilai tukar yang tercatat, dan tidak ada konversi tersirat di ledger.
+- "Bagaimana memastikan ledger tidak dimanipulasi?" Hanya tambah dengan hak tulis terbatas, rantai hash per akun bila perlu, dan audit eksternal.
+- "Pengguna menekan bayar dua kali di dua tab?" Satu pembayaran aktif per pesanan. Permintaan kedua menerima 409 dengan referensi ke pembayaran pertama.
+- "Bagaimana menguji sistem ini?" Sandbox penyedia, injeksi kegagalan seperti timeout dan webhook ganda, uji sifat keseimbangan ledger, dan pemutaran ulang event produksi ke staging.
+- "Skala 10.000 transaksi per detik?" Shard menurut akun pembayar, ledger per shard, agregasi global asinkron, penyimpanan idempotency terpartisi menurut key, dan penyedia dipanggil paralel.

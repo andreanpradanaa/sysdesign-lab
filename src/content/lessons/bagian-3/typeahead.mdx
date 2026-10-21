@@ -5,7 +5,7 @@ order: 10
 minutes: 50
 type: case
 prerequisites: ['bagian-2/distributed-search', 'bagian-2/distributed-cache', 'bagian-2/sharded-counter']
-summary: 'Saran pencarian dalam puluhan milidetik tiap ketukan: trie dengan top-k terprakomputasi per prefix, pipeline agregasi popularitas offline, snapshot yang di-swap tanpa downtime, dan cache berlapis sampai ke client.'
+summary: 'Saran pencarian dalam puluhan milidetik tiap ketukan: trie dengan daftar teratas yang dihitung di muka, pipeline popularitas yang berjalan offline, snapshot yang ditukar tanpa downtime, dan cache berlapis sampai ke client.'
 sources:
   - title: 'Trie — Wikipedia'
     url: 'https://en.wikipedia.org/wiki/Trie'
@@ -16,95 +16,96 @@ sources:
   - title: 'Count–min sketch — Wikipedia'
     url: 'https://en.wikipedia.org/wiki/Count%E2%80%93min_sketch'
 quiz:
-  - q: 'Kenapa trie "polos" (tanpa prakomputasi) tidak cukup untuk typeahead pada skala besar?'
+  - q: 'Kenapa trie polos tanpa daftar teratas yang dihitung di muka tidak cukup untuk typeahead skala besar?'
     options:
-      - text: 'Karena trie tidak bisa menyimpan huruf non-Latin'
+      - text: 'Karena trie tidak bisa menyimpan huruf di luar alfabet Latin'
         correct: false
-        why: 'Trie bisa memakai unit apa pun (byte/karakter Unicode).'
-      - text: 'Karena setelah menemukan simpul prefix, mencari top-k harus menelusuri seluruh subtree (bisa jutaan simpul untuk prefix pendek seperti "a") lalu mengurutkan; ini terlalu lambat untuk puluhan ms'
+        why: 'Trie bisa memakai satuan apa pun, termasuk karakter Unicode. Alfabet bukan masalahnya.'
+      - text: 'Karena mencari 10 teratas harus menelusuri seluruh cabang di bawah prefix'
         correct: true
-        why: 'Solusi: simpan top-k (mis. 10) saran terpopuler di setiap simpul saat membangun trie; query menjadi O(panjang prefix) + membaca daftar kecil.'
-      - text: 'Karena trie hanya bekerja untuk kata tunggal'
+        why: 'Prefix pendek seperti "a" punya jutaan turunan. Menyimpan 10 saran teratas di tiap simpul membuat query hanya membaca daftar kecil.'
+      - text: 'Karena trie hanya bekerja untuk satu kata, bukan frasa'
         correct: false
-        why: 'Trie bisa menyimpan frasa (spasi sebagai karakter).'
-      - text: 'Karena trie tidak bisa dipartisi'
+        why: 'Trie bisa menyimpan frasa dengan memperlakukan spasi sebagai karakter biasa.'
+      - text: 'Karena trie tidak bisa dipartisi ke banyak server'
         correct: false
-        why: 'Bisa dipartisi by prefix atau hash prefix.'
-  - q: 'Popularitas query dihitung dari log pencarian. Kenapa pembaruan trie dilakukan batch (mis. tiap jam/hari) dan bukan tiap pencarian?'
+        why: 'Trie bisa dipartisi menurut prefix atau hash prefix. Ini bukan alasannya.'
+  - q: 'Popularitas dihitung dari log pencarian. Kenapa trie diperbarui secara batch, bukan setiap pencarian?'
     options:
-      - text: 'Karena log tidak tersedia real-time'
+      - text: 'Karena log pencarian tidak tersedia secara real-time'
         correct: false
-        why: 'Log bisa di-stream; alasannya struktur data dan beban.'
-      - text: 'Karena memperbarui top-k di semua simpul prefix untuk tiap pencarian (puluhan ribu/detik) jauh lebih mahal daripada membangun ulang snapshot secara offline dan mengganti (swap) dengan atomik; saran tidak butuh kesegaran detik, kecuali tren yang ditangani lapisan terpisah'
+        why: 'Log bisa dialirkan secara real-time. Alasannya ada pada struktur data dan beban.'
+      - text: 'Karena memperbarui daftar teratas di semua simpul tiap pencarian jauh lebih mahal daripada membangun ulang offline'
         correct: true
-        why: 'Read-heavy ekstrem dengan toleransi kebasian jam. Lapisan "trending" kecil dengan agregasi jendela menit menutup kebutuhan tren tanpa menyentuh trie utama.'
-      - text: 'Karena trie tidak bisa diubah setelah dibuat'
+        why: 'Beban didominasi pembacaan dan saran tidak butuh kesegaran detik. Snapshot baru ditukar secara atomik, dan tren ditangani lapisan terpisah.'
+      - text: 'Karena trie tidak bisa diubah setelah selesai dibuat'
         correct: false
-        why: 'Bisa diubah; mahalnya yang menjadi masalah.'
-      - text: 'Karena user tidak mengetik di malam hari'
+        why: 'Trie bisa diubah. Biayanya yang membuat pembaruan per pencarian tidak masuk akal.'
+      - text: 'Karena pengguna tidak mengetik pada malam hari'
         correct: false
-        why: 'Tidak relevan.'
-  - q: 'Target p99 &lt; 50 ms untuk 100.000 QPS. Lapisan cache mana yang paling berdampak?'
+        why: 'Pola jam tidak relevan dengan keputusan ini.'
+  - q: 'Target p99 di bawah 50 ms pada 100.000 query per detik. Lapisan cache mana yang paling berdampak?'
     options:
-      - text: 'Cache di database'
+      - text: 'Cache di dalam database'
         correct: false
-        why: 'Database tidak ada di jalur query typeahead.'
-      - text: 'Debounce dan cache prefix di client (saran untuk "sus" dipakai saat user mengetik "sush" bila hasilnya subset) plus cache hasil per prefix di CDN/edge dan di memori service; trie sendiri sudah di memori'
+        why: 'Database tidak ada di jalur query typeahead sama sekali.'
+      - text: 'Cache per prefix di client dan di edge, karena prefix pendek sangat populer'
         correct: true
-        why: 'Distribusi prefix sangat condong (prefix pendek populer), sehingga cache per prefix di edge mendapat hit ratio tinggi; client-side filtering memotong jumlah request.'
+        why: 'Sebaran prefix sangat condong ke yang pendek. Client menyaring hasil lama untuk ketukan berikutnya, dan edge melayani prefix populer tanpa menyentuh server.'
       - text: 'Cache di blob store'
         correct: false
-        why: 'Blob store terlalu lambat untuk jalur ini.'
-      - text: 'Tidak perlu cache; trie cukup'
+        why: 'Blob store terlalu lambat untuk jalur yang menuntut puluhan milidetik.'
+      - text: 'Tidak perlu cache karena trie sudah cepat'
         correct: false
-        why: 'Trie cepat, tetapi 100.000 QPS × hop jaringan membutuhkan cache berlapis untuk latency dan biaya.'
-  - q: 'Bagaimana saran yang menyinggung/berbahaya dicegah muncul?'
+        why: 'Trie memang cepat, tetapi 100.000 query per detik lewat jaringan tetap butuh cache berlapis untuk latency dan biaya.'
+  - q: 'Bagaimana saran yang menyinggung atau berbahaya dicegah muncul?'
     options:
-      - text: 'Tidak bisa dicegah; saran mengikuti popularitas'
+      - text: 'Tidak bisa dicegah karena saran mengikuti popularitas'
         correct: false
-        why: 'Produk nyata memfilter.'
-      - text: 'Filter saat membangun snapshot (daftar blokir, klasifier) dan filter runtime untuk kasus mendesak (daftar blokir kecil yang dimuat ulang cepat), dengan alat operator untuk menghapus saran'
+        why: 'Produk nyata selalu menyaring. Popularitas bukan satu-satunya kriteria.'
+      - text: 'Saring saat membangun snapshot, ditambah daftar blokir kecil yang dimuat cepat saat runtime'
         correct: true
-        why: 'Dua lapis: offline (murah, menyeluruh) dan online (cepat, kecil). Kebijakan konten adalah requirement, bukan afterthought.'
-      - text: 'Dengan menurunkan k menjadi 3'
+        why: 'Penyaringan offline murah dan menyeluruh. Daftar blokir runtime menangani kasus mendesak tanpa menunggu snapshot berikutnya.'
+      - text: 'Turunkan jumlah saran menjadi tiga'
         correct: false
-        why: 'Tidak menyelesaikan isi saran.'
-      - text: 'Dengan menonaktifkan typeahead untuk prefix pendek'
+        why: 'Jumlah saran tidak mengubah isinya.'
+      - text: 'Matikan typeahead untuk prefix pendek'
         correct: false
-        why: 'Mengorbankan fitur tanpa menyentuh akar masalah.'
+        why: 'Ini mengorbankan fitur tanpa menyentuh akar masalahnya.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: saran berdasarkan query populer global atau juga personal? Berapa k saran? Bahasa/alfabet? Seberapa segar (tren)? Apakah prefix harus di awal kata atau boleh di tengah?
+Tanyakan dulu beberapa hal. Apakah saran berdasarkan query populer global saja, atau juga riwayat pribadi? Berapa jumlah saran yang ditampilkan? Bahasa dan alfabet apa saja? Seberapa segar saran harus mengikuti tren? Apakah prefix harus di awal frasa, atau boleh di tengah?
 
 ### Functional
 
-- Saat user mengetik, tampilkan k = 10 saran yang diawali prefix yang diketik, diurutkan by popularitas.
-- Popularitas dihitung dari log pencarian (frekuensi) dengan peluruhan waktu.
-- Filter konten tidak pantas; alat operator untuk menghapus/menambah saran.
-- Out of scope: personalisasi penuh, koreksi ejaan (disebut sebagai ekstensi), pencarian hasilnya sendiri.
+- Saat pengguna mengetik, tampilkan 10 saran terpopuler yang diawali teks yang diketik, diurutkan menurut popularitas.
+- Popularitas dihitung dari log pencarian dengan bobot yang memudar seiring waktu.
+- Saran yang tidak pantas disaring. Operator punya alat untuk menghapus atau menambah saran.
+- Di luar cakupan: personalisasi penuh, koreksi ejaan, dan hasil pencariannya sendiri.
 
 ### Non-functional
 
-| NFR          | Target                                         | Alasan                                          |
-| ------------ | ---------------------------------------------- | ----------------------------------------------- |
-| Latency      | p99 &lt; 50 ms server; terasa instan di client | Setiap ketukan                                  |
-| Throughput   | 100.000 QPS puncak                             | Setiap ketukan adalah request                   |
-| Availability | 99.99%                                         | Fitur selalu terlihat; kegagalan terlihat jelas |
-| Kesegaran    | Popularitas umum: jam; tren: menit             | Toleransi tinggi                                |
-| Memori       | Trie muat di memori tiap node                  | Latency                                         |
+| Target       | Nilai                                                          | Alasan                                                         |
+| ------------ | -------------------------------------------------------------- | -------------------------------------------------------------- |
+| Latency      | p99 di bawah 50 ms di server, terasa instan di client          | Setiap ketukan menunggu jawaban                                |
+| Throughput   | 100.000 query per detik pada puncak                            | Setiap ketukan adalah satu request                             |
+| Availability | 99.99%                                                         | Fitur ini selalu terlihat, jadi kegagalannya langsung disadari |
+| Kesegaran    | Popularitas umum dalam hitungan jam, tren dalam hitungan menit | Toleransi tinggi untuk saran umum                              |
+| Memori       | Seluruh trie muat di memori tiap node                          | Latency hanya tercapai tanpa akses disk                        |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 10 juta query unik yang layak disarankan (setelah filter frekuensi minimum), rata-rata 20 karakter; 100.000 QPS puncak; 1 miliar pencarian/hari untuk log.
+Asumsi: 10 juta query unik yang layak disarankan setelah penyaringan frekuensi minimum, rata-rata 20 karakter, 100.000 query per detik pada puncak, dan 1 miliar pencarian per hari untuk log.
 
-- Trie: 10M query × 20 karakter ≈ 200M karakter; dengan berbagi prefix dan kompresi (radix/FST) ≈ puluhan hingga ratusan MB. Top-10 per simpul menambah: simpul bermakna ~50M × 10 × 8 B (id) ≈ 4 GB bila disimpan di semua simpul; simpan hanya di simpul dengan kedalaman ≤ N atau yang dilalui query populer → ≈ 1–2 GB. **Muat di memori** satu node; replikasi untuk throughput.
-- Query: 100.000 QPS × ~0.1 ms CPU (lookup prefix + baca daftar) = 10 core; ratusan node untuk latency geografis dan redundansi, bukan CPU.
-- Log: 10^9 pencarian/hari × 50 B = 50 GB/hari; agregasi batch per jam/hari.
-- Cache per prefix: prefix 1–3 karakter ≈ 50.000 kombinasi populer × 1 KB respons ≈ 50 MB di edge; hit ratio sangat tinggi.
+- Trie: 10 juta query kali 20 karakter adalah 200 juta karakter. Dengan berbagi prefix dan kompresi, ukurannya turun menjadi puluhan sampai ratusan MB.
+- Daftar teratas: bila setiap simpul bermakna menyimpan 10 id, tambahannya sekitar 4 GB. Daftar hanya disimpan di simpul dangkal atau yang sering dilalui, sehingga totalnya sekitar 1 sampai 2 GB. Angka ini muat di memori satu node.
+- Query: 100.000 per detik kali sekitar 0.1 ms CPU setara 10 core. Ratusan node dibutuhkan untuk kedekatan geografis dan redundansi, bukan untuk CPU.
+- Log: 1 miliar pencarian kali 50 byte adalah 50 GB per hari. Agregasi dilakukan batch per jam atau per hari.
+- Cache per prefix: sekitar 50.000 kombinasi prefix 1 sampai 3 karakter yang populer, masing-masing 1 KB, hanya 50 MB di edge. Rasio hit sangat tinggi.
 
-Keputusan: snapshot trie di memori setiap node (replika penuh, bukan shard, selama muat), pipeline batch untuk popularitas, cache edge per prefix, client-side filtering.
+Keputusannya: snapshot trie disalin utuh ke memori tiap node, pipeline batch untuk popularitas, cache edge per prefix, dan penyaringan di client.
 
 ## 3. API design
 
@@ -115,7 +116,7 @@ GET /v1/suggest?q=sush&limit=10&lang=id&region=ID
 POST /v1/ops/block { pattern }       (operator; memuat ulang blocklist runtime)
 ```
 
-Client: debounce 50–100 ms, batalkan request lama, dan **filter lokal**: hasil untuk "sus" dipakai untuk "sush" bila daftar sebelumnya punya ≥ k entri yang masih cocok; request baru hanya bila tidak cukup.
+Client menunda request 50 sampai 100 ms setelah ketukan terakhir dan membatalkan request yang usang. Client juga menyaring hasil lama. Hasil untuk "sus" dipakai lagi untuk "sush" bila daftar sebelumnya masih punya cukup entri yang cocok. Request baru hanya dikirim bila entri tidak cukup.
 
 ## 4. Skema data
 
@@ -129,35 +130,50 @@ Client: debounce 50–100 ms, batalkan request lama, dan **filter lokal**: hasil
 -- Trending (opsional, kecil): prefix → [(text, score)] dari jendela 10 menit, TTL pendek
 ```
 
-Normalisasi query: lowercase, trim spasi, hapus tanda baca; saran disimpan dalam bentuk tampilan yang dipilih (varian terpopuler).
+Query dinormalkan sebelum disimpan: huruf kecil, spasi di tepi dibuang, tanda baca dihapus. Saran disimpan dalam bentuk tampilan yang paling populer di antara variannya.
 
 ## 5. High-level design
 
 ```mermaid
 flowchart LR
-  C[Client\ndebounce + filter lokal] --> E[CDN / edge cache\nper prefix]
+  C[Client\ndebounce dan saring lokal] --> E[CDN / edge cache\nper prefix]
   E --> GW[LB]
   GW --> S1["Suggest service\n(trie snapshot v12 di memori)"]
   GW --> S2[Suggest service]
-  S1 --> BL[(Blocklist runtime)]
-  S1 --> TR[(Trending store\nprefix → top)]
-  SRCH[Search service] --> LOG[[Log pencarian stream]]
+  S1 --> BL[("Blocklist runtime")]
+  S1 --> TR[("Trending store\nprefix → top")]
+  SRCH[Search service] --> LOG[["Log pencarian stream"]]
   LOG --> AGG["Aggregator batch\n(jam/hari): frekuensi + peluruhan"]
   AGG --> FIL[Filter konten offline]
   FIL --> BUILD[Trie builder\ntop-k per simpul]
-  BUILD --> SNAP[(Blob: snapshot v13)]
-  SNAP -->|unduh & swap atomik| S1
+  BUILD --> SNAP[("Blob: snapshot v13")]
+  SNAP -->|unduh dan tukar atomik| S1
   SNAP --> S2
-  LOG --> TAGG[Aggregator jendela 10 mnt] --> TR
+  LOG --> TAGG[Aggregator jendela 10 menit] --> TR
 ```
 
-**Alur query**: ketukan → client cek cache lokal → request ke edge (cache per prefix; hit untuk prefix populer) → suggest service: telusuri trie sesuai prefix (O(panjang)) → ambil top-k simpul → gabung dengan trending (bila ada) dan filter blocklist → respons dengan Cache-Control.
+Alur query:
 
-**Alur pembaruan**: log → agregasi batch → filter → builder membangun trie dengan top-k per simpul (traversal post-order: top-k simpul = gabungan top-k anak + dirinya) → snapshot ke blob → tiap node mengunduh, memuat di memori di samping yang lama, lalu swap pointer (tanpa downtime, memori 2x sesaat).
+1. Pengguna mengetik satu karakter.
+2. Client memeriksa cache lokalnya. Bila hasil lama masih cukup, client menyaringnya tanpa request.
+3. Client mengirim request ke edge. Prefix populer dilayani dari cache edge.
+4. Suggest service menelusuri trie sesuai prefix. Biayanya sebanding panjang prefix.
+5. Suggest service membaca daftar teratas di simpul itu.
+6. Suggest service menggabungkan hasil dengan tren bila ada, lalu menyaring dengan daftar blokir.
+7. Suggest service mengembalikan respons dengan header cache.
+
+Alur pembaruan:
+
+1. Log pencarian mengalir ke penyimpanan.
+2. Aggregator menghitung skor tiap query dengan frekuensi dan peluruhan.
+3. Filter konten membuang saran yang tidak pantas.
+4. Builder membangun trie dan mengisi daftar teratas tiap simpul dari bawah ke atas.
+5. Builder menulis snapshot ke blob store.
+6. Tiap node mengunduh snapshot baru, memuatnya di samping yang lama, lalu menukar pointer. Tidak ada downtime, tetapi memori sesaat dua kali lipat.
 
 ## 6. Detailed design
 
-### 6.1 Struktur trie dan top-k terprakomputasi
+### 6.1 Struktur trie dan daftar teratas
 
 ```mermaid
 flowchart TD
@@ -169,57 +185,59 @@ flowchart TD
   SUSH --> SUSHI((sushi …))
 ```
 
-- Simpul menyimpan daftar `top_k` (id, skor) yang dihitung bottom-up saat build; query tidak menelusuri subtree.
-- Kompresi: radix tree (gabung rantai simpul tunggal) atau FST untuk memori lebih kecil; daftar top-k hanya di simpul dengan kedalaman ≤ 10 atau skor subtree ≥ ambang (prefix panjang jarang diketik dan hasilnya sedikit).
-- Multi-kata: prefix dicocokkan di awal frasa; untuk mencocokkan awal kata di tengah frasa ("tei" → "sushi tei"), masukkan juga suffix mulai tiap kata sebagai kunci (memori naik ~2–3x) atau pakai completion suggester dengan input alternatif.
-- Unicode: trie per unit karakter; normalisasi (NFC, lowercase) konsisten di build dan query.
+Setiap simpul menyimpan daftar id saran beserta skornya. Daftar itu dihitung saat build dengan menggabungkan daftar anak-anaknya, jadi query tidak perlu menelusuri cabang di bawahnya.
+
+Kompresi memakai radix tree, yaitu trie yang menggabungkan rantai simpul tunggal. Alternatifnya adalah FST, struktur yang lebih hemat memori. Daftar teratas hanya disimpan di simpul dengan kedalaman sampai 10 atau skor cabang di atas ambang, karena prefix panjang jarang diketik.
+
+Untuk mencocokkan awal kata di tengah frasa, misalnya "tei" ke "sushi tei", masukkan juga potongan mulai tiap kata sebagai kunci. Memori naik 2 sampai 3 kali. Teks dinormalkan dengan cara yang sama saat build dan saat query.
 
 ### 6.2 Pipeline popularitas
 
-- Skor = Σ frekuensi × peluruhan (mis. setengah tiap 7 hari) sehingga query lama memudar.
-- Agregasi harian penuh + agregasi per jam inkremental; frekuensi minimum dan panjang minimum untuk masuk.
-- Filter offline: blocklist, klasifier konten, kebijakan hukum per region; hasilnya snapshot per `lang/region`.
-- Sketsa (count-min) dapat dipakai untuk menghitung frekuensi di stream dengan memori terbatas sebelum batch.
+Skor adalah jumlah frekuensi yang memudar, misalnya berkurang setengah setiap 7 hari, sehingga query lama perlahan hilang. Agregasi harian berjalan penuh, dan agregasi per jam berjalan bertahap. Query masuk daftar hanya bila melewati frekuensi dan panjang minimum.
+
+Filter offline memakai daftar blokir, pengklasifikasi konten, dan kebijakan hukum per region. Hasilnya adalah snapshot terpisah per bahasa dan region. Count-min sketch, yaitu struktur yang menghitung frekuensi dengan memori tetap, bisa dipakai untuk menghitung di aliran data sebelum batch.
 
 ### 6.3 Distribusi dan pembaruan snapshot
 
-- Snapshot &lt; beberapa GB → **replikasi penuh** di tiap node (tanpa shard): query lokal, tidak ada scatter-gather. Bila melebihi memori: shard by prefix pertama (hash) dengan router ringan; prefix sangat populer ("a") diberi partisi sendiri atau cache.
-- Rollout: node memuat snapshot baru, validasi (jumlah simpul, sampel query), swap atomik; rollback dengan memuat versi lama. Rollout bertahap per persentase node.
+Snapshot berukuran beberapa GB disalin utuh ke setiap node. Query dilayani lokal tanpa menggabungkan hasil dari banyak node. Bila snapshot melebihi memori, trie dipartisi menurut karakter pertama dengan router ringan. Prefix sangat populer mendapat partisi sendiri atau cache.
+
+Pembaruan dilakukan bertahap per persentase node. Setiap node memuat snapshot baru, memvalidasinya dengan jumlah simpul dan sampel query, lalu menukar. Rollback berarti memuat kembali versi lama.
 
 ### 6.4 Cache berlapis
 
-| Lapisan        | Kunci           | TTL                             | Catatan                                                               |
-| -------------- | --------------- | ------------------------------- | --------------------------------------------------------------------- |
-| Client         | prefix          | sesi                            | Filter lokal subset; batalkan request usang                           |
-| Edge/CDN       | `q+lang+region` | 1 jam (menit untuk prefix tren) | Hit ratio tinggi untuk prefix pendek; `Vary` minimal                  |
-| Service memori | prefix          | sampai snapshot berganti        | Hasil top-k sudah hampir gratis; cache untuk gabungan dengan trending |
+| Lapisan        | Kunci                      | Masa simpan                                  | Catatan                                                          |
+| -------------- | -------------------------- | -------------------------------------------- | ---------------------------------------------------------------- |
+| Client         | Prefix                     | Sepanjang sesi                               | Menyaring hasil lama dan membatalkan request yang usang          |
+| Edge atau CDN  | Prefix, bahasa, dan region | 1 jam, atau beberapa menit untuk prefix tren | Rasio hit tinggi untuk prefix pendek                             |
+| Memori service | Prefix                     | Sampai snapshot berganti                     | Hasil trie hampir gratis, cache hanya untuk gabungan dengan tren |
 
-### 6.5 Trending dan personalisasi (ekstensi)
+### 6.5 Tren dan personalisasi
 
-- Trending: agregasi jendela 10 menit dari stream, simpan prefix → top beberapa; suggest service menyisipkan ke hasil dengan bobot; TTL pendek; cache edge untuk prefix tersebut diberi TTL menit.
-- Personalisasi ringan: client menyimpan riwayat sendiri dan menampilkannya di atas saran global; server tetap tanpa state per user (privasi dan skala).
+Tren dihitung dari jendela 10 menit di aliran log. Hasilnya disimpan sebagai prefix dan beberapa saran teratas dengan masa simpan pendek. Suggest service menyisipkannya ke hasil dengan bobot tertentu.
+
+Personalisasi ringan dilakukan di client. Client menyimpan riwayatnya sendiri dan menampilkannya di atas saran global. Server tetap tanpa state per pengguna, yang baik untuk privasi dan skala.
 
 ### 6.6 Keamanan dan kebijakan
 
-Blocklist runtime kecil yang dimuat ulang tiap menit untuk takedown cepat; semua saran diaudit (asal query, skor) agar keputusan operator dapat ditelusuri; rate limit per client untuk mencegah scraping.
+Daftar blokir runtime berukuran kecil dan dimuat ulang tiap menit untuk penghapusan cepat. Setiap saran punya jejak asal query dan skornya, sehingga keputusan operator bisa ditelusuri. Rate limit per client mencegah pengambilan data massal.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                 | Dipenuhi oleh                                                                   | Risiko tersisa                                              |
-| ------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| p99 &lt; 50 ms      | Trie memori + top-k terprakomputasi, cache edge, tanpa DB di jalur              | Node baru memuat snapshot: jangan terima trafik sampai siap |
-| 100.000 QPS         | Replika penuh stateless (tambah node), cache edge menyerap prefix pendek        | Serangan prefix acak menembus cache: rate limit             |
-| Availability 99.99% | Snapshot lokal (tetap melayani meski pipeline mati), rollout bertahap, rollback | Snapshot rusak: validasi sebelum swap                       |
-| Kesegaran           | Batch jam/hari + lapisan tren menit                                             | Tren memerlukan jalur terpisah yang juga harus difilter     |
-| Memori              | Kompresi, top-k selektif, per lang/region                                       | Pertumbuhan katalog: shard by prefix bila melebihi          |
+| Target                  | Cara memenuhi                                                                 | Risiko yang tersisa                                               |
+| ----------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| p99 di bawah 50 ms      | Trie di memori dengan daftar teratas, cache edge, tanpa database di jalur     | Node baru tidak boleh menerima trafik sebelum snapshot termuat    |
+| 100.000 query per detik | Replika utuh tanpa state, dan cache edge menyerap prefix pendek               | Serangan dengan prefix acak menembus cache. Rate limit menahannya |
+| Availability 99.99%     | Snapshot lokal tetap melayani meski pipeline mati, rollout bertahap, rollback | Snapshot rusak dicegah dengan validasi sebelum tukar              |
+| Kesegaran               | Batch per jam atau hari, ditambah lapisan tren per menit                      | Tren butuh jalur terpisah yang juga harus disaring                |
+| Memori                  | Kompresi, daftar teratas selektif, snapshot per bahasa dan region             | Katalog yang tumbuh memaksa partisi menurut prefix                |
 
-Bottleneck 10x: pipeline agregasi (batch horizontal) dan egress edge; SPOF: pipeline build (bukan jalur online; snapshot lama tetap melayani).
+Bottleneck pertama saat beban naik 10 kali adalah pipeline agregasi dan bandwidth edge. Pipeline diskalakan sebagai batch paralel. Pipeline build bukan titik lemah tunggal, karena snapshot lama tetap melayani bila build gagal.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Koreksi ejaan ('sushy' → 'sushi')?" → Kandidat dari edit distance 1 pada prefix (BK-tree/symspell) bila hasil kosong; mahal, batasi.
-- "Saran per user (riwayat)?" → Riwayat di client; server global tanpa state; gabung di client.
-- "Trie tidak muat memori?" → Shard by prefix (hash karakter pertama/dua) dengan router; prefix hot dipisah; atau FST.
-- "Bagaimana mengukur kualitas saran?" → Rasio klik saran, posisi klik, rasio pencarian tanpa saran; A/B pada bobot skor.
-- "Multi-bahasa?" → Snapshot per bahasa/region; deteksi bahasa dari pengaturan client.
-- "Pembaruan harus dalam detik (mis. berita)?" → Lapisan trending menangani; trie utama tetap batch.
+- "Bagaimana koreksi ejaan, misalnya sushy menjadi sushi?" Cari kandidat dengan jarak edit satu pada prefix bila hasil kosong. Cara ini mahal, jadi dibatasi.
+- "Bagaimana saran per pengguna?" Riwayat disimpan di client. Server tetap global tanpa state, dan client menggabungkannya.
+- "Bagaimana kalau trie tidak muat di memori?" Partisi menurut satu atau dua karakter pertama dengan router. Prefix panas dipisah, atau pakai FST.
+- "Bagaimana mengukur kualitas saran?" Rasio klik saran, posisi yang diklik, dan rasio pencarian tanpa memakai saran. Uji A/B pada bobot skor.
+- "Bagaimana dengan banyak bahasa?" Snapshot per bahasa dan region. Bahasa dideteksi dari pengaturan client.
+- "Bagaimana kalau pembaruan harus dalam detik, misalnya berita?" Lapisan tren menanganinya. Trie utama tetap batch.

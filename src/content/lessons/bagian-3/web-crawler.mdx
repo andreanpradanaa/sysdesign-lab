@@ -5,7 +5,7 @@ order: 2
 minutes: 60
 type: case
 prerequisites: ['bagian-2/message-queue', 'bagian-2/blob-store', 'bagian-2/dns', 'bagian-2/task-scheduler']
-summary: 'Mengunduh miliaran halaman tanpa menjatuhkan situs orang dan tanpa mengunduh hal yang sama dua kali: frontier URL dengan prioritas dan kesopanan, dedup konten, dan penyimpanan yang bisa diproses ulang.'
+summary: 'Mengunduh miliaran halaman tanpa menjatuhkan situs orang dan tanpa mengunduh hal yang sama dua kali. Intinya ada di antrian URL dengan prioritas dan kesopanan, serta deduplikasi konten.'
 sources:
   - title: 'System Design Primer — Design a web crawler'
     url: 'https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/web_crawler/README.md'
@@ -20,100 +20,101 @@ sources:
 quiz:
   - q: 'Crawler harus mengunduh 1 miliar halaman per bulan. Berapa kira-kira laju unduhan yang harus dirancang?'
     options:
-      - text: '~40 halaman/detik'
+      - text: 'Sekitar 40 halaman per detik'
         correct: false
-        why: 'Kurang satu orde: 40/s × 2.6 juta detik/bulan ≈ 100 juta.'
-      - text: '~400 halaman/detik rata-rata, siapkan ~1.000/detik untuk puncak'
+        why: 'Kurang satu tingkat. Empat puluh per detik dikali 2.6 juta detik hanya sekitar 100 juta halaman.'
+      - text: 'Sekitar 400 halaman per detik, dengan puncak sekitar 1.000'
         correct: true
-        why: '10^9 / (30 × 86.400 ≈ 2.6 × 10^6 s) ≈ 385/s. Dengan 500 KB per halaman, bandwidth masuk ≈ 200 MB/s, storage mentah ~500 TB/bulan sebelum kompresi.'
-      - text: '~4.000 halaman/detik'
+        why: 'Satu miliar dibagi 2.6 juta detik hasilnya sekitar 385 per detik. Dengan 500 KB per halaman, bandwidth masuk sekitar 200 MB per detik.'
+      - text: 'Sekitar 4.000 halaman per detik'
         correct: false
-        why: 'Kelebihan satu orde; itu ~10 miliar/bulan.'
+        why: 'Kelebihan satu tingkat. Itu sekitar 10 miliar halaman per bulan.'
       - text: 'Tidak bisa dihitung tanpa tahu jumlah domain'
         correct: false
         why: 'Jumlah domain memengaruhi kesopanan dan paralelisme, bukan laju total.'
-  - q: 'Kenapa crawler membutuhkan antrian per host (atau per domain) alih-alih satu antrian global?'
+  - q: 'Kenapa crawler membutuhkan antrian per host, bukan satu antrian global?'
     options:
-      - text: 'Supaya lebih cepat'
+      - text: 'Supaya unduhan lebih cepat secara keseluruhan'
         correct: false
-        why: 'Justru untuk memperlambat per host; kecepatan total tetap lewat paralelisme antar host.'
-      - text: 'Untuk kesopanan: membatasi satu permintaan aktif per host dan jeda antar permintaan agar tidak membebani situs (dan tidak diblokir), sambil tetap paralel lintas ribuan host'
+        why: 'Justru untuk memperlambat per host. Kecepatan total tetap tinggi lewat paralelisme antar host.'
+      - text: 'Untuk kesopanan: satu permintaan aktif per host, tetap paralel lintas host'
         correct: true
-        why: 'Ini desain Mercator: front queue untuk prioritas, back queue per host dengan timer "boleh diakses lagi pada T". Kesopanan adalah requirement, bukan opsi.'
-      - text: 'Karena DNS memerlukannya'
+        why: 'Ini desain Mercator. Antrian depan mengatur prioritas, antrian belakang per host mengatur jeda. Kesopanan adalah requirement.'
+      - text: 'Karena DNS mengharuskan struktur seperti itu'
         correct: false
         why: 'DNS tidak mengharuskan struktur antrian tertentu.'
-      - text: 'Untuk dedup URL'
+      - text: 'Untuk menghilangkan URL yang sudah pernah dilihat'
         correct: false
-        why: 'Dedup dilakukan oleh URL-seen set, terpisah dari struktur antrian.'
-  - q: 'Dua URL berbeda menghasilkan halaman dengan isi hampir identik (mis. versi cetak dan versi web). Bagaimana crawler menghindari menyimpan dan memproses keduanya?'
+        why: 'Itu tugas daftar URL yang sudah dilihat, terpisah dari struktur antrian.'
+  - q: 'Dua URL berbeda menghasilkan halaman dengan isi hampir identik. Bagaimana crawler menghindari menyimpan keduanya?'
     options:
-      - text: 'Membandingkan string URL'
+      - text: 'Membandingkan string URL-nya'
         correct: false
-        why: 'URL-nya memang berbeda; perbandingan URL tidak menangkap ini.'
-      - text: 'Menghitung sidik jari konten (hash eksak untuk duplikat persis, simhash/minhash untuk near-duplicate) dan memeriksa ke store sidik jari sebelum menyimpan'
+        why: 'URL-nya memang berbeda. Membandingkan URL tidak menangkap kemiripan isi.'
+      - text: 'Menghitung sidik jari konten, lalu memeriksanya sebelum menyimpan'
         correct: true
-        why: 'Dedup URL dan dedup konten adalah dua lapisan berbeda. Simhash memungkinkan mendeteksi dokumen yang "hampir sama" dengan membandingkan jarak Hamming.'
-      - text: 'Mengunduh hanya halaman dengan ekstensi .html'
+        why: 'Hash eksak menangkap duplikat persis. Simhash menangkap dokumen yang hampir sama lewat jarak Hamming yang kecil.'
+      - text: 'Mengunduh hanya halaman dengan ekstensi html'
         correct: false
-        why: 'Tidak terkait kemiripan isi.'
+        why: 'Ekstensi tidak terkait kemiripan isi.'
       - text: 'Mengabaikan halaman yang lebih kecil dari 1 KB'
         correct: false
         why: 'Ukuran bukan indikator duplikat.'
-  - q: 'Crawler terjebak di "spider trap": kalender dengan link "bulan berikutnya" tanpa batas. Mitigasi yang paling tepat?'
+  - q: 'Crawler terjebak di kalender dengan link "bulan berikutnya" tanpa batas. Mitigasi mana yang paling tepat?'
     options:
       - text: 'Menambah jumlah worker'
         correct: false
-        why: 'Memperbanyak kerja sia-sia.'
-      - text: 'Batasi kedalaman dan jumlah URL per host, normalisasi URL, deteksi pola URL berulang, dan beri prioritas rendah untuk URL yang sangat panjang atau berparameter berlebihan'
+        why: 'Ini hanya memperbanyak kerja sia-sia.'
+      - text: 'Batasi kedalaman dan jumlah URL per host, lalu deteksi pola URL berulang'
         correct: true
-        why: 'Tidak ada satu obat; kombinasi batas per host, normalisasi, dan heuristik pola URL menjaga crawler keluar dari ruang URL tak terbatas.'
-      - text: 'Mematuhi robots.txt'
+        why: 'Tidak ada satu obat. Batas per host, normalisasi URL, dan heuristik pola menjaga crawler keluar dari ruang URL tanpa batas.'
+      - text: 'Mematuhi robots.txt saja'
         correct: false
-        why: 'Penting, tapi trap biasanya tidak dilarang di robots.txt.'
+        why: 'Penting, tetapi jebakan seperti ini biasanya tidak dilarang di robots.txt.'
       - text: 'Mengunduh hanya halaman utama tiap domain'
         correct: false
-        why: 'Mengorbankan cakupan secara drastis.'
+        why: 'Ini mengorbankan cakupan secara drastis.'
 ---
 
 ## 1. Requirements
 
-Pertanyaan klarifikasi: untuk apa hasil crawl (index pencarian, arsip, riset)? Hanya HTML atau juga gambar/PDF? Berapa halaman per bulan? Seberapa segar (re-crawl)? Satu region atau global?
+Pertanyaan klarifikasi: untuk apa hasil crawl, misalnya index pencarian, arsip, atau riset. Hanya HTML atau juga gambar dan PDF. Berapa halaman per bulan. Seberapa sering halaman dikunjungi ulang. Satu region atau global.
 
 ### Functional
 
-- Mulai dari daftar seed URL, unduh halaman, ekstrak link, ulangi.
-- Simpan konten mentah dan metadata agar bisa diproses ulang (indexing, ekstraksi).
-- Patuhi `robots.txt` dan batas laju per host.
-- Re-crawl halaman dengan frekuensi sesuai perubahan dan prioritas.
-- Out of scope: ranking, rendering JavaScript (disebut sebagai ekstensi), pencarian.
+- Mulai dari daftar URL awal, unduh halaman, ambil link di dalamnya, lalu ulangi.
+- Simpan konten mentah dan metadata agar bisa diproses ulang untuk indexing atau ekstraksi.
+- Patuhi robots.txt dan batas laju per host. Robots.txt adalah berkas yang dipakai pemilik situs untuk menyatakan bagian mana yang boleh di-crawl.
+- Kunjungi ulang halaman sesuai seberapa sering ia berubah dan seberapa penting.
+- Di luar cakupan: ranking, menjalankan JavaScript, dan pencarian.
 
 ### Non-functional
 
-| NFR                    | Target                                                             | Alasan                                  |
-| ---------------------- | ------------------------------------------------------------------ | --------------------------------------- |
-| Skala                  | 1 miliar halaman/bulan, 5 tahun data                               | Korpus pencarian                        |
-| Kesopanan (politeness) | ≤ 1 permintaan aktif per host, jeda sesuai `Crawl-delay`/heuristik | Tidak menjatuhkan situs, tidak diblokir |
-| Robustness             | Tahan halaman jahat, trap, server lambat, konten raksasa           | Web tidak kooperatif                    |
-| Extensibility          | Modul baru (PDF, gambar) tanpa mengubah inti                       | Kebutuhan berubah                       |
-| Kesegaran              | Halaman populer di-crawl ulang lebih sering                        | Nilai index                             |
-| Dedup                  | Tidak menyimpan URL/konten yang sama dua kali                      | Hemat storage dan kerja                 |
+| Target          | Nilai                                                                   | Alasan                                     |
+| --------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| Skala           | 1 miliar halaman per bulan, data 5 tahun                                | Korpus untuk mesin pencari                 |
+| Kesopanan       | Paling banyak 1 permintaan aktif per host, dengan jeda antar permintaan | Tidak menjatuhkan situs dan tidak diblokir |
+| Ketahanan       | Tahan halaman jahat, jebakan, server lambat, dan konten raksasa         | Web tidak kooperatif                       |
+| Mudah diperluas | Modul baru untuk PDF atau gambar tanpa mengubah inti                    | Kebutuhan berubah                          |
+| Kesegaran       | Halaman populer dikunjungi ulang lebih sering                           | Nilai index                                |
+| Deduplikasi     | Tidak menyimpan URL atau konten yang sama dua kali                      | Hemat storage dan kerja                    |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 1 miliar halaman/bulan, rata-rata 500 KB per halaman (HTML + resource ringan), 50 link keluar per halaman, simpan 5 tahun.
+Asumsi: 1 miliar halaman per bulan, rata-rata 500 KB per halaman, 50 link keluar per halaman, dan data disimpan 5 tahun.
 
-- Laju: 10^9 / 2.6 × 10^6 s ≈ **400 halaman/detik**; puncak 1.000/s.
-- Bandwidth masuk: 400 × 500 KB ≈ **200 MB/s**.
-- Storage mentah: 500 TB/bulan; dengan kompresi 5x ≈ 100 TB/bulan → 5 tahun ≈ **6 PB** terkompresi. Blob store wajib.
-- URL ditemukan: 400 × 50 = 20.000 URL/detik masuk frontier; mayoritas sudah pernah dilihat. URL-seen set untuk ~10^10 URL: 10^10 × ~40 byte ≈ 400 GB sebagai hash set eksak, atau beberapa GB sebagai bloom filter.
-- DNS: 400 lookup/detik tanpa cache; dengan cache lokal per host, jauh lebih kecil.
+- Laju: 1 miliar dibagi 2.6 juta detik hasilnya sekitar 400 halaman per detik. Puncaknya 1.000 per detik.
+- Bandwidth masuk: 400 kali 500 KB, yaitu sekitar 200 MB per detik.
+- Storage mentah: 500 TB per bulan. Dengan kompresi 5 kali, sekitar 100 TB per bulan. Lima tahun berarti sekitar 6 PB terkompresi. Blob store wajib.
+- URL yang ditemukan: 400 kali 50, yaitu 20.000 URL per detik masuk ke antrian. Mayoritas sudah pernah dilihat.
+- Daftar URL yang sudah dilihat untuk sekitar 10 miliar URL butuh sekitar 400 GB sebagai himpunan hash eksak. Sebagai bloom filter, hanya beberapa GB. Bloom filter adalah struktur probabilistik yang hemat memori dengan sedikit kemungkinan salah positif.
+- DNS: 400 pencarian per detik tanpa cache. Dengan cache per host, jauh lebih kecil.
 
-Keputusan: paralelisme ribuan koneksi (I/O-bound, bukan CPU), frontier terpartisi, blob store terkompresi, URL-seen set terpartisi di memori/KV.
+Keputusan: paralelisme ribuan koneksi karena pekerjaannya menunggu jaringan, bukan CPU. Antrian URL terpartisi. Blob store terkompresi. Daftar URL yang sudah dilihat terpartisi di memori atau key-value store.
 
 ## 3. API design
 
-Crawler adalah sistem batch/stream; API-nya untuk operator dan pipeline hilir.
+Crawler adalah sistem batch. API-nya untuk operator dan pipeline hilir.
 
 ```text
 POST /api/v1/seeds           { "urls": [...], "priority": 1..10 }        → 202
@@ -122,11 +123,11 @@ GET  /api/v1/pages/{urlHash} → metadata: fetchedAt, status, contentHash, blobK
 GET  /api/v1/stats           → laju, ukuran frontier, error per host (untuk dashboard)
 ```
 
-Pipeline hilir (indexer, ekstraktor) tidak memanggil API; mereka berlangganan topic `page-fetched` (pub-sub) yang berisi `urlHash, blobKey, contentHash, fetchedAt`.
+Pipeline hilir seperti indexer tidak memanggil API. Mereka berlangganan topic `page-fetched` yang berisi hash URL, key blob, hash konten, dan waktu unduh.
 
 ## 4. Skema data
 
-Tiga store dengan pola akses berbeda:
+Tiga penyimpanan dengan pola akses berbeda.
 
 ```sql
 -- Metadata URL (KV terpartisi by url_hash; ditulis sering, dibaca by key)
@@ -141,111 +142,122 @@ host_state: host PK, robots_rules, robots_fetched_at, crawl_delay_ms,
 -- Sidik jari konten: KV content_hash → url_hash (dedup eksak); simhash index untuk near-dup
 ```
 
-Frontier bukan tabel biasa: ia adalah antrian terprioritas dan terpartisi (lihat detailed design), dengan backing durable (queue/log) agar restart tidak kehilangan URL.
+Antrian URL, yang disebut frontier, bukan tabel biasa. Ia adalah antrian berprioritas dan terpartisi dengan cadangan durable di log, supaya restart tidak kehilangan URL.
 
 ## 5. High-level design
 
 ```mermaid
 flowchart LR
-  SEED[Seed / recrawl API] --> F[URL frontier\nprioritas + kesopanan]
-  F --> FE[Fetcher x N\nasync I/O, per-host limiter]
+  SEED[Seed / recrawl API] --> F["URL frontier\nprioritas dan kesopanan"]
+  F --> FE["Fetcher x N\nasync I/O, batas per host"]
   FE --> DNS[DNS resolver + cache]
-  FE --> ROB[Robots cache\nper host]
+  FE --> ROB["Robots cache\nper host"]
   FE --> WEB((Internet))
-  FE --> CD[Content dedup\nhash / simhash]
-  CD --> BS[(Blob store\nWARC terkompresi)]
-  CD --> META[(URL metadata KV)]
-  CD --> PUB[[Topic page-fetched]]
-  FE --> PAR[Parser & link extractor]
-  PAR --> NORM["Normalisasi URL + filter\n(skema, blacklist, trap)"]
-  NORM --> SEEN{URL seen?\nbloom + KV}
+  FE --> CD["Content dedup\nhash / simhash"]
+  CD --> BS[("Blob store\nWARC terkompresi")]
+  CD --> META[("URL metadata KV")]
+  CD --> PUB[["Topic page-fetched"]]
+  FE --> PAR[Parser dan link extractor]
+  PAR --> NORM["Normalisasi URL + filter\nskema, blacklist, jebakan"]
+  NORM --> SEEN{"URL sudah dilihat?\nbloom + KV"}
   SEEN -- baru --> F
   SCHED[Recrawl scheduler] --> F
 ```
 
-**Alur satu halaman**: frontier mengeluarkan URL yang hostnya "boleh diakses" → fetcher cek robots (cache) dan DNS (cache) → unduh dengan timeout dan batas ukuran → hitung hash; bila konten sudah ada, catat alias dan berhenti → simpan ke blob store, perbarui metadata, publish event → parser mengekstrak link → normalisasi dan filter → URL yang belum pernah dilihat masuk frontier dengan prioritas → scheduler menjadwalkan re-crawl berdasarkan laju perubahan.
+Alur satu halaman:
+
+1. Frontier mengeluarkan URL yang host-nya sudah boleh diakses.
+2. Fetcher memeriksa robots.txt dan DNS dari cache.
+3. Fetcher mengunduh halaman dengan timeout dan batas ukuran.
+4. Dedup menghitung hash konten. Bila konten sudah ada, catat sebagai alias dan berhenti.
+5. Simpan konten ke blob store, perbarui metadata, lalu terbitkan event.
+6. Parser mengambil link dari halaman.
+7. Normalisasi membersihkan URL dan menyaring yang tidak diinginkan.
+8. URL yang belum pernah dilihat masuk ke frontier dengan prioritas.
+9. Scheduler menjadwalkan kunjungan ulang berdasarkan laju perubahan halaman.
 
 ## 6. Detailed design
 
 ### 6.1 URL frontier: prioritas dan kesopanan
 
-Dua tujuan yang bertabrakan: mengambil URL **penting** dulu, tetapi **tidak** mengakses satu host terlalu sering.
+Dua tujuan ini bertabrakan. Kita ingin mengambil URL penting lebih dulu, tetapi tidak boleh mengakses satu host terlalu sering.
 
 ```mermaid
 flowchart LR
-  IN[URL baru] --> PR[Prioritizer\nPageRank-ish, kesegaran, kedalaman]
-  PR --> FQ1[Front queue p=1]
-  PR --> FQ2[Front queue p=2]
-  PR --> FQn[Front queue p=n]
-  FQ1 --> SEL[Selector\nbias ke prioritas tinggi]
+  IN[URL baru] --> PR["Prioritizer\nkepentingan, kesegaran, kedalaman"]
+  PR --> FQ1[Front queue prioritas 1]
+  PR --> FQ2[Front queue prioritas 2]
+  PR --> FQn[Front queue prioritas n]
+  FQ1 --> SEL["Selector\ncondong ke prioritas tinggi"]
   FQ2 --> SEL
   FQn --> SEL
-  SEL --> MAP[Host → back queue]
+  SEL --> MAP[Host ke back queue]
   MAP --> BQa[Back queue host A]
   MAP --> BQb[Back queue host B]
   MAP --> BQz[Back queue host Z]
-  BQa --> HEAP[Min-heap next_allowed_at]
+  BQa --> HEAP[Min-heap waktu boleh diakses]
   BQb --> HEAP
   BQz --> HEAP
-  HEAP --> OUT[Fetcher mengambil host\nyang sudah boleh]
+  HEAP --> OUT[Fetcher mengambil host yang sudah boleh]
 ```
 
-- **Front queue** per tingkat prioritas; selector mengambil lebih sering dari prioritas tinggi.
-- **Back queue** satu per host (atau per IP) agar tiap host hanya punya satu permintaan aktif; heap mengurutkan host berdasarkan waktu boleh diakses berikutnya (`last_fetch + delay`).
-- Skala: frontier dipartisi by host hash ke banyak node; URL baru dirutekan ke partisi hostnya sehingga kesopanan per host tetap terjaga di satu tempat.
-- Durability: back queue di memori dengan backing log (Kafka/disk) dan checkpoint; miliaran URL tidak muat di memori, jadi hanya "kepala" tiap queue yang dimuat, sisanya di disk.
+- Front queue dibuat per tingkat prioritas. Selector mengambil lebih sering dari prioritas tinggi.
+- Back queue dibuat satu per host, atau per IP. Setiap host hanya punya satu permintaan aktif. Heap mengurutkan host berdasarkan waktu boleh diakses berikutnya.
+- Skala: frontier dipartisi berdasarkan hash host ke banyak node. URL baru dikirim ke partisi host-nya, sehingga kesopanan per host dijaga di satu tempat.
+- Durability: back queue hidup di memori dengan cadangan log dan checkpoint berkala. Miliaran URL tidak muat di memori, jadi hanya kepala tiap antrian yang dimuat.
 
 ### 6.2 Fetcher
 
-- Async I/O, ribuan koneksi per node; timeout koneksi/baca, batas ukuran respons (mis. 10 MB), batas redirect, hanya tipe konten yang didukung.
-- Identitas jelas (`User-Agent` dengan URL kontak), mematuhi `robots.txt` (cache per host, refresh harian), `Crawl-delay`, dan HTTP 429/503 dengan backoff per host.
-- DNS: resolver lokal dengan cache; resolusi adalah bottleneck umum.
-- Hasil: byte mentah + header + timing ke tahap berikutnya; fetcher tidak mem-parse.
+- Memakai I/O asinkron dengan ribuan koneksi per node. Ada timeout koneksi dan baca, batas ukuran respons sekitar 10 MB, batas redirect, dan hanya tipe konten yang didukung.
+- Identitasnya jelas lewat header User-Agent berisi URL kontak. Ia mematuhi robots.txt dari cache per host yang diperbarui harian, menghormati Crawl-delay, dan mundur saat menerima 429 atau 503.
+- DNS memakai resolver lokal dengan cache, karena resolusi nama sering menjadi bottleneck.
+- Fetcher tidak mem-parse halaman. Ia hanya meneruskan byte mentah, header, dan waktu ke tahap berikutnya.
 
-### 6.3 Dedup
+### 6.3 Deduplikasi
 
-- **URL**: normalisasi (lowercase host, hapus fragment, urutkan query, hapus parameter pelacak), lalu cek `url_seen`: bloom filter di memori (cepat, false positive kecil = sedikit URL terlewat) di depan KV eksak terpartisi.
-- **Konten**: hash eksak untuk duplikat persis; **simhash** 64-bit dengan index per potongan bit untuk near-duplicate (jarak Hamming ≤ 3). Duplikat tidak disimpan ulang dan link-nya tidak diproses lagi.
+- Untuk URL, lakukan normalisasi: huruf kecil untuk host, buang fragment, urutkan query, dan buang parameter pelacak. Lalu periksa ke daftar URL yang sudah dilihat. Bloom filter di memori menjadi saringan cepat, dan key-value store eksak terpartisi menjadi sumber kebenaran.
+- Untuk konten, hash eksak menangkap duplikat persis. Simhash 64 bit dengan index per potongan bit menangkap dokumen yang hampir sama, yaitu yang jarak Hamming-nya 3 atau kurang. Duplikat tidak disimpan ulang dan link-nya tidak diproses lagi.
 
 ### 6.4 Penyimpanan dan pipeline hilir
 
-- Blob store menyimpan WARC terkompresi, key by content hash; metadata di KV.
-- Event `page-fetched` ke topic; indexer, ekstraktor entitas, dan deteksi perubahan berlangganan terpisah; crawler tidak tahu konsumen.
+- Blob store menyimpan berkas WARC terkompresi dengan key berupa hash konten. Metadata disimpan di key-value store.
+- Event `page-fetched` dikirim ke topic. Indexer, ekstraktor entitas, dan pendeteksi perubahan berlangganan secara terpisah. Crawler tidak tahu siapa konsumennya.
 
-### 6.5 Re-crawl dan kesegaran
+### 6.5 Kunjungan ulang dan kesegaran
 
-- Tiap URL punya `change_rate` yang diperbarui dari pengamatan (konten berubah atau tidak sejak fetch terakhir); `next_fetch_at` dihitung dari laju perubahan dan prioritas (halaman populer yang sering berubah → sering).
-- Sitemap dan `Last-Modified`/`ETag` (conditional GET) menghemat bandwidth.
-- Scheduler (lihat modul task scheduler) memasukkan URL yang jatuh tempo ke frontier.
+- Setiap URL punya laju perubahan yang diperbarui dari pengamatan: apakah konten berubah sejak kunjungan terakhir.
+- Waktu kunjungan berikutnya dihitung dari laju perubahan dan prioritas. Halaman populer yang sering berubah dikunjungi lebih sering.
+- Sitemap serta header Last-Modified dan ETag menghemat bandwidth lewat permintaan bersyarat.
+- Scheduler, seperti di modul task scheduler, memasukkan URL yang jatuh tempo ke frontier.
 
-### 6.6 Robustness dan trap
+### 6.6 Ketahanan dan jebakan
 
-- Batas kedalaman, batas URL per host per hari, deteksi pola URL berulang, prioritas rendah untuk URL panjang/berparameter.
-- Konten berbahaya: parser di sandbox, batas waktu parse, abaikan tipe tak dikenal.
-- Daftar hitam domain dan kemampuan menghentikan host tertentu segera (operator).
+- Batasi kedalaman, batasi URL per host per hari, deteksi pola URL berulang, dan beri prioritas rendah untuk URL yang sangat panjang atau penuh parameter.
+- Parser berjalan di sandbox dengan batas waktu, dan tipe konten tak dikenal diabaikan.
+- Operator punya daftar hitam domain dan tombol untuk menghentikan satu host seketika.
 
-### 6.7 Ekstensi
+### 6.7 Perluasan
 
-Modul plug-in per tipe konten (PDF, gambar) dan rendering JavaScript lewat pool browser headless untuk subset halaman bernilai tinggi (mahal: CPU dan waktu 10–100x).
+Modul plug-in per tipe konten menangani PDF dan gambar. Rendering JavaScript dilakukan lewat pool browser headless hanya untuk halaman bernilai tinggi, karena biayanya 10 sampai 100 kali lipat.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                       | Dipenuhi oleh                                                     | Risiko tersisa                                                         |
-| ------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Skala 400–1.000 halaman/s | Fetcher async terpartisi, frontier terpartisi by host, blob store | Host raksasa (wikipedia) membatasi laju per host; terima, prioritaskan |
-| Kesopanan                 | Back queue per host + heap, robots cache, backoff 429/503         | Banyak host di satu IP (shared hosting): batasi per IP juga            |
-| Robustness                | Timeout, batas ukuran, sandbox parser, trap heuristik             | Trap baru selalu muncul; pantau URL per host                           |
-| Extensibility             | Pipeline event, parser plug-in                                    | —                                                                      |
-| Kesegaran                 | change_rate adaptif, sitemap, conditional GET                     | Estimasi laju perubahan butuh beberapa siklus                          |
-| Dedup                     | URL-seen (bloom + KV), content hash + simhash                     | Bloom false positive = URL terlewat (kecil, bisa diset)                |
+| Target                                   | Cara memenuhi                                                             | Risiko tersisa                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Skala 400 sampai 1.000 halaman per detik | Fetcher asinkron terpartisi, frontier terpartisi per host, blob store     | Host raksasa membatasi laju per host. Terima dan prioritaskan                 |
+| Kesopanan                                | Back queue per host dengan heap, cache robots, mundur saat 429 atau 503   | Banyak host berbagi satu IP. Batasi per IP juga                               |
+| Ketahanan                                | Timeout, batas ukuran, parser di sandbox, heuristik jebakan               | Jebakan baru selalu muncul. Pantau jumlah URL per host                        |
+| Mudah diperluas                          | Pipeline berbasis event, parser plug-in                                   | Tidak ada                                                                     |
+| Kesegaran                                | Laju perubahan adaptif, sitemap, permintaan bersyarat                     | Taksiran laju perubahan butuh beberapa siklus                                 |
+| Deduplikasi                              | Bloom filter dan key-value store untuk URL, hash dan simhash untuk konten | Salah positif bloom filter membuat sedikit URL terlewat. Angkanya bisa diatur |
 
-Bottleneck pertama saat 10x: URL-seen KV (tulis 200.000/s) dan frontier I/O; keduanya terpartisi horizontal. SPOF: scheduler dan koordinator partisi; jalankan redundan dengan lease.
+Bottleneck pertama saat trafik naik 10 kali adalah key-value store untuk URL yang sudah dilihat, dengan 200.000 tulis per detik, lalu I/O frontier. Keduanya terpartisi horizontal. Titik tunggal kegagalannya adalah scheduler dan koordinator partisi. Jalankan keduanya redundan dengan lease, yaitu izin berbatas waktu yang harus diperpanjang.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Bagaimana mendistribusikan crawler ke beberapa datacenter?" → Partisi host by geografi/TLD; tiap DC punya frontier sendiri; URL lintas partisi dikirim via queue.
-- "Halaman dinamis (JavaScript)?" → Pool browser headless untuk subset bernilai tinggi; deteksi kebutuhan render dari heuristik.
-- "Bagaimana memprioritaskan halaman?" → PageRank/inlink count, domain authority, kesegaran, permintaan dari pencarian.
-- "Crawler diblokir oleh situs?" → Identitas jelas, patuhi robots, laju konservatif, kontak; jangan menyamar.
-- "Bagaimana memverifikasi crawler tidak menyimpan duplikat?" → Metrik rasio duplikat per hari; sampling manual.
-- "Kehilangan node frontier?" → Backing log + checkpoint; partisi diambil alih node lain dari log.
+- "Bagaimana membagi crawler ke beberapa datacenter?" Partisi host berdasarkan geografi atau TLD. Tiap datacenter punya frontier sendiri, dan URL lintas partisi dikirim lewat queue.
+- "Halaman yang butuh JavaScript?" Pakai pool browser headless untuk sebagian kecil halaman bernilai tinggi, dengan heuristik untuk mendeteksi kebutuhan render.
+- "Bagaimana memprioritaskan halaman?" Jumlah link masuk ala PageRank, otoritas domain, kesegaran, dan permintaan dari pencarian.
+- "Crawler diblokir situs?" Identitas jelas, patuhi robots, laju konservatif, dan sediakan kontak. Jangan menyamar.
+- "Bagaimana memastikan tidak ada duplikat tersimpan?" Ukur rasio duplikat per hari dan lakukan sampling manual.
+- "Node frontier hilang?" Cadangan log dan checkpoint. Node lain mengambil alih partisi dari log.

@@ -6,7 +6,7 @@ minutes: 65
 type: case
 prerequisites:
   ['bagian-2/key-value-store', 'bagian-2/pub-sub', 'bagian-2/distributed-cache', 'bagian-3/whatsapp']
-summary: 'Mencocokkan penumpang dengan pengemudi terdekat dalam detik: lokasi yang berubah tiap beberapa detik, indeks geospasial di memori, matching sebagai proses stateful, dan trip sebagai state machine yang harus konsisten.'
+summary: 'Mencocokkan penumpang dengan pengemudi terdekat dalam hitungan detik. Kita bahas lokasi yang berubah tiap beberapa detik, index geospasial di memori, matching sebagai proses yang menyimpan state, dan trip sebagai state machine yang harus konsisten.'
 sources:
   - title: 'Uber Engineering — H3: Uber’s Hexagonal Hierarchical Spatial Index'
     url: 'https://www.uber.com/blog/h3/'
@@ -19,103 +19,103 @@ sources:
   - title: 'Geohash — Wikipedia'
     url: 'https://en.wikipedia.org/wiki/Geohash'
 quiz:
-  - q: '1 juta pengemudi aktif mengirim lokasi tiap 4 detik. Kenapa lokasi terkini TIDAK sebaiknya ditulis ke database relasional utama?'
+  - q: 'Satu juta pengemudi mengirim lokasi tiap 4 detik. Kenapa lokasi terkini sebaiknya tidak ditulis ke database relasional utama?'
     options:
       - text: 'Karena koordinat tidak bisa disimpan di SQL'
         correct: false
-        why: 'Bisa (PostGIS); masalahnya laju tulis dan sifat datanya.'
-      - text: 'Karena 250.000 tulisan/detik untuk data yang hanya berharga beberapa detik (nilai lama tidak penting) jauh lebih cocok di KV in-memory terpartisi by wilayah, sedangkan DB utama dipakai untuk data yang harus durable (trip, pembayaran)'
+        why: 'PostGIS bisa menyimpannya. Masalahnya ada pada laju tulis dan sifat datanya.'
+      - text: 'Karena 250 ribu tulisan per detik untuk data yang hanya berharga beberapa detik lebih cocok di memori'
         correct: true
-        why: 'Lokasi terkini adalah data "panas dan sekali pakai": simpan di memori dengan TTL, index geospasial di memori, dan kirim ke stream untuk histori/analitik. DB utama menyimpan trip, bukan setiap ping.'
-      - text: 'Karena DB tidak mendukung update'
+        why: 'Lokasi terkini bersifat panas dan sekali pakai. Simpan di memori dengan TTL, dan kirim salinannya ke stream untuk riwayat.'
+      - text: 'Karena database tidak mendukung operasi update'
         correct: false
-        why: 'Update didukung; laju dan kontensi yang menjadi masalah.'
-      - text: 'Karena pengemudi tidak punya koneksi stabil'
+        why: 'Update didukung. Laju dan perebutan baris yang menjadi masalah.'
+      - text: 'Karena koneksi pengemudi tidak stabil'
         correct: false
-        why: 'Itu memengaruhi jalur klien, bukan pilihan penyimpanan.'
-  - q: 'Penumpang meminta tumpangan; sistem mencari pengemudi dalam radius 2 km. Cara mana yang efisien?'
+        why: 'Itu memengaruhi jalur client, bukan pilihan penyimpanan.'
+  - q: 'Penumpang meminta tumpangan dan sistem mencari pengemudi dalam radius 2 km. Cara mana yang efisien?'
     options:
-      - text: 'Hitung jarak ke semua pengemudi di kota, urutkan'
+      - text: 'Hitung jarak ke semua pengemudi di kota, lalu urutkan'
         correct: false
-        why: 'O(N) per permintaan; di kota dengan 50.000 pengemudi dan ribuan permintaan/detik tidak sanggup.'
-      - text: 'Petakan koordinat ke sel grid (geohash/H3/S2); simpan pengemudi per sel di memori; untuk permintaan, ambil sel penumpang dan sel tetangga (ring), filter by jarak/ETA nyata, pilih kandidat'
+        why: 'Ini memeriksa semua pengemudi per permintaan. Di kota dengan 50 ribu pengemudi dan ribuan permintaan per detik, itu tidak sanggup.'
+      - text: 'Petakan koordinat ke sel grid, lalu ambil pengemudi di sel pengguna dan sel tetangganya'
         correct: true
-        why: 'Index grid mengubah pencarian radius menjadi lookup beberapa sel. H3 heksagonal membuat ring tetangga seragam; pada batas sel, tetangga dicek agar tidak melewatkan pengemudi dekat di sel sebelah.'
-      - text: 'Simpan pengemudi di tabel dengan index pada latitude'
+        why: 'Index grid mengubah pencarian radius menjadi pembacaan beberapa sel. Sel tetangga dicek agar pengemudi di batas sel tidak terlewat.'
+      - text: 'Simpan pengemudi di tabel dengan index pada kolom latitude saja'
         correct: false
-        why: 'Index satu dimensi tidak membatasi dimensi lainnya; hasilnya range scan besar.'
-      - text: 'Tanya tiap pengemudi apakah dekat'
+        why: 'Index satu dimensi tidak membatasi dimensi lainnya. Hasilnya tetap pemindaian besar.'
+      - text: 'Tanya setiap pengemudi apakah ia dekat dengan penumpang'
         correct: false
-        why: 'Fanout ke semua pengemudi untuk tiap permintaan; mustahil.'
-  - q: 'Dua permintaan tumpangan hampir bersamaan memilih pengemudi yang sama. Apa yang mencegah satu pengemudi ditugaskan dua kali?'
+        why: 'Itu menyebarkan permintaan ke semua pengemudi setiap kali. Mustahil di skala ini.'
+  - q: 'Dua permintaan tumpangan hampir bersamaan memilih pengemudi yang sama. Apa yang mencegah penugasan ganda?'
     options:
-      - text: 'Pengemudi akan menolak yang kedua'
+      - text: 'Pengemudi akan menolak tawaran yang kedua'
         correct: false
-        why: 'Tidak boleh mengandalkan manusia; sistem harus menjamin.'
-      - text: 'Penugasan adalah operasi atomik pada state pengemudi (available → offered) di satu tempat (partisi wilayah yang memegang pengemudi itu, atau compare-and-set di KV); yang kalah mencari kandidat berikutnya'
+        why: 'Sistem tidak boleh mengandalkan manusia untuk menjamin ini.'
+      - text: 'Penugasan adalah operasi atomik pada state pengemudi, dan yang kalah mencari kandidat lain'
         correct: true
-        why: 'Matching adalah proses stateful dengan kontensi; selesaikan dengan kepemilikan per partisi (satu pemilik state tiap pengemudi) atau CAS. Tawaran punya timeout; bila pengemudi tidak merespons, state kembali available.'
-      - text: 'Dengan mengunci seluruh tabel pengemudi'
+        why: 'Satu pemilik state per pengemudi, atau compare-and-set di key-value store, membuat hanya satu permintaan yang menang. Tawaran punya batas waktu.'
+      - text: 'Seluruh tabel pengemudi dikunci selama penugasan'
         correct: false
-        why: 'Membunuh throughput kota.'
-      - text: 'Dengan menunda permintaan kedua 10 detik'
+        why: 'Itu mematikan throughput satu kota.'
+      - text: 'Permintaan kedua ditunda sepuluh detik'
         correct: false
-        why: 'Tidak menjamin apa pun dan memperburuk latency.'
-  - q: 'Trip berjalan dari requested → matched → en_route → in_trip → completed → paid. Mengapa transisi ini perlu disimpan di DB transaksional, berbeda dari lokasi?'
+        why: 'Penundaan tidak menjamin apa pun dan memperburuk latency.'
+  - q: 'Kenapa transisi trip harus disimpan di database transaksional, berbeda dari data lokasi?'
     options:
-      - text: 'Karena jumlah transisinya sedikit (puluhan per trip) dan setiap transisi punya konsekuensi uang dan kewajiban; ia harus durable, idempotent, dan berurutan, sementara lokasi adalah aliran berfrekuensi tinggi yang boleh hilang sebagian'
+      - text: 'Karena transisinya sedikit dan setiap transisi punya konsekuensi uang'
         correct: true
-        why: 'Dua jenis data dengan NFR berbeda: trip = konsistensi kuat dan durability; lokasi = throughput dan kesegaran. Memisahkannya adalah inti desain.'
-      - text: 'Karena DB relasional lebih cepat dari KV'
+        why: 'Trip butuh konsistensi kuat dan durability. Lokasi butuh throughput dan kesegaran. Memisahkan keduanya adalah inti desain.'
+      - text: 'Karena database relasional lebih cepat dari key-value store'
         correct: false
-        why: 'Bukan soal kecepatan; soal jaminan.'
-      - text: 'Karena trip disimpan selamanya dan lokasi tidak'
+        why: 'Ini bukan soal kecepatan, melainkan soal jaminan.'
+      - text: 'Karena lokasi tidak pernah disimpan sama sekali'
         correct: false
-        why: 'Histori lokasi juga disimpan (untuk audit dan analitik), tapi lewat stream ke penyimpanan dingin.'
-      - text: 'Karena lokasi tidak penting'
+        why: 'Riwayat lokasi juga disimpan untuk audit dan analitik, tetapi lewat stream ke penyimpanan dingin.'
+      - text: 'Karena data lokasi tidak penting bagi bisnis'
         correct: false
-        why: 'Sangat penting, tetapi pola aksesnya berbeda.'
+        why: 'Lokasi sangat penting. Hanya pola aksesnya yang berbeda.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: hanya ride-hailing atau juga delivery? Berapa kota/pengemudi aktif? Apakah matching harus optimal (batch) atau greedy (terdekat)? Harga dinamis (surge)? Pembayaran termasuk?
+Pertanyaan klarifikasi: hanya ride-hailing atau juga pengantaran? Berapa kota dan pengemudi aktif? Apakah pencocokan harus optimal secara kelompok, atau cukup memilih yang terdekat? Apakah ada harga dinamis? Apakah pembayaran termasuk?
 
 ### Functional
 
-- Pengemudi: online/offline, kirim lokasi berkala, terima/tolak tawaran, jalankan trip.
-- Penumpang: minta tumpangan dari A ke B, lihat estimasi harga dan ETA, lacak pengemudi real-time, bayar.
-- Matching: cocokkan permintaan dengan pengemudi terdekat yang tersedia dalam detik.
-- Trip lifecycle: requested → matched → en_route → in_trip → completed → paid; pembatalan.
-- Out of scope: surge pricing detail, rating, dukungan, peta/routing (dipakai sebagai layanan; dibahas di kasus Google Maps).
+- Pengemudi bisa online dan offline, mengirim lokasi berkala, menerima atau menolak tawaran, dan menjalankan trip.
+- Penumpang meminta tumpangan dari A ke B, melihat perkiraan harga dan waktu tiba, melacak pengemudi secara real-time, dan membayar.
+- Matching mencocokkan permintaan dengan pengemudi terdekat yang tersedia dalam hitungan detik.
+- Siklus trip: requested, matched, en_route, in_trip, completed, paid. Pembatalan juga ditangani.
+- Di luar cakupan: detail harga dinamis, rating, dukungan pelanggan, dan peta. Peta dipakai sebagai layanan dan dibahas di kasus Google Maps.
 
 ### Non-functional
 
-| NFR              | Target                                                          | Alasan                         |
-| ---------------- | --------------------------------------------------------------- | ------------------------------ |
-| Latency matching | &lt; 3 s dari permintaan sampai tawaran ke pengemudi            | Pengalaman inti                |
-| Kesegaran lokasi | Posisi pengemudi ≤ 5 s tertinggal                               | Pelacakan dan matching akurat  |
-| Konsistensi      | Kuat untuk state trip dan penugasan; eventual untuk lokasi/peta | Uang dan kewajiban vs tampilan |
-| Availability     | 99.99% untuk permintaan dan trip aktif                          | Orang menunggu di jalan        |
-| Skala            | 1 juta pengemudi aktif, 100.000 permintaan/menit puncak global  | Multi-kota                     |
+| Target           | Nilai                                                                        | Alasan                                   |
+| ---------------- | ---------------------------------------------------------------------------- | ---------------------------------------- |
+| Latency matching | Di bawah 3 detik dari permintaan sampai tawaran tiba di pengemudi            | Pengalaman inti                          |
+| Kesegaran lokasi | Posisi pengemudi tertinggal paling lama 5 detik                              | Pelacakan dan matching harus akurat      |
+| Konsistensi      | Kuat untuk state trip dan penugasan, eventual untuk lokasi dan tampilan peta | Uang dan kewajiban berbeda dari tampilan |
+| Availability     | 99.99% untuk permintaan dan trip yang sedang berjalan                        | Orang menunggu di pinggir jalan          |
+| Skala            | 1 juta pengemudi aktif dan 100 ribu permintaan per menit saat puncak global  | Banyak kota                              |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 1 juta pengemudi online bersamaan; ping lokasi tiap 4 detik (100 B); 10 juta trip/hari; penumpang aktif melacak 1 pengemudi dengan update tiap 2 s.
+Asumsi: 1 juta pengemudi online bersamaan dan satu kiriman lokasi tiap 4 detik sebesar 100 byte. Ada 10 juta trip per hari, dan penumpang aktif melacak satu pengemudi dengan pembaruan tiap 2 detik.
 
-- Ping lokasi: 10^6 / 4 ≈ **250.000 tulisan/detik**, 25 MB/s. Semua ke KV/index memori terpartisi; ke stream untuk histori (2 TB/hari mentah).
-- Permintaan: 10^7 / 10^5 ≈ 100/s rata-rata, puncak ~2.000/s; tiap permintaan = query geospasial + beberapa ETA + tawaran.
-- Pelacakan: 1 juta penumpang aktif × 0.5 update/s ≈ 500.000 push/s ke client via koneksi persisten.
-- Trip state: 10 juta trip × ~10 transisi = 10^8 tulisan transaksional/hari ≈ 1.200/s; DB relasional terpartisi by kota/wilayah sanggup.
-- Index geospasial memori: 1 juta pengemudi × ~100 B ≈ 100 MB; trivial per kota, dipartisi by wilayah untuk lokalitas.
+- Kiriman lokasi: 1 juta dibagi 4 berarti 250 ribu tulisan per detik, atau 25 MB per detik. Semua masuk ke index di memori yang terpartisi, dan salinannya ke stream untuk riwayat sebesar 2 TB per hari.
+- Permintaan: 10 juta dibagi 100 ribu detik berarti 100 per detik rata-rata, dengan puncak sekitar 2.000 per detik. Setiap permintaan butuh satu query geospasial, beberapa perhitungan waktu tiba, dan satu tawaran.
+- Pelacakan: 1 juta penumpang aktif dikali 0.5 pembaruan per detik berarti 500 ribu push per detik lewat koneksi persisten.
+- State trip: 10 juta trip dikali sekitar 10 transisi berarti 100 juta tulisan transaksional per hari, atau 1.200 per detik. Database relasional yang dipartisi per wilayah sanggup.
+- Index geospasial: 1 juta pengemudi dikali 100 byte berarti sekitar 100 MB. Itu kecil, dan dipartisi per wilayah agar pencarian lokal.
 
-Keputusan: lokasi di memori terpartisi by wilayah, matching stateful per wilayah, trip di DB transaksional, push lewat lapisan koneksi persisten (seperti kasus WhatsApp).
+Keputusan dari angka ini: lokasi di memori terpartisi per wilayah, matching menyimpan state per wilayah, trip di database transaksional, dan push lewat lapisan koneksi persisten seperti kasus WhatsApp.
 
 ## 3. API design
 
 ```text
 Pengemudi (koneksi persisten / gRPC stream)
-→ LOCATION { driverId, lat, lng, heading, ts }           tiap 4 s, best-effort
+→ LOCATION { driverId, lat, lng, heading, ts }           tiap 4 detik, best-effort
 ← OFFER    { tripId, pickup, dropoff, fare, expiresIn }
 → OFFER_RESPONSE { tripId, accept: bool }
 → TRIP_EVENT { tripId, type: arrived|started|completed }
@@ -125,129 +125,152 @@ POST /v1/estimates      { pickup, dropoff }           → { fare, eta }
 POST /v1/trips          { pickup, dropoff, Idempotency-Key } → 202 { tripId, status: requested }
 GET  /v1/trips/{id}     → status, driver, vehicle, eta, driverLocation
 DELETE /v1/trips/{id}   → pembatalan (dengan aturan biaya)
-← push TRIP_UPDATE { tripId, status, driverLocation }  tiap 2 s saat aktif
+← push TRIP_UPDATE { tripId, status, driverLocation }  tiap 2 detik saat aktif
 ```
 
-`Idempotency-Key` pada pembuatan trip mencegah dua permintaan dari retry client; semua `TRIP_EVENT` membawa `tripId` + urutan.
+Idempotency key pada pembuatan trip mencegah dua trip dari satu client yang mengulang request. Setiap `TRIP_EVENT` membawa `tripId` dan nomor urut.
 
 ## 4. Skema data
 
 ```text
--- Lokasi terkini (KV in-memory terpartisi by wilayah/sel, TTL 30 s):
+-- Lokasi terkini (key-value di memori, terpartisi per wilayah, TTL 30 detik):
 driver_loc: driver_id → {lat, lng, cell, heading, ts, status: available|offered|busy}
-cell_index: cell_id → set(driver_id)       -- index geospasial, di memori partisi yang sama
+cell_index: cell_id → set(driver_id)       -- index geospasial, di partisi yang sama
 
--- Trip (DB relasional, shard by region_id; strong consistency):
+-- Trip (database relasional, shard by region_id, konsistensi kuat):
 trips(id, rider_id, driver_id, region_id, status, pickup, dropoff, fare_quote, fare_final,
       requested_at, matched_at, started_at, completed_at, version)
-trip_events(trip_id, seq, type, payload, ts)        -- append-only, audit
+trip_events(trip_id, seq, type, payload, ts)        -- append-only, untuk audit
 offers(trip_id, driver_id, offered_at, expires_at, response)
 
--- Histori lokasi: stream → object storage (parquet per hari), untuk audit, ETA model, analitik
--- Pengemudi/penumpang/kendaraan: DB users (jarang berubah, di-cache)
+-- Riwayat lokasi: stream → object storage per hari, untuk audit, model waktu tiba, analitik
+-- Pengemudi, penumpang, kendaraan: database users yang jarang berubah dan di-cache
 ```
 
-Status pengemudi (`available|offered|busy`) hidup bersama lokasi di partisi memori, karena matching membaca dan mengubahnya atomik.
+Status pengemudi hidup bersama lokasinya di partisi memori yang sama. Matching membaca dan mengubahnya dalam satu operasi atomik.
 
 ## 5. High-level design
 
 ```mermaid
 flowchart LR
   D[Driver app] <-->|stream| CS[Connection servers]
-  R[Rider app] <-->|HTTP + push| CS
-  CS --> LS[Location service\nshard by wilayah]
-  LS --> GI[(Geo index in-memory\ncell → drivers)]
-  LS --> ST[[Location stream]] --> HIST[(Histori / analitik)]
+  R[Rider app] <-->|HTTP dan push| CS
+  CS --> LS[Location service\nshard per wilayah]
+  LS --> GI[("Geo index di memori\ncell ke drivers")]
+  LS --> ST[["Location stream"]] --> HIST[("Riwayat / analitik")]
   R --> TS[Trip service]
-  TS --> TDB[(Trip DB\nshard by region)]
-  TS --> MS[Matching service\nshard by wilayah]
+  TS --> TDB[("Trip DB\nshard per region")]
+  TS --> MS[Matching service\nshard per wilayah]
   MS --> GI
-  MS --> ETA["ETA/Routing service\n(Maps)"]
+  MS --> ETA["ETA/Routing service\nMaps"]
   MS -->|OFFER| CS
   TS --> PAY[Payment service]
-  TS --> PUB[[trip-events]] --> NOTIF[Notif / analitik / pricing]
+  TS --> PUB[["trip-events"]] --> NOTIF[Notifikasi, analitik, harga]
 ```
 
-**Alur lokasi**: driver app → connection server → location service partisi wilayah (dari sel) → update `driver_loc` dan `cell_index` di memori (hapus dari sel lama, tambah ke sel baru) → tulis ke stream.
+Alur lokasi:
 
-**Alur permintaan**: rider → trip service membuat `trips(requested)` (durable) → matching service wilayah: ambil kandidat dari sel pickup + ring tetangga, filter `available`, hitung ETA nyata untuk ≤ 10 kandidat, urutkan, **CAS** state kandidat terbaik ke `offered`, kirim OFFER via connection server → pengemudi menerima → trip `matched`, driver `busy`; menolak/timeout → state kembali `available`, coba kandidat berikutnya → setelah beberapa putaran gagal, perluas radius atau beri tahu penumpang.
+1. Aplikasi pengemudi mengirim lokasi ke connection server.
+2. Connection server meneruskan ke location service untuk wilayah yang sesuai dengan sel lokasi.
+3. Location service memperbarui `driver_loc` dan memindahkan pengemudi dari sel lama ke sel baru di `cell_index`.
+4. Location service menulis salinan ke stream.
 
-**Alur trip**: TRIP_EVENT dari pengemudi → trip service memvalidasi transisi (state machine, `version` untuk optimistic lock) → tulis trip + event → publish → penumpang menerima push; lokasi pengemudi aktif diteruskan ke penumpang tiap 2 s (subscribe ke driver_id).
+Alur permintaan dan matching:
+
+1. Trip service membuat `trips` dengan status requested secara durable.
+2. Matching service wilayah mengambil kandidat dari sel penjemputan dan sel tetangganya, lalu menyaring yang berstatus available.
+3. Matching service menghitung waktu tiba nyata untuk paling banyak 10 kandidat dan mengurutkannya.
+4. Matching service mengubah state kandidat terbaik dari available ke offered dengan compare-and-set, lalu mengirim OFFER lewat connection server.
+5. Kalau pengemudi menerima, trip menjadi matched dan pengemudi menjadi busy.
+6. Kalau pengemudi menolak atau waktu habis, state kembali available dan kandidat berikutnya dicoba.
+7. Setelah beberapa putaran gagal, radius diperluas atau penumpang diberi tahu.
+
+Alur trip:
+
+1. Pengemudi mengirim TRIP_EVENT.
+2. Trip service memvalidasi transisi dengan state machine dan nomor versi.
+3. Trip service menulis trip dan event, lalu menerbitkan ke pub-sub.
+4. Penumpang menerima push. Lokasi pengemudi aktif diteruskan tiap 2 detik lewat langganan ke driver_id.
 
 ## 6. Detailed design
 
 ### 6.1 Index geospasial
 
-- Koordinat → sel dengan resolusi ~ratusan meter (H3 res 8–9, geohash 6–7, atau S2 level 13–14). Pencarian radius 2 km = sel pusat + 1–2 ring tetangga.
-- Struktur: `cell → set(driver)` dan `driver → cell` di memori; update lokasi memindahkan pengemudi antar sel bila berubah.
-- Partisi: wilayah geografis (kota/area) dipetakan ke node lewat consistent hashing (ala Ringpop); semua sel satu wilayah di satu node → query ring tidak lintas node, kecuali di batas wilayah (query dua node, gabung).
-- Replikasi: state lokasi direplikasi ke node cadangan (async) agar kegagalan node hanya kehilangan beberapa detik data, yang akan terisi lagi oleh ping berikutnya. Data ini **self-healing**.
+Koordinat dipetakan ke sel dengan ukuran ratusan meter, misalnya H3 resolusi 8 sampai 9. H3 adalah sistem grid heksagonal dari Uber. Pencarian radius 2 km berarti membaca sel pusat ditambah satu atau dua cincin tetangga.
+
+Strukturnya dua peta di memori: dari sel ke himpunan pengemudi, dan dari pengemudi ke selnya. Pembaruan lokasi memindahkan pengemudi antar sel bila selnya berubah.
+
+Partisi mengikuti wilayah geografis, misalnya satu kota. Semua sel satu wilayah hidup di satu node lewat consistent hashing, sehingga pencarian cincin tidak lintas node. Di batas wilayah, dua node ditanya dan hasilnya digabung.
+
+State lokasi direplikasi ke node cadangan secara asinkron. Kalau node mati, hanya beberapa detik data yang hilang, dan kiriman berikutnya mengisinya lagi. Data ini menyembuhkan dirinya sendiri.
 
 ### 6.2 Matching
 
 ```mermaid
 sequenceDiagram
   participant T as Trip service
-  participant M as Matching (wilayah X)
+  participant M as Matching wilayah X
   participant G as Geo index
   participant E as ETA service
-  participant D as Driver (via conn server)
-  T->>M: match(tripId, pickup)
-  M->>G: drivers in cell+ring, status=available
+  participant D as Driver via conn server
+  T->>M: match tripId dan pickup
+  M->>G: pengemudi di sel dan cincin dengan status available
   G-->>M: 37 kandidat
-  M->>E: ETA(pickup, top 10 by jarak garis lurus)
+  M->>E: ETA untuk 10 kandidat terdekat
   E-->>M: ETA nyata
-  M->>G: CAS driver#17: available → offered (ttl 15 s)
-  M->>D: OFFER(tripId)
-  alt accept dalam 15 s
+  M->>G: CAS driver 17 dari available ke offered, TTL 15 detik
+  M->>D: OFFER tripId
+  alt terima dalam 15 detik
     D-->>M: accept
-    M->>T: matched(driver#17)
-    M->>G: driver#17 → busy
-  else tolak / timeout
-    M->>G: driver#17 → available
+    M->>T: matched driver 17
+    M->>G: driver 17 menjadi busy
+  else tolak atau waktu habis
+    M->>G: driver 17 kembali available
     M->>M: kandidat berikutnya
   end
 ```
 
-- **Greedy** per permintaan cukup untuk kasus ini; **batch matching** (kumpulkan permintaan 2–3 detik, selesaikan sebagai assignment problem) menaikkan efisiensi global di area padat; sebutkan sebagai ekstensi.
-- Tawaran punya TTL; state `offered` dengan kedaluwarsa mencegah pengemudi "tergantung" bila matching service mati.
-- Matching service **stateful per wilayah** (memegang permintaan aktif dan tawaran); kegagalan node → permintaan yang belum matched dibaca ulang dari trip DB (`status=requested`) oleh node pengganti.
+Pencocokan serakah per permintaan cukup untuk kasus ini. Pencocokan kelompok mengumpulkan permintaan selama 2 sampai 3 detik dan menyelesaikannya bersama. Itu menaikkan efisiensi di area padat, dan layak disebut sebagai pengembangan.
+
+Tawaran punya batas waktu. State offered yang kedaluwarsa sendiri mencegah pengemudi tergantung bila matching service mati.
+
+Matching service menyimpan permintaan aktif dan tawaran per wilayah. Kalau node mati, node pengganti membaca ulang trip berstatus requested dari database.
 
 ### 6.3 Trip state machine
 
-- Transisi valid didefinisikan eksplisit; event di luar urutan (completed sebelum started) ditolak; `version` untuk CAS; `trip_events` append-only untuk audit dan rekonstruksi.
-- Idempotency: event membawa `seq` per trip; duplikat diabaikan.
-- Pembayaran: saat `completed`, trip service menerbitkan event; payment service memproses asinkron dengan idempotency key = tripId; trip menjadi `paid` lewat event balik (saga sederhana; kegagalan bayar → status `payment_failed` + retry/penagihan ulang).
+Transisi yang sah didefinisikan secara eksplisit. Event di luar urutan ditolak, misalnya completed sebelum started. Kolom `version` dipakai untuk compare-and-set. Tabel `trip_events` hanya ditambah, tidak pernah diubah, untuk audit dan rekonstruksi.
 
-### 6.4 Pelacakan real-time ke penumpang
+Setiap event membawa nomor urut per trip, sehingga duplikat diabaikan. Saat trip completed, trip service menerbitkan event. Payment service memprosesnya secara asinkron dengan idempotency key berupa tripId. Trip menjadi paid lewat event balik. Kalau pembayaran gagal, status menjadi `payment_failed` dan ditagih ulang.
 
-Penumpang berlangganan `driver_id` saat trip aktif; location service mempublikasikan posisi pengemudi yang sedang dalam trip ke topic per driver (hanya pengemudi dalam trip, bukan semua); connection server penumpang meneruskan tiap 2 s. Smoothing dan prediksi posisi dilakukan di client.
+### 6.4 Pelacakan real-time
 
-### 6.5 ETA dan harga
+Penumpang berlangganan ke driver_id saat trip aktif. Location service hanya mempublikasikan posisi pengemudi yang sedang dalam trip. Connection server penumpang meneruskannya tiap 2 detik. Penghalusan gerakan dilakukan di client.
 
-ETA memanggil routing service (graf jalan, kasus Google Maps) dengan cache untuk pasangan sel-ke-sel populer dan koreksi dari data trip historis. Harga = tarif dasar × jarak/waktu estimasi × faktor permintaan per sel (surge) yang dihitung dari rasio permintaan/pengemudi per sel per menit (stream processing).
+### 6.5 Waktu tiba dan harga
+
+Perhitungan waktu tiba memanggil routing service dengan cache untuk pasangan sel populer, ditambah koreksi dari data trip lama. Harga memakai tarif dasar dikali jarak dan waktu, dikali faktor permintaan per sel. Faktor itu dihitung dari rasio permintaan dan pengemudi per sel per menit lewat stream processing.
 
 ### 6.6 Lapisan koneksi dan kegagalan
 
-Seperti kasus WhatsApp: connection server stateful ringan, routing `driver_id → server` dengan lease, reconnect dengan jitter. Ping lokasi best-effort (hilang satu tidak masalah); OFFER dan TRIP_EVENT at-least-once dengan ack dan dedup.
+Pola yang sama dengan kasus WhatsApp: connection server ringan, routing dari driver_id ke server dengan lease, dan sambung ulang dengan jeda acak. Kiriman lokasi boleh hilang sesekali. OFFER dan TRIP_EVENT dikirim minimal sekali dengan ack dan dedup.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                 | Dipenuhi oleh                                                                                                                         | Risiko tersisa                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Matching &lt; 3 s   | Index memori lokal wilayah, ETA hanya untuk top-10, CAS lokal                                                                         | ETA service lambat: fallback ke jarak garis lurus × faktor                              |
-| Kesegaran ≤ 5 s     | Ping 4 s, update in-place memori, push langsung                                                                                       | Jaringan pengemudi buruk: tampilkan ts terakhir, prediksi di client                     |
-| Konsistensi trip    | DB transaksional, state machine, CAS, event append-only                                                                               | Saga pembayaran: status sementara `payment_failed`                                      |
-| Availability 99.99% | Wilayah independen (kegagalan satu kota tidak menjalar), state lokasi self-healing, trip DB terreplikasi, matching dipulihkan dari DB | Kehilangan node wilayah = jeda beberapa detik sampai ping mengisi ulang                 |
-| Skala               | Partisi by wilayah untuk lokasi dan matching, DB shard by region                                                                      | Wilayah super padat: pecah wilayah menjadi sub-area; batas wilayah butuh query dua node |
+| Target                    | Cara memenuhinya                                                                                       | Risiko yang tersisa                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| Matching di bawah 3 detik | Index di memori lokal wilayah, waktu tiba hanya untuk 10 kandidat, compare-and-set lokal               | ETA service lambat. Cadangan: jarak garis lurus dikali faktor             |
+| Kesegaran 5 detik         | Kiriman tiap 4 detik, pembaruan langsung di memori, push langsung                                      | Jaringan pengemudi buruk. Tampilkan waktu terakhir dan prediksi di client |
+| Konsistensi trip          | Database transaksional, state machine, compare-and-set, event append-only                              | Pembayaran gagal meninggalkan status sementara                            |
+| Availability 99.99%       | Wilayah saling independen, lokasi menyembuhkan diri, trip DB terreplikasi, matching dipulihkan dari DB | Node wilayah mati memberi jeda beberapa detik                             |
+| Skala                     | Partisi per wilayah untuk lokasi dan matching, trip DB per region                                      | Wilayah sangat padat harus dipecah. Batas wilayah butuh dua node          |
 
-Bottleneck 10x: throughput ping (tambah partisi wilayah) dan ETA service (cache, batch). SPOF: layanan penempatan wilayah → node (ring membership); gossip + replika.
+Kalau beban naik 10 kali, yang pecah duluan adalah laju kiriman lokasi dan ETA service. Keduanya diatasi dengan partisi tambahan dan cache. Layanan yang memetakan wilayah ke node adalah titik lemah tunggal, jadi memakai gossip dan replika.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Bagaimana surge pricing dihitung?" → Stream permintaan dan supply per sel per menit, rasio → faktor, dipublikasikan ke estimates dengan TTL.
-- "Pengemudi di perbatasan dua wilayah?" → Query dua partisi dan gabung; wilayah dibuat tumpang tindih sedikit (buffer).
-- "Matching optimal vs greedy?" → Batch 2–3 s dengan Hungarian/greedy global per sel; trade-off latency vs efisiensi.
-- "Pool/shared ride?" → Matching mempertimbangkan trip aktif dengan rute kompatibel; jauh lebih berat (routing), dibatasi per area.
-- "Audit sengketa 'pengemudi tidak datang'?" → Histori lokasi dari stream + trip_events; dapat direkonstruksi.
-- "Kegagalan datacenter?" → Wilayah dipetakan ke region cloud terdekat dengan failover ke region lain; state lokasi dibangun ulang dari ping dalam detik; trip DB replikasi lintas region.
+- "Bagaimana harga dinamis dihitung?" Stream permintaan dan pasokan per sel per menit menghasilkan rasio, lalu faktor dipublikasikan ke layanan estimasi dengan TTL.
+- "Bagaimana pengemudi di perbatasan dua wilayah?" Dua partisi ditanya dan hasilnya digabung. Wilayah dibuat sedikit tumpang tindih.
+- "Pencocokan optimal atau serakah?" Kelompokkan permintaan 2 sampai 3 detik dan selesaikan bersama. Ini menukar latency dengan efisiensi.
+- "Bagaimana tumpangan bersama?" Matching mempertimbangkan trip aktif dengan rute yang cocok. Ini jauh lebih berat karena butuh routing, jadi dibatasi per area.
+- "Bagaimana menyelesaikan sengketa pengemudi tidak datang?" Riwayat lokasi dari stream dan trip_events bisa direkonstruksi.
+- "Bagaimana kalau satu datacenter mati?" Wilayah dipetakan ke region cloud terdekat dengan failover. Lokasi dibangun ulang dari kiriman dalam detik, dan trip DB direplikasi lintas region.

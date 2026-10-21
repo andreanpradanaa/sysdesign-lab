@@ -5,7 +5,7 @@ order: 8
 minutes: 65
 type: case
 prerequisites: ['bagian-2/cdn', 'bagian-2/blob-store', 'bagian-2/distributed-cache', 'bagian-3/uber']
-summary: 'Tiga sistem dalam satu produk: peta sebagai tile statis yang dilayani CDN, graf jalan untuk routing dengan prapemrosesan agar query cepat, dan ETA yang memadukan graf dengan lalu lintas real-time.'
+summary: 'Tiga sistem dalam satu produk: peta sebagai potongan gambar statis yang dilayani CDN, graf jalan yang diolah lebih dulu agar pencarian rute cepat, dan perkiraan waktu tiba yang memadukan graf dengan lalu lintas real-time.'
 sources:
   - title: 'OpenStreetMap Wiki — Slippy map tilenames (skema tile z/x/y)'
     url: 'https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames'
@@ -18,98 +18,99 @@ sources:
   - title: 'Google S2 Geometry — Overview'
     url: 'https://s2geometry.io/'
 quiz:
-  - q: 'Kenapa peta dirender menjadi tile (potongan 256×256 px per zoom level) alih-alih dirender per permintaan untuk viewport user?'
+  - q: 'Kenapa peta dirender menjadi tile, yaitu potongan 256 piksel per level zoom, bukan dirender per permintaan?'
     options:
       - text: 'Karena browser hanya bisa menampilkan gambar persegi'
         correct: false
-        why: 'Bukan alasan; vektor dan canvas pun bisa.'
-      - text: 'Agar rendering dilakukan sekali (offline) dan hasilnya adalah file statis yang di-cache CDN dan client; viewport apa pun adalah gabungan beberapa tile yang sama untuk semua user'
+        why: 'Browser bisa menampilkan vektor dan canvas. Ini bukan alasannya.'
+      - text: 'Agar rendering dilakukan sekali dan hasilnya file statis yang bisa di-cache'
         correct: true
-        why: 'Tile mengubah masalah rendering real-time menjadi masalah penyajian file statis. Vector tile memindahkan styling ke client tetapi prinsip cache-nya sama.'
-      - text: 'Karena data peta kecil'
+        why: 'Tile mengubah rendering real-time menjadi penyajian file statis. Viewport apa pun adalah gabungan tile yang sama untuk semua pengguna.'
+      - text: 'Karena data peta berukuran kecil'
         correct: false
-        why: 'Data peta global ratusan GB sampai TB; tile justru cara mengelola ukuran itu.'
-      - text: 'Supaya peta tidak bisa disalin'
+        why: 'Data peta global mencapai ratusan GB sampai TB. Tile justru cara mengelola ukuran itu.'
+      - text: 'Supaya peta tidak bisa disalin orang lain'
         correct: false
-        why: 'Tile tetap bisa diunduh; bukan tujuan desain.'
-  - q: 'Dijkstra pada graf jalan benua (ratusan juta simpul) memakan detik hingga menit. Cara apa yang membuat query rute menjadi milidetik?'
+        why: 'Tile tetap bisa diunduh. Ini bukan tujuan desainnya.'
+  - q: 'Dijkstra pada graf jalan satu benua memakan detik sampai menit. Cara apa yang membuat pencarian rute menjadi milidetik?'
     options:
-      - text: 'Menjalankan Dijkstra di lebih banyak server'
+      - text: 'Menjalankan Dijkstra di lebih banyak server sekaligus'
         correct: false
-        why: 'Satu query tetap lambat; paralelisme tidak memotong latency satu query.'
-      - text: 'Prapemrosesan graf (contraction hierarchies / pemotongan hirarkis): menambah shortcut edge dan mengurutkan simpul by "kepentingan" sehingga query hanya menjelajahi sebagian kecil graf (bidirectional search ke atas hirarki)'
+        why: 'Satu query tetap lambat. Menambah server tidak memotong latency satu query.'
+      - text: 'Mengolah graf lebih dulu dengan jalan pintas sehingga query hanya menjelajahi sebagian kecil graf'
         correct: true
-        why: 'Trade-off klasik: jam prapemrosesan offline untuk query online milidetik. Harganya: perubahan bobot (lalu lintas) butuh teknik tambahan (customizable CH) atau koreksi di lapisan ETA.'
-      - text: 'Mengganti Dijkstra dengan BFS'
+        why: 'Contraction hierarchies menukar jam pemrosesan offline dengan query milidetik. Bobot yang berubah karena lalu lintas butuh teknik tambahan.'
+      - text: 'Mengganti Dijkstra dengan pencarian BFS biasa'
         correct: false
-        why: 'BFS mengabaikan bobot; hasilnya bukan rute terpendek/tercepat.'
-      - text: 'Membatasi rute hanya di satu kota'
+        why: 'BFS mengabaikan bobot jalan. Hasilnya bukan rute tercepat.'
+      - text: 'Membatasi rute hanya di dalam satu kota'
         correct: false
-        why: 'Rute antarkota tetap dibutuhkan.'
-  - q: 'ETA Google Maps mempertimbangkan kemacetan saat ini. Dari mana data lalu lintas berasal dan bagaimana dipakai?'
+        why: 'Rute antarkota tetap dibutuhkan pengguna.'
+  - q: 'Dari mana data lalu lintas untuk perkiraan waktu tiba berasal, dan bagaimana dipakai?'
     options:
-      - text: 'Dari sensor di setiap jalan'
+      - text: 'Dari sensor yang dipasang di setiap ruas jalan'
         correct: false
-        why: 'Sensor hanya di sebagian kecil jalan; sumber utamanya adalah perangkat pengguna.'
-      - text: 'Dari lokasi anonim perangkat pengguna (dan armada mitra) yang diagregasi per segmen jalan per interval menjadi kecepatan rata-rata; bobot edge "saat ini" dan "prediksi untuk waktu tiba" dipakai di query rute dan ETA'
+        why: 'Sensor hanya ada di sebagian kecil jalan. Sumber utamanya adalah perangkat pengguna.'
+      - text: 'Dari lokasi anonim perangkat pengguna yang diagregasi per ruas jalan per menit'
         correct: true
-        why: 'Crowdsourced floating car data. Bobot dinamis per segmen disimpan terpisah dari graf statis dan digabung saat query; model prediksi menangani "akan macet saat kamu sampai di sana".'
-      - text: 'Dari laporan manual pengguna saja'
+        why: 'Kecepatan per ruas menjadi bobot dinamis yang digabung dengan graf statis saat query. Model prediksi menangani kemacetan di masa depan.'
+      - text: 'Hanya dari laporan manual pengguna'
         correct: false
-        why: 'Laporan membantu untuk insiden, tetapi kecepatan dasar datang dari agregasi lokasi.'
-      - text: 'Lalu lintas tidak memengaruhi ETA'
+        why: 'Laporan membantu untuk insiden. Kecepatan dasar datang dari agregasi lokasi.'
+      - text: 'Lalu lintas tidak memengaruhi perkiraan waktu tiba'
         correct: false
-        why: 'Justru faktor terbesar di kota.'
-  - q: 'User mengetik "Stasiun Gambir" dan peta menampilkan pin. Komponen apa yang bekerja?'
+        why: 'Lalu lintas justru faktor terbesar di kota.'
+  - q: 'Pengguna mengetik "Stasiun Gambir" dan peta menampilkan pin. Komponen apa yang bekerja?'
     options:
-      - text: 'Routing engine'
+      - text: 'Routing engine yang mencari jalur'
         correct: false
-        why: 'Routing mencari jalur, bukan tempat.'
-      - text: 'Geocoding/search: index teks tempat (nama, alamat, kategori) dengan bias lokasi user, mengembalikan koordinat dan metadata; kebalikannya (reverse geocoding) mengubah koordinat menjadi alamat'
+        why: 'Routing mencari jalur antara dua titik, bukan mencari tempat.'
+      - text: 'Geocoding, yaitu pencarian tempat yang mengubah nama menjadi koordinat'
         correct: true
-        why: 'Search tempat adalah masalah pencarian teks + geospasial (kasus distributed search dan typeahead), terpisah dari tile dan routing.'
-      - text: 'Tile server'
+        why: 'Ini masalah pencarian teks dan geospasial, terpisah dari tile dan routing. Kebalikannya mengubah koordinat menjadi alamat.'
+      - text: 'Tile server yang menyimpan gambar peta'
         correct: false
-        why: 'Tile hanya gambar; tidak tahu nama tempat.'
-      - text: 'Location service pengemudi'
+        why: 'Tile hanya gambar. Ia tidak tahu nama tempat.'
+      - text: 'Location service milik pengemudi'
         correct: false
         why: 'Itu komponen Uber, bukan pencarian tempat.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: fitur mana yang menjadi fokus: menampilkan peta, pencarian tempat, rute dan navigasi, atau ETA dengan lalu lintas? Platform (web/mobile)? Offline?
+Pertanyaan klarifikasi: fitur mana yang menjadi fokus? Menampilkan peta, mencari tempat, menghitung rute, atau memperkirakan waktu tiba dengan lalu lintas? Platform apa? Apakah perlu mode offline?
 
 ### Functional
 
-- Menampilkan peta interaktif (pan, zoom) di seluruh dunia.
-- Mencari tempat/alamat (geocoding) dan sebaliknya.
-- Menghitung rute dari A ke B untuk mobil (jalan kaki/transit sebagai ekstensi) dengan ETA yang memperhitungkan lalu lintas.
-- Navigasi turn-by-turn dengan re-routing saat menyimpang.
-- Out of scope: Street View, ulasan tempat, iklan, editing peta.
+- Menampilkan peta interaktif seluruh dunia yang bisa digeser dan diperbesar.
+- Mencari tempat atau alamat, dan sebaliknya mengubah koordinat menjadi alamat.
+- Menghitung rute mobil dari A ke B dengan perkiraan waktu tiba yang memperhitungkan lalu lintas.
+- Navigasi belokan demi belokan, dengan rute ulang saat pengguna menyimpang.
+- Di luar cakupan: Street View, ulasan tempat, iklan, dan penyuntingan peta.
 
 ### Non-functional
 
-| NFR            | Target                                                             | Alasan                          |
-| -------------- | ------------------------------------------------------------------ | ------------------------------- |
-| Latency tile   | Tile terlihat &lt; 200 ms dari edge                                | Pan/zoom mulus                  |
-| Latency rute   | &lt; 500 ms untuk rute antarkota                                   | Interaktif                      |
-| Akurasi ETA    | Error median &lt; 10%                                              | Kepercayaan                     |
-| Availability   | 99.99% peta dan rute                                               | Dipakai untuk navigasi berjalan |
-| Kesegaran data | Jalan baru dalam hari; lalu lintas dalam menit                     | Peta dan ETA                    |
-| Skala          | 1 miliar user bulanan; miliaran tile/hari; puluhan ribu rute/detik | Global                          |
+| Target             | Nilai                                                                          | Alasan                     |
+| ------------------ | ------------------------------------------------------------------------------ | -------------------------- |
+| Latency tile       | Tile tampil di bawah 200 ms dari edge                                          | Geser dan zoom harus mulus |
+| Latency rute       | Di bawah 500 ms untuk rute antarkota                                           | Harus terasa interaktif    |
+| Akurasi waktu tiba | Kesalahan median di bawah 10%                                                  | Kepercayaan pengguna       |
+| Availability       | 99.99% untuk peta dan rute                                                     | Dipakai saat berkendara    |
+| Kesegaran data     | Jalan baru muncul dalam hitungan hari, lalu lintas dalam hitungan menit        | Peta dan waktu tiba        |
+| Skala              | 1 miliar pengguna bulanan, miliaran tile per hari, puluhan ribu rute per detik | Layanan global             |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: data jalan dunia ≈ ratusan juta segmen; tile raster 256 px ≈ 20 KB, 20 zoom level; 1 miliar MAU, 50 juta user bersamaan puncak; sesi melihat ~100 tile; 50.000 rute/detik puncak.
+Asumsi: data jalan dunia berisi ratusan juta ruas, dan satu tile raster 256 piksel berukuran 20 KB dengan 20 level zoom. Ada 1 miliar pengguna bulanan dengan 50 juta bersamaan saat puncak. Satu sesi melihat sekitar 100 tile, dan ada 50 ribu rute per detik saat puncak.
 
-- **Tile**: jumlah tile zoom z = 4^z; zoom 0–20 total ≈ 1.5 × 10^12, tetapi mayoritas laut/kosong; tile unik bermakna ≈ 10^10–10^11 × 20 KB ≈ **PB** di blob store; sebagian besar dibuat lazy. Permintaan: 50M user × 100 tile / sesi 10 menit ≈ **8 juta tile/detik** puncak; hampir semua dari CDN/cache client (zoom rendah dan kota besar sangat populer).
-- **Graf jalan**: ~500 juta simpul, 1 miliar edge × ~50 B ≈ 50 GB; dengan prapemrosesan (shortcut) ~2–3x → muat di memori beberapa server besar atau dipartisi per benua.
-- **Rute**: 50.000/detik × ~5 ms CPU = 250 core; dengan replikasi per region, ratusan server routing.
-- **Lalu lintas**: 100 juta perangkat × ping tiap 10 s ≈ 10 juta/s masuk; agregasi per segmen per menit → ~100 juta segmen × 1 nilai/menit, kecil setelah agregasi.
-- **Geocoding**: ratusan juta tempat, index pencarian beberapa TB, puluhan ribu QPS.
+- Jumlah tile: level zoom z punya 4 pangkat z tile. Totalnya triliunan, tetapi mayoritas adalah laut atau area kosong. Tile yang bermakna sekitar 10 sampai 100 miliar, dikali 20 KB berarti petabyte di blob store. Sebagian besar dibuat saat pertama diminta.
+- Permintaan tile: 50 juta pengguna dikali 100 tile per sesi 10 menit berarti sekitar 8 juta tile per detik saat puncak. Hampir semua dilayani CDN dan cache client, karena zoom rendah dan kota besar sangat populer.
+- Graf jalan: sekitar 500 juta simpul dan 1 miliar ruas dikali 50 byte berarti 50 GB. Dengan jalan pintas hasil pengolahan, ukurannya 2 sampai 3 kali lipat. Itu muat di memori beberapa server besar, atau dipartisi per benua.
+- Rute: 50 ribu per detik dikali 5 ms CPU berarti 250 core. Dengan replikasi per region, ratusan server routing.
+- Lalu lintas: 100 juta perangkat mengirim lokasi tiap 10 detik berarti 10 juta kiriman per detik. Setelah agregasi per ruas per menit, datanya kecil.
+- Pencarian tempat: ratusan juta tempat dengan index beberapa TB dan puluhan ribu query per detik.
 
-Keputusan: tile di blob + CDN dengan pembuatan lazy, routing engine in-memory per region dengan graf terprakomputasi, lalu lintas sebagai lapisan bobot dinamis, geocoding sebagai cluster pencarian.
+Keputusan dari angka ini: tile di blob store dan CDN dengan pembuatan saat diminta. Routing engine hidup di memori per region dengan graf yang sudah diolah. Lalu lintas menjadi lapisan bobot dinamis, dan geocoding menjadi cluster pencarian.
 
 ## 3. API design
 
@@ -119,117 +120,140 @@ GET /v1/geocode?q=Stasiun+Gambir&near=lat,lng    → [{ placeId, name, lat, lng,
 GET /v1/reverse?lat=&lng=                        → alamat terstruktur
 GET /v1/route?from=lat,lng&to=lat,lng&mode=car&depart=now
      → { distance, duration, durationInTraffic, polyline, steps[], alternatives[] }
-GET /v1/eta?from=&to=&depart=                    → ringan, untuk Uber-like matching (batch endpoint: matrix)
-POST /v1/navigation/sessions  … stream posisi → re-route bila menyimpang
+GET /v1/eta?from=&to=&depart=                    → ringan; ada versi matrix untuk matching ala Uber
+POST /v1/navigation/sessions  … stream posisi → rute ulang bila menyimpang
 POST /v1/traffic/probes (internal/SDK)  { segmentId|lat,lng, speed, ts }  dibatch
 ```
 
-Tile URL menyertakan versi data sehingga cache tidak perlu di-purge saat peta diperbarui.
+URL tile menyertakan versi data. Dengan itu, cache tidak perlu dibersihkan saat peta diperbarui.
 
 ## 4. Skema data
 
 ```text
--- Data peta (sumber): fitur geografis (jalan, bangunan, POI) dengan geometri; disimpan di DB geospasial + versi rilis
+-- Data peta sumber: fitur geografis (jalan, bangunan, tempat) dengan geometri, di DB geospasial, per versi rilis
 -- Graf jalan (turunan): nodes(id, lat, lng), edges(id, from, to, length, speed_limit, class, restrictions, geometry)
-   dipartisi by region; file biner terprakomputasi (CH) per rilis, dimuat ke memori routing server
--- Tile (turunan): blob store key = {style}/{v}/{z}/{x}/{y}; metadata rendered_at
--- Lalu lintas: segment_speed(segment_id, minute_bucket) → avg_speed, sample_count (KV/time-series, TTL jam)
+   dipartisi per region; file biner hasil pengolahan per rilis dimuat ke memori routing server
+-- Tile (turunan): blob store, key = {style}/{v}/{z}/{x}/{y}; metadata rendered_at
+-- Lalu lintas: segment_speed(segment_id, minute_bucket) → avg_speed, sample_count (time-series, TTL jam)
    + traffic_profile(segment_id, day_of_week, minute_of_day) → typical_speed (untuk prediksi)
--- Tempat: places(id, name, aliases, address, lat, lng, cell, category, popularity) → index pencarian + geo index
+-- Tempat: places(id, name, aliases, address, lat, lng, cell, category, popularity) → index pencarian dan geo index
 ```
 
-Semua turunan (graf CH, tile, index tempat) dibangun ulang per rilis data lewat pipeline batch; versi rilis mengikat semuanya agar konsisten.
+Semua data turunan dibangun ulang per rilis lewat pipeline batch. Nomor rilis mengikat graf, tile, dan index agar konsisten.
 
 ## 5. High-level design
 
 ```mermaid
 flowchart LR
   subgraph build[Pipeline batch per rilis data]
-    SRC[(Data peta sumber)] --> TG[Tile generator] --> TB[(Blob: tiles v)]
-    SRC --> GB[Graph builder + CH] --> GF[(Graf terprakomputasi)]
-    SRC --> PI[Place indexer] --> PS[(Search cluster tempat)]
+    SRC[("Data peta sumber")] --> TG[Tile generator] --> TB[("Blob: tiles v")]
+    SRC --> GB[Graph builder dan CH] --> GF[("Graf hasil olahan")]
+    SRC --> PI[Place indexer] --> PS[("Search cluster tempat")]
   end
   C[Client] -->|tile| CDN[CDN] --> TB
-  CDN -. miss & belum dirender .-> TR[Tile renderer lazy] --> TB
+  CDN -. miss dan belum dirender .-> TR[Tile renderer saat diminta] --> TB
   C --> GW[API gateway]
   GW --> GEO[Geocoding service] --> PS
-  GW --> RT[Routing service\nin-memory per region] --> GF
-  RT --> TRF[(Traffic store\nbobot dinamis)]
-  P[Probe lokasi perangkat] --> IN[[Stream]] --> AGG[Aggregator per segmen/menit] --> TRF
+  GW --> RT[Routing service\ndi memori per region] --> GF
+  RT --> TRF[("Traffic store\nbobot dinamis")]
+  P[Kiriman lokasi perangkat] --> IN[["Stream"]] --> AGG[Aggregator per ruas per menit] --> TRF
   AGG --> PRED[Model prediksi] --> TRF
   GW --> NAV[Navigation service] --> RT
 ```
 
-**Alur peta**: client menghitung tile yang dibutuhkan untuk viewport (z/x/y) → CDN; miss ke blob; blob miss ke renderer lazy (tile jarang diminta dirender saat pertama diminta, lalu disimpan).
+Alur peta:
 
-**Alur rute**: client → routing service region asal → snap koordinat ke simpul/edge terdekat (geo index) → query CH bidirectional dengan bobot statis + lapisan lalu lintas → polyline + langkah → cache rute populer singkat.
+1. Client menghitung tile yang dibutuhkan viewport dari zoom, x, dan y.
+2. Client meminta tile ke CDN.
+3. Kalau CDN tidak punya, CDN meminta ke blob store.
+4. Kalau blob store belum punya, renderer membuat tile itu, menyimpannya, lalu mengembalikannya.
 
-**Alur lalu lintas**: probe → stream → agregasi per segmen per menit (kecepatan median, jumlah sampel) → store dengan TTL → dipakai routing; model prediksi memakai profil historis untuk waktu tiba di masa depan.
+Alur rute:
+
+1. Client memanggil routing service di region asalnya.
+2. Routing service menempelkan koordinat ke simpul atau ruas terdekat lewat geo index.
+3. Routing service menjalankan pencarian dua arah di graf hasil olahan, dengan bobot statis ditambah lapisan lalu lintas.
+4. Routing service mengembalikan polyline dan langkah belokan. Rute populer di-cache sebentar.
+
+Alur lalu lintas:
+
+1. Perangkat mengirim kiriman lokasi ke stream.
+2. Aggregator menghitung kecepatan median dan jumlah sampel per ruas per menit.
+3. Aggregator menulis hasilnya ke traffic store dengan TTL.
+4. Model prediksi memakai profil historis untuk memperkirakan kecepatan pada waktu tiba nanti.
 
 ## 6. Detailed design
 
 ### 6.1 Tile
 
-- Skema slippy map: zoom z membagi dunia menjadi 2^z × 2^z tile (proyeksi Web Mercator); client menghitung x,y dari lat/lng.
-- **Raster** (PNG) sederhana; **vector tile** (PBF) lebih kecil, styling dan rotasi di client, satu set tile untuk banyak gaya. Pilih vector untuk mobile modern dengan fallback raster.
-- Pembuatan: prarender zoom rendah (0–10, sedikit tile, sangat populer) untuk semua; zoom tinggi lazy dengan cache permanen; invalidasi lewat versi di URL saat rilis data baru.
-- CDN hit ratio sangat tinggi karena distribusi permintaan sangat condong ke kota besar dan zoom sedang. Client juga meng-cache tile.
+Skema slippy map membagi dunia pada zoom z menjadi 2 pangkat z kali 2 pangkat z tile dalam proyeksi Web Mercator. Client menghitung x dan y dari latitude dan longitude.
+
+Tile raster berupa PNG dan sederhana. Tile vektor berupa PBF, lebih kecil, dan membiarkan client mengatur gaya serta memutar peta. Satu set tile vektor bisa dipakai untuk banyak gaya. Pilih vektor untuk ponsel modern dengan raster sebagai cadangan.
+
+Zoom rendah, yaitu level 0 sampai 10, dirender lebih dulu untuk seluruh dunia karena jumlahnya sedikit dan sangat populer. Zoom tinggi dirender saat diminta dan disimpan permanen. Pembaruan peta dilakukan lewat nomor versi di URL. CDN mendapat hit ratio sangat tinggi karena permintaan menumpuk di kota besar dan zoom sedang. Client juga meng-cache tile.
 
 ### 6.2 Routing
 
 ```mermaid
 flowchart LR
-  Q[Query A → B] --> SN["Snap ke graf\n(geo index edge terdekat)"]
-  SN --> BD["Bidirectional search\nmaju dari A, mundur dari B\nhanya ke simpul 'lebih penting' (CH)"]
+  Q[Query A ke B] --> SN["Tempelkan ke graf\nruas terdekat lewat geo index"]
+  SN --> BD["Pencarian dua arah\nmaju dari A, mundur dari B\nhanya ke simpul lebih penting"]
   BD --> MT[Titik temu dengan biaya minimum]
-  MT --> UN[Unpack shortcut → jalur asli]
-  UN --> TR[Terapkan bobot lalu lintas\n& hitung ETA]
+  MT --> UN[Buka jalan pintas menjadi jalur asli]
+  UN --> TR["Terapkan bobot lalu lintas\ndan hitung waktu tiba"]
   TR --> OUT[Polyline, langkah, alternatif]
 ```
 
-- **Contraction hierarchies**: offline, simpul "dikontraksi" berurutan; shortcut ditambahkan agar jarak terpendek tetap benar; query hanya naik ke simpul yang lebih penting dari kedua arah → menjelajahi ratusan simpul alih-alih jutaan.
-- Bobot dinamis: CH klasik mengasumsikan bobot statis. Opsi: (a) customizable CH/multi-level partition (CRP) yang memisahkan topologi dari bobot sehingga bobot dapat diperbarui menit-an; (b) CH statis untuk rute, lalu ETA dihitung ulang dengan bobot lalu lintas di sepanjang rute dan beberapa alternatif. Sebutkan (a) sebagai yang dipakai produk serius.
-- Partisi: graf per benua/region di memori server berbeda; rute lintas region lewat simpul perbatasan.
-- Restriksi belok, jalan satu arah, jam larangan: dimodelkan sebagai edge berarah dan penalti.
+Contraction hierarchies adalah teknik pengolahan graf offline. Simpul dikontraksi satu per satu, dan jalan pintas ditambahkan agar jarak terpendek tetap benar. Saat query, pencarian hanya naik ke simpul yang lebih penting dari kedua arah. Hasilnya, query menjelajahi ratusan simpul alih-alih jutaan.
 
-### 6.3 ETA dan lalu lintas
+Bobot dinamis butuh perlakuan khusus, karena contraction hierarchies klasik mengasumsikan bobot statis. Ada dua pilihan. Pertama, memakai varian yang memisahkan topologi dari bobot, seperti customizable contraction hierarchies, sehingga bobot bisa diperbarui tiap menit. Kedua, memakai graf statis untuk rute, lalu menghitung ulang waktu tiba dengan bobot lalu lintas di sepanjang rute dan beberapa alternatif. Produk serius memakai pilihan pertama.
 
-- Bobot per segmen = f(kecepatan saat ini jika sampel cukup, profil historis untuk hari/jam, batas kecepatan sebagai fallback).
-- Untuk perjalanan 40 menit, segmen di akhir rute memakai **prediksi** kecepatan pada waktu tiba, bukan kondisi sekarang.
-- Privasi: probe dianonimkan, diagregasi, tidak disimpan per perangkat untuk lalu lintas.
-- Kualitas: bandingkan ETA prediksi dengan aktual (dari sesi navigasi) sebagai metrik, latih model koreksi.
+Graf dipartisi per benua atau region di server berbeda. Rute lintas region lewat simpul perbatasan. Larangan belok, jalan satu arah, dan jam larangan dimodelkan sebagai ruas berarah dan penalti.
+
+### 6.3 Waktu tiba dan lalu lintas
+
+Bobot per ruas dihitung dari kecepatan saat ini bila sampelnya cukup, profil historis untuk hari dan jam itu, dan batas kecepatan sebagai cadangan. Untuk perjalanan 40 menit, ruas di akhir rute memakai prediksi kecepatan pada waktu tiba, bukan kondisi sekarang.
+
+Kiriman lokasi dianonimkan dan diagregasi. Data per perangkat tidak disimpan untuk lalu lintas. Kualitas diukur dengan membandingkan waktu tiba prediksi dan aktual dari sesi navigasi, lalu model koreksi dilatih dari selisihnya.
 
 ### 6.4 Geocoding
 
-- Index pencarian teks (nama, alias, alamat terstruktur) dengan boosting popularitas dan **bias lokasi** (jarak ke user sebagai faktor skor); typeahead memakai prefix index (kasus typeahead).
-- Reverse geocoding: geo index (S2/H3) tempat dan jalan → terdekat → alamat.
+Pencarian tempat memakai index teks atas nama, alias, dan alamat terstruktur. Skor dinaikkan oleh popularitas dan jarak ke pengguna. Fitur typeahead memakai index prefix seperti di kasus typeahead. Reverse geocoding memakai geo index tempat dan jalan untuk menemukan yang terdekat, lalu menyusun alamat.
 
 ### 6.5 Navigasi
 
-Sesi navigasi menyimpan rute aktif; client mengirim posisi; bila menyimpang &gt; ambang dari polyline, re-route dari posisi saat ini (query ringan karena titik awal baru); instruksi dihitung di server dan di-cache di client agar offline singkat tetap berjalan.
+Sesi navigasi menyimpan rute aktif. Client mengirim posisi secara berkala. Kalau posisi menyimpang dari polyline melewati ambang, server menghitung rute ulang dari posisi saat ini. Query ini ringan karena titik awalnya baru. Instruksi dihitung di server dan di-cache di client, sehingga offline sebentar tetap berjalan.
 
 ### 6.6 Rilis data
 
-Pipeline batch mingguan/harian: validasi data sumber → bangun graf dan CH (jam CPU) → render tile zoom rendah → index tempat → publikasi versi baru secara atomik (routing server memuat graf baru di samping lama, lalu switch; tile URL versi baru; alias index). Rollback = kembali ke versi sebelumnya.
+Pipeline batch berjalan harian atau mingguan dengan urutan ini:
+
+1. Validasi data sumber.
+2. Bangun graf dan contraction hierarchies, yang memakan jam CPU.
+3. Render tile zoom rendah.
+4. Bangun index tempat.
+5. Publikasikan versi baru secara atomik. Routing server memuat graf baru di samping graf lama lalu beralih, URL tile memakai versi baru, dan alias index dipindah.
+
+Rollback berarti kembali ke versi sebelumnya.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                 | Dipenuhi oleh                                                                                                             | Risiko tersisa                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Tile &lt; 200 ms    | CDN hit ratio tinggi, prarender populer, cache client                                                                     | Area terpencil zoom tinggi: render lazy pertama kali lambat  |
-| Rute &lt; 500 ms    | CH in-memory, bidirectional, snap via geo index                                                                           | Rute lintas benua sangat panjang: unpack lebih lama; cache   |
-| Akurasi ETA         | Bobot real-time + prediksi + koreksi dari aktual                                                                          | Daerah dengan sedikit probe: fallback profil/batas kecepatan |
-| Availability 99.99% | Tile statis (tahan bahkan saat API mati), routing replikasi per region, degradasi ke bobot statis bila traffic store mati | Rilis graf buruk: blue-green dan rollback                    |
-| Kesegaran           | Rilis data harian; lalu lintas menit                                                                                      | Jalan baru butuh siklus rilis                                |
-| Skala               | Tile: CDN; rute: horizontal per region; lalu lintas: stream + agregasi                                                    | Biaya egress tile                                            |
+| Target               | Cara memenuhinya                                                                                                                | Risiko yang tersisa                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Tile di bawah 200 ms | Hit ratio CDN tinggi, tile populer dirender lebih dulu, cache client                                                            | Area terpencil pada zoom tinggi dirender saat pertama diminta dan lebih lambat |
+| Rute di bawah 500 ms | Graf hasil olahan di memori, pencarian dua arah, geo index untuk penempelan                                                     | Rute lintas benua sangat panjang. Pakai cache                                  |
+| Akurasi waktu tiba   | Bobot real-time, prediksi, dan koreksi dari data aktual                                                                         | Daerah dengan sedikit kiriman memakai profil atau batas kecepatan              |
+| Availability 99.99%  | Tile statis tetap tersaji walau API mati, routing direplikasi per region, bobot statis sebagai cadangan bila traffic store mati | Rilis graf yang buruk. Pakai blue-green dan rollback                           |
+| Kesegaran            | Rilis data harian dan lalu lintas per menit                                                                                     | Jalan baru butuh satu siklus rilis                                             |
+| Skala                | CDN untuk tile, routing horizontal per region, stream dan agregasi untuk lalu lintas                                            | Biaya egress tile                                                              |
 
-Bottleneck 10x: egress CDN dan ingest probe (keduanya horizontal); SPOF: pipeline rilis (batch, bukan jalur online).
+Kalau beban naik 10 kali, yang pecah duluan adalah egress CDN dan penerimaan kiriman lokasi. Keduanya bisa ditambah horizontal. Pipeline rilis adalah proses batch, bukan jalur online, jadi bukan titik lemah saat melayani.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Bagaimana rute yang menghindari tol atau untuk sepeda?" → Profil bobot berbeda per mode; graf/CH terpisah per profil atau bobot bertingkat.
-- "Peta offline?" → Paket vector tile + graf wilayah terkompresi diunduh ke perangkat; routing lokal dengan CH versi kecil.
-- "Alternatif rute?" → Cari rute dengan penalti pada edge rute utama, atau plateau method; batasi 2–3 alternatif.
-- "Insiden (kecelakaan) menutup jalan?" → Laporan pengguna + verifikasi; bobot segmen = tak hingga sementara; propagasi ke routing dalam menit.
-- "Transit umum?" → Graf waktu-bergantung (jadwal), algoritma RAPTOR/CSA; berbeda dari jalan.
-- "Bagaimana mengukur kualitas peta?" → Laporan kesalahan, perbandingan rute aktual vs usulan, cakupan probe.
+- "Bagaimana rute yang menghindari tol, atau untuk sepeda?" Setiap mode punya profil bobot sendiri, dengan graf terpisah atau bobot bertingkat.
+- "Bagaimana peta offline?" Paket tile vektor dan graf wilayah terkompresi diunduh ke perangkat. Routing lokal memakai versi kecil dari graf hasil olahan.
+- "Bagaimana rute alternatif?" Cari rute dengan penalti pada ruas rute utama, dan batasi 2 sampai 3 alternatif.
+- "Bagaimana kecelakaan yang menutup jalan?" Laporan pengguna diverifikasi, bobot ruas dibuat tak terhingga sementara, dan disebarkan ke routing dalam menit.
+- "Bagaimana transportasi umum?" Graf bergantung waktu dari jadwal, dengan algoritma seperti RAPTOR. Ini berbeda dari graf jalan.
+- "Bagaimana mengukur kualitas peta?" Laporan kesalahan, perbandingan rute aktual dan usulan, serta cakupan kiriman lokasi.

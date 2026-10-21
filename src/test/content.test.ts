@@ -69,7 +69,7 @@ function mermaidLint(body: string): string[] {
 }
 
 /** Pemeriksaan gaya bahasa (docs/features/gaya-bahasa.md). Hanya untuk file yang sudah ditulis ulang. */
-export const STYLE_CHECKED = ['bagian-1/', 'bagian-2/'];
+export const STYLE_CHECKED = ['bagian-1/', 'bagian-2/', 'bagian-3/'];
 const MAX_SENTENCE_WORDS = 30;
 const MAX_OPTION_WORDS = 20;
 const MAX_QUESTION_WORDS = 30;

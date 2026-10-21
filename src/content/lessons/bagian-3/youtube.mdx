@@ -5,7 +5,7 @@ order: 6
 minutes: 65
 type: case
 prerequisites: ['bagian-3/instagram', 'bagian-2/blob-store', 'bagian-2/cdn', 'bagian-2/task-scheduler']
-summary: 'Video on demand di skala miliaran jam tontonan: pipeline transcoding sebagai DAG, adaptive bitrate streaming, CDN sebagai komponen utama, dan metadata serta view count yang dipisah dari byte video.'
+summary: 'Video on demand di skala miliaran jam tontonan. Kita bahas pipeline transcoding sebagai rangkaian tugas, streaming dengan kualitas yang menyesuaikan jaringan, CDN sebagai komponen utama, dan metadata serta view count yang dipisah dari byte video.'
 sources:
   - title: 'RFC 8216 — HTTP Live Streaming (HLS)'
     url: 'https://www.rfc-editor.org/rfc/rfc8216'
@@ -18,98 +18,98 @@ sources:
   - title: 'MPEG-DASH — Wikipedia (adaptive streaming over HTTP)'
     url: 'https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP'
 quiz:
-  - q: 'Kenapa video disajikan sebagai segmen kecil (2–10 detik) dalam beberapa bitrate, bukan satu file MP4?'
+  - q: 'Kenapa video disajikan sebagai segmen pendek dalam beberapa bitrate, bukan satu file MP4 utuh?'
     options:
-      - text: 'Karena browser tidak bisa memutar MP4 besar'
+      - text: 'Karena browser tidak bisa memutar file MP4 yang besar'
         correct: false
-        why: 'Bisa; alasannya adaptasi jaringan dan caching.'
-      - text: 'Agar player berpindah kualitas per segmen sesuai bandwidth (adaptive bitrate), mulai cepat tanpa mengunduh semuanya, dan tiap segmen adalah file statis kecil yang ideal untuk cache CDN dan HTTP biasa'
+        why: 'Browser bisa memutarnya. Alasannya ada pada penyesuaian jaringan dan caching.'
+      - text: 'Agar player berpindah kualitas per segmen dan tiap segmen bisa di-cache CDN'
         correct: true
-        why: 'HLS/DASH: manifest + segmen per bitrate. Player mengukur throughput dan memilih bitrate segmen berikutnya; CDN melayani segmen populer dari edge.'
-      - text: 'Supaya video tidak bisa diunduh'
+        why: 'Player mengukur throughput lalu memilih bitrate segmen berikutnya. Segmen adalah file statis kecil yang ideal untuk edge.'
+      - text: 'Supaya video tidak bisa diunduh oleh penonton'
         correct: false
-        why: 'Segmen tetap bisa diunduh; perlindungan datang dari DRM/token, bukan segmentasi.'
-      - text: 'Karena transcoding hanya bisa menghasilkan file kecil'
+        why: 'Segmen tetap bisa diunduh. Perlindungan datang dari token dan DRM, bukan segmentasi.'
+      - text: 'Karena transcoder hanya bisa menghasilkan file kecil'
         correct: false
-        why: 'Transcoder bisa menghasilkan file apa pun; segmentasi adalah pilihan desain penyajian.'
-  - q: 'Upload video 1 GB selesai; sistem menunjukkan "processing" selama beberapa menit. Apa yang terjadi di belakang dan kenapa dibuat sebagai DAG?'
+        why: 'Transcoder bisa menghasilkan file apa pun. Segmentasi adalah pilihan desain penyajian.'
+  - q: 'Setelah upload 1 GB selesai, status video menjadi "processing" beberapa menit. Kenapa pemrosesannya dirancang sebagai DAG?'
     options:
-      - text: 'Satu proses besar mengonversi file; DAG tidak diperlukan'
+      - text: 'Satu proses besar sudah cukup, DAG hanya menambah kerumitan'
         correct: false
-        why: 'Satu proses monolitik lambat, sulit diulang parsial, dan tidak bisa diparalelkan.'
-      - text: 'Pipeline: validasi → pecah menjadi chunk → transcode tiap chunk ke beberapa bitrate secara paralel → gabung dan segmentasi → thumbnail, caption, moderasi → manifest → publish; DAG membuat tahap paralel, retry per tahap, dan hasil parsial bisa dipakai (480p tersedia sebelum 4K)'
+        why: 'Satu proses monolitik lambat, sulit diulang sebagian, dan tidak bisa diparalelkan.'
+      - text: 'Supaya tahap bisa paralel per potongan, diulang per tahap, dan hasil sebagian bisa dipakai'
         correct: true
-        why: 'Transcoding adalah beban CPU terbesar; paralel per chunk memotong waktu dari jam menjadi menit. DAG scheduler melacak status tiap tahap.'
-      - text: 'Video dikirim ke CDN lalu CDN mentranskode'
+        why: 'Transcoding adalah beban CPU terbesar. Paralel per potongan memangkas waktu dari jam ke menit, dan 480p bisa tayang sebelum 4K selesai.'
+      - text: 'Karena CDN yang melakukan transcoding'
         correct: false
-        why: 'CDN hanya cache; transcoding di origin/worker.'
-      - text: 'Video menunggu moderasi manusia'
+        why: 'CDN hanya cache. Transcoding dilakukan worker di origin.'
+      - text: 'Karena video harus menunggu moderasi manusia'
         correct: false
-        why: 'Moderasi otomatis adalah salah satu tahap; manusia hanya untuk kasus ambigu.'
-  - q: 'View count sebuah video viral naik 1 juta per menit. Bagaimana view count ditangani tanpa membebani DB?'
+        why: 'Moderasi otomatis adalah salah satu tahap. Manusia hanya menangani kasus ambigu.'
+  - q: 'View count sebuah video viral naik satu juta per menit. Bagaimana menanganinya tanpa membebani database?'
     options:
-      - text: 'UPDATE videos SET views = views + 1 untuk tiap tontonan'
+      - text: 'Jalankan UPDATE views + 1 untuk setiap tontonan'
         correct: false
-        why: 'Hot row; ribuan update/detik pada satu baris akan macet.'
-      - text: 'Event tontonan ke stream, agregasi per video per jendela (atau sharded counter di cache), tulis delta ke DB berkala; tampilan membaca nilai cache yang sedikit tertinggal, dengan dedup/anti-fraud dilakukan di pipeline'
+        why: 'Satu baris yang ditulis ribuan kali per detik akan macet karena perebutan lock.'
+      - text: 'Kirim event tontonan ke stream, agregasi per jendela, lalu tulis delta berkala'
         correct: true
-        why: 'View count adalah angka tampilan yang boleh tertinggal; agregasi memindahkan jutaan tulisan menjadi satu tulisan per video per interval.'
-      - text: 'Menghitung dari log CDN sekali sehari'
+        why: 'View count boleh tertinggal beberapa detik. Agregasi mengubah jutaan tulisan menjadi satu tulisan per video per interval.'
+      - text: 'Hitung dari log CDN sekali sehari'
         correct: false
-        why: 'Bisa sebagai rekonsiliasi, tetapi terlalu lambat untuk tampilan.'
-      - text: 'Menonaktifkan view count untuk video viral'
+        why: 'Ini cocok untuk rekonsiliasi, tetapi terlalu lambat untuk tampilan.'
+      - text: 'Matikan view count untuk video yang sedang viral'
         correct: false
-        why: 'Justru saat itulah angkanya paling dilihat.'
+        why: 'Justru saat itulah angkanya paling banyak dilihat.'
   - q: 'Mana yang paling tepat menggambarkan peran CDN dalam sistem video?'
     options:
-      - text: 'Optimasi tambahan yang bisa ditambahkan belakangan'
+      - text: 'Optimasi tambahan yang bisa dipasang belakangan'
         correct: false
-        why: 'Dengan bandwidth keluar ratusan Tbps, CDN adalah komponen inti, bukan tambahan.'
-      - text: 'Komponen utama penyajian: hampir semua byte video keluar dari edge; origin hanya menerima miss (video long-tail) dan pengisian awal; penyedia besar menaruh server di dalam ISP'
+        why: 'Bandwidth keluar ratusan Tbps tidak mungkin dilayani origin. CDN adalah komponen inti.'
+      - text: 'Komponen utama penyajian, dan origin hanya melayani cache miss'
         correct: true
-        why: 'Estimasi bandwidth memaksa desain di mana origin tidak pernah melayani trafik populer. Pola Netflix Open Connect: cache di ISP, diisi di luar jam sibuk.'
-      - text: 'Tempat transcoding dilakukan'
+        why: 'Penyedia besar menaruh server cache di dalam ISP dan mengisinya di luar jam sibuk.'
+      - text: 'Tempat transcoding video dilakukan'
         correct: false
-        why: 'Transcoding di worker; CDN menyajikan hasilnya.'
-      - text: 'Hanya untuk thumbnail'
+        why: 'Transcoding dilakukan worker. CDN menyajikan hasilnya.'
+      - text: 'Hanya dipakai untuk thumbnail'
         correct: false
         why: 'Segmen video adalah beban terbesar CDN.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: video on demand saja atau live juga? Panjang maksimum? Resolusi sampai 4K? Rekomendasi termasuk? Monetisasi? Target perangkat (web, mobile, TV)?
+Pertanyaan klarifikasi: video on demand saja atau juga siaran langsung? Berapa durasi maksimum? Resolusi sampai 4K? Apakah rekomendasi termasuk? Apakah ada monetisasi? Perangkat apa saja yang harus didukung?
 
 ### Functional
 
-- Upload video (sampai beberapa GB) dengan judul/deskripsi; pemrosesan menjadi beberapa kualitas.
-- Menonton dengan adaptive bitrate; mulai cepat; seek.
-- Metadata: judul, channel, thumbnail, view count, like, komentar (dasar).
-- Pencarian dan rekomendasi: out of scope (disebut sebagai integrasi).
-- Out of scope: live streaming, DRM detail, monetisasi.
+- Kreator mengunggah video sampai beberapa GB dengan judul dan deskripsi. Sistem memproses video menjadi beberapa kualitas.
+- Penonton memutar video dengan kualitas yang menyesuaikan jaringan, mulai cepat, dan bisa melompat ke menit tertentu.
+- Metadata: judul, channel, thumbnail, jumlah tayangan, like, dan komentar dasar.
+- Di luar cakupan: pencarian dan rekomendasi hanya disebut sebagai integrasi. Siaran langsung, detail DRM, dan monetisasi tidak dibahas.
 
 ### Non-functional
 
-| NFR              | Target                                                           | Alasan            |
-| ---------------- | ---------------------------------------------------------------- | ----------------- |
-| Startup playback | &lt; 1–2 s sampai frame pertama                                  | Penentu retensi   |
-| Kelancaran       | Rebuffer &lt; 0.5% waktu tonton                                  | Adaptive bitrate  |
-| Availability     | 99.99% playback                                                  | Produk inti       |
-| Durability       | Video asli dan hasil tidak hilang                                | Konten kreator    |
-| Skala            | 1 miliar jam tonton/hari, 500 jam upload/menit                   | Global            |
-| Biaya            | Egress dan storage adalah biaya dominan; desain harus menekannya | Skala PB dan Tbps |
+| Target                | Nilai                                                       | Alasan                               |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------ |
+| Waktu mulai pemutaran | Di bawah 1 sampai 2 detik sampai frame pertama              | Penentu apakah penonton bertahan     |
+| Kelancaran            | Buffering di bawah 0.5% dari waktu tonton                   | Kualitas harus menyesuaikan jaringan |
+| Availability          | 99.99% untuk pemutaran                                      | Produk inti                          |
+| Durability            | Video asli dan hasil olahan tidak hilang                    | Konten milik kreator                 |
+| Skala                 | 1 miliar jam tontonan per hari dan 500 jam upload per menit | Layanan global                       |
+| Biaya                 | Egress dan storage adalah biaya dominan                     | Skala petabyte dan terabit per detik |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 1 miliar jam tonton/hari; bitrate rata-rata 3 Mbps (campuran 480p–1080p); upload 500 jam/menit; asli 1080p ≈ 5 GB/jam; hasil transcode semua kualitas ≈ 2x asli.
+Asumsi: 1 miliar jam tontonan per hari, bitrate rata-rata 3 Mbps, upload 500 jam per menit, dan video asli 1080p sekitar 5 GB per jam. Hasil transcode semua kualitas sekitar dua kali ukuran asli.
 
-- Tonton: 10^9 jam/hari = 3.6 × 10^12 detik tonton/hari; rata-rata 42 juta stream bersamaan; bandwidth keluar ≈ 42M × 3 Mbps ≈ **125 Tbps**. Tidak ada origin yang sanggup; CDN di ISP adalah keharusan.
-- Upload: 500 jam/menit = 720.000 jam/hari × 5 GB ≈ 3.6 PB/hari asli; + 2x hasil ≈ **10 PB/hari**, ~4 EB/tahun. Tier penyimpanan (panas/dingin) dan kebijakan retensi kualitas tinggi untuk video sepi tontonan.
-- Transcoding: 720.000 jam video/hari; bila 1 jam video butuh ~2 jam CPU-core untuk semua bitrate, ≈ 1.5 juta jam-core/hari ≈ 60.000 core terus-menerus. Paralel per chunk, antrian prioritas.
-- Metadata: miliaran video × 1 KB ≈ TB; QPS metadata ≈ jutaan (setiap play + daftar); cache.
-- View event: puluhan ribu/detik rata-rata, jutaan/detik puncak untuk video viral: stream + agregasi.
+- Tontonan: 1 miliar jam per hari setara 3.6 triliun detik tontonan. Rata-rata ada 42 juta stream bersamaan.
+- Bandwidth keluar: 42 juta dikali 3 Mbps berarti sekitar 125 Tbps. Tidak ada origin yang sanggup. CDN di dalam ISP adalah keharusan.
+- Upload: 500 jam per menit berarti 720 ribu jam video per hari. Dikali 5 GB, itu 3.6 PB per hari untuk file asli. Dengan hasil transcode, totalnya sekitar 10 PB per hari atau 4 EB per tahun.
+- Transcoding: satu jam video butuh sekitar dua jam waktu satu core untuk semua bitrate. Untuk 720 ribu jam video per hari, dibutuhkan sekitar 60 ribu core yang bekerja terus-menerus.
+- Metadata: miliaran video dikali 1 KB berarti terabyte. Setiap pemutaran dan daftar membaca metadata, jadi cache wajib.
+- Event tontonan: puluhan ribu per detik rata-rata, dan jutaan per detik saat ada video viral.
 
-Keputusan: pipeline transcoding sebagai DAG terdistribusi, penyimpanan segmen di blob store dengan tier, CDN tingkat ISP, metadata di DB + cache, counter via stream.
+Keputusan dari angka ini: pipeline transcoding sebagai DAG terdistribusi, segmen disimpan di blob store dengan tingkatan harga, CDN sampai ke ISP, metadata di database dengan cache, dan counter lewat stream.
 
 ## 3. API design
 
@@ -117,13 +117,13 @@ Keputusan: pipeline transcoding sebagai DAG terdistribusi, penyimpanan segmen di
 POST /v1/videos/uploads       { title, size, mime }  → { videoId, multipart presigned URLs }
 POST /v1/videos/{id}/complete → 202 { status: "processing" }
 GET  /v1/videos/{id}          → { title, channel, duration, status, manifestUrl, thumbnails, stats }
-GET  /v1/videos/{id}/manifest.m3u8  (via CDN; berisi daftar bitrate → playlist segmen)
+GET  /v1/videos/{id}/manifest.m3u8  (via CDN; daftar bitrate → playlist segmen)
 GET  /cdn/{id}/{bitrate}/seg_{n}.ts (via CDN; segmen 4 detik)
-POST /v1/videos/{id}/views    { sessionId, position }  → 202 (event, batched oleh client)
+POST /v1/videos/{id}/views    { sessionId, position }  → 202 (event, dibatch oleh client)
 POST /v1/videos/{id}/like · GET /v1/videos/{id}/comments?cursor=
 ```
 
-Playback adalah HTTP statis murni: manifest + segmen. Token tanda tangan di URL untuk kontrol akses (kedaluwarsa, geo) tanpa menyentuh server aplikasi per segmen.
+Pemutaran adalah HTTP statis murni: manifest dan segmen. Token bertanda tangan di URL mengatur akses tanpa menyentuh server aplikasi per segmen.
 
 ## 4. Skema data
 
@@ -136,101 +136,124 @@ comments(id, video_id, user_id, text, created_at)  -- shard by video_id
 watch_events: stream (video_id, user/session, ts, position, bitrate, rebuffer)  -- analitik, rekomendasi, counter
 ```
 
-Blob store: `orig/{video_id}` (tier dingin setelah transcode), `hls/{video_id}/{bitrate}/seg_{n}.ts`, `hls/{video_id}/master.m3u8`, `thumb/{video_id}/{n}.jpg`.
+Tata letak blob store: `orig/{video_id}` untuk file asli yang dipindah ke tingkatan dingin setelah transcode, `hls/{video_id}/{bitrate}/seg_{n}.ts` untuk segmen, `hls/{video_id}/master.m3u8` untuk manifest, dan `thumb/{video_id}/{n}.jpg` untuk thumbnail.
 
 ## 5. High-level design
 
 ```mermaid
 flowchart LR
-  U[Uploader] -->|multipart langsung| OB[(Blob: original)]
+  U[Uploader] -->|multipart langsung| OB[("Blob: original")]
   U --> API[Upload/Video API]
-  OB -->|ObjectCreated| Q[[Queue: transcode\nprioritas]]
-  Q --> DAG[Transcoding DAG\nscheduler + workers]
-  DAG --> SB[(Blob: segmen HLS/DASH\n+ manifest + thumbnail)]
-  DAG --> MDB[(Video metadata DB)]
-  DAG --> PUB[[video-ready]]
-  V[Viewer] --> API2[Video metadata API] --> MC[(Metadata cache)] --> MDB
-  V -->|manifest + segmen| CDN[CDN edge di ISP] --> SH[Origin shield] --> SB
-  V -->|view events batch| EV[[Watch event stream]]
-  EV --> AGG[Aggregator] --> ST[(Stats / counters)]
-  EV --> AN[Analitik & rekomendasi]
+  OB -->|ObjectCreated| Q[["Queue: transcode\nprioritas"]]
+  Q --> DAG[Transcoding DAG\nscheduler dan worker]
+  DAG --> SB[("Blob: segmen HLS/DASH\nmanifest, thumbnail")]
+  DAG --> MDB[("Video metadata DB")]
+  DAG --> PUB[["video-ready"]]
+  V[Viewer] --> API2[Video metadata API] --> MC[("Metadata cache")] --> MDB
+  V -->|manifest dan segmen| CDN[CDN edge di ISP] --> SH[Origin shield] --> SB
+  V -->|view events batch| EV[["Watch event stream"]]
+  EV --> AGG[Aggregator] --> ST[("Stats / counters")]
+  EV --> AN[Analitik dan rekomendasi]
 ```
 
-**Alur upload**: multipart langsung ke blob → complete → job transcode dengan prioritas (channel besar, panjang video) → DAG menghasilkan rendition, segmen, manifest, thumbnail → status `ready`, event ke subscriber (notifikasi, index pencarian).
+Alur upload:
 
-**Alur tonton**: client ambil metadata (cache) → manifest dari CDN → segmen bitrate rendah dulu untuk startup cepat → player mengukur throughput dan menaikkan bitrate → event tontonan dibatch ke stream.
+1. Client mengunggah file langsung ke blob store dengan multipart presigned URL.
+2. Client memanggil complete, dan API membuat job transcode dengan prioritas.
+3. DAG menghasilkan rendition, segmen, manifest, dan thumbnail.
+4. API menandai video `ready` dan menerbitkan event ke subscriber, seperti notifikasi dan index pencarian.
+
+Alur tonton:
+
+1. Client mengambil metadata dari cache.
+2. Client mengambil manifest dari CDN.
+3. Player memulai dari segmen bitrate rendah supaya cepat tampil.
+4. Player mengukur throughput dan menaikkan bitrate per segmen.
+5. Client mengirim event tontonan secara batch ke stream.
 
 ## 6. Detailed design
 
-### 6.1 Pipeline transcoding (DAG)
+### 6.1 Pipeline transcoding sebagai DAG
+
+DAG adalah rangkaian tugas dengan ketergantungan, di mana satu tugas baru jalan setelah tugas sebelumnya selesai.
 
 ```mermaid
 flowchart LR
-  A["Validasi & probe\n(durasi, codec, aman)"] --> B[Split menjadi chunk\n~2 menit, di keyframe]
-  B --> C1[Transcode chunk 1\n240p…1080p/4K]
+  A["Validasi dan probe\ndurasi, codec, keamanan"] --> B["Split menjadi chunk\nsekitar 2 menit di keyframe"]
+  B --> C1["Transcode chunk 1\n240p sampai 4K"]
   B --> C2[Transcode chunk 2]
   B --> Cn[Transcode chunk n]
-  C1 --> D[Gabung per bitrate,\nsegmentasi 4 s, manifest]
+  C1 --> D["Gabung per bitrate,\nsegmentasi 4 detik, manifest"]
   C2 --> D
   Cn --> D
-  A --> T[Thumbnail & preview]
-  A --> M["Moderasi & fingerprint\n(copyright)"]
+  A --> T[Thumbnail dan preview]
+  A --> M["Moderasi dan fingerprint\ncopyright"]
   A --> S[Audio: caption otomatis]
   D --> P{semua lolos?}
   T --> P
   M --> P
   S --> P
-  P -- ya --> R[Publish: status ready,\nvideo-ready event]
+  P -- ya --> R["Publish: status ready,\nvideo-ready event"]
   P -- tidak --> H[held / review]
 ```
 
-- **Paralel per chunk** memotong waktu dinding; bitrate rendah dipublikasikan lebih dulu (progresif) agar video bisa ditonton dalam menit, 4K menyusul.
-- **Prioritas**: antrian berbeda untuk kreator besar, video pendek, dan backlog; worker pool dengan GPU untuk codec berat.
-- **Idempotent**: output key deterministik; retry per tahap; DAG scheduler (lihat modul task scheduler) menyimpan status.
-- **Per-title encoding**: pilih ladder bitrate per video berdasarkan kompleksitas (animasi vs olahraga) untuk menghemat byte dengan kualitas sama.
-- Biaya: transcoding adalah biaya CPU terbesar; batch di luar jam sibuk untuk backlog, spot instance.
+- Paralel per potongan memangkas waktu tunggu. Bitrate rendah dipublikasikan lebih dulu, sehingga video bisa ditonton dalam menit dan 4K menyusul.
+- Antrian prioritas dipisah untuk kreator besar, video pendek, dan tumpukan lama. Worker dengan GPU menangani codec berat.
+- Setiap tahap idempotent, artinya aman diulang. Nama file hasil ditentukan dari awal, jadi pemrosesan ulang menimpa hasil yang sama.
+- Kegagalan ditangani dengan pengulangan per tahap dan status `failed` yang terlihat kreator.
+- Per-title encoding memilih daftar bitrate per video berdasarkan kompleksitas gambar. Animasi butuh byte lebih sedikit daripada olahraga.
+- Transcoding adalah biaya CPU terbesar. Tumpukan lama dikerjakan di luar jam sibuk dengan instance murah.
 
 ### 6.2 Penyajian: adaptive bitrate dan CDN
 
-- HLS/DASH: master manifest → playlist per bitrate → segmen 2–6 detik. Player memulai dari bitrate rendah (startup cepat), mengukur throughput dan buffer, lalu beralih.
-- CDN: segmen immutable dengan TTL panjang; video populer tersebar di semua edge; long-tail dari origin shield. Penyedia besar menaruh appliance cache **di dalam ISP** dan mengisinya di luar jam sibuk (pre-positioning) berdasarkan prediksi popularitas.
-- Startup: manifest dan segmen pertama di-prefetch saat thumbnail terlihat (hover/scroll); segmen pertama lebih pendek.
-- Kontrol akses: URL bertanda tangan dengan kedaluwarsa; DRM untuk konten berlisensi di luar scope.
+HLS dan DASH adalah dua standar streaming lewat HTTP. Keduanya memakai manifest utama, playlist per bitrate, dan segmen 2 sampai 6 detik. Player memulai dari bitrate rendah agar cepat tampil, lalu mengukur throughput dan buffer sebelum beralih.
 
-### 6.3 Penyimpanan dan tier
+CDN menyimpan segmen sebagai file immutable dengan TTL panjang. Video populer tersebar di semua edge, sedangkan video sepi diambil dari origin shield. Origin shield adalah lapisan cache di depan blob store yang melindungi origin dari banyak miss sekaligus. Penyedia besar menaruh server cache di dalam ISP dan mengisinya di luar jam sibuk berdasarkan prediksi popularitas.
 
-- Hasil transcode video populer: tier panas; video dengan tontonan &lt; N/bulan: tier dingin, bitrate tinggi bisa dihapus dan dibuat ulang dari asli bila diminta (lazy re-transcode).
-- Asli: tier arsip setelah transcode selesai.
-- Erasure coding untuk semua tier besar; replikasi untuk manifest/thumbnail kecil yang panas.
+Untuk mempercepat mulai, client mengambil manifest dan segmen pertama saat thumbnail terlihat. Segmen pertama dibuat lebih pendek. Akses dikendalikan dengan URL bertanda tangan yang kedaluwarsa.
+
+### 6.3 Penyimpanan dan tingkatan
+
+- Hasil transcode video populer disimpan di tingkatan panas. Video dengan sedikit tontonan dipindah ke tingkatan dingin.
+- Bitrate tinggi untuk video sepi bisa dihapus dan dibuat ulang dari file asli saat diminta.
+- File asli diarsipkan setelah transcode selesai.
+- Erasure coding dipakai untuk semua tingkatan besar. Erasure coding adalah cara menyimpan data dengan potongan paritas, sehingga hemat ruang dibanding salinan penuh. Manifest dan thumbnail yang kecil disalin biasa.
 
 ### 6.4 Metadata dan view count
 
-- Metadata di DB terpartisi by video_id, cache objek dengan TTL; halaman tontonan = beberapa multi-get.
-- View count: client mengirim event tontonan (dibatch, dengan sesi) ke stream; aggregator menghitung per video per jendela setelah dedup/anti-fraud (satu sesi, durasi minimum), menulis delta ke `video_stats`; tampilan membaca cache yang diperbarui tiap beberapa detik. Untuk video viral, sharded counter di cache sebelum flush.
-- Like/komentar seperti Instagram: tabel sumber kebenaran + counter turunan.
+Metadata disimpan di database yang dipartisi berdasarkan video_id, dengan cache objek ber-TTL. Satu halaman tontonan hanya butuh beberapa pembacaan cache.
+
+View count memakai alur ini:
+
+1. Client mengirim event tontonan secara batch dengan sesi.
+2. Aggregator membuang duplikat dan tontonan curang, misalnya sesi yang terlalu singkat.
+3. Aggregator menghitung per video per jendela waktu, lalu menulis delta ke `video_stats`.
+4. Tampilan membaca cache yang diperbarui tiap beberapa detik.
+
+Untuk video viral, cache memakai sharded counter sebelum ditulis ke database. Like dan komentar mengikuti pola Instagram: tabel sebagai sumber kebenaran, counter sebagai turunan.
 
 ### 6.5 Notifikasi dan integrasi
 
-`video-ready` ke pub-sub: notifikasi subscriber channel (fan-out seperti newsfeed), index pencarian via CDC, pipeline rekomendasi dari watch events.
+Event `video-ready` dikirim lewat pub-sub. Subscriber channel mendapat notifikasi dengan pola fan-out seperti newsfeed. Index pencarian diperbarui lewat CDC, yaitu aliran perubahan dari database. Pipeline rekomendasi memakai event tontonan.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                 | Dipenuhi oleh                                                                                                             | Risiko tersisa                                                                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Startup &lt; 2 s    | Bitrate rendah dulu, segmen pertama pendek, prefetch manifest, CDN edge dekat                                             | Video long-tail dari origin: startup lebih lambat; terima atau pre-warm untuk kreator besar |
-| Rebuffer rendah     | Adaptive bitrate per segmen, ladder per-title                                                                             | Jaringan seluler buruk: bitrate terendah harus cukup rendah                                 |
-| Availability 99.99% | CDN multi-edge, origin shield + blob multi-zona, metadata cache; degradasi: tetap bisa menonton meski stats/komentar mati | Kegagalan pipeline transcode menunda publish, bukan tontonan                                |
-| Durability          | Blob erasure coded, asli diarsipkan, checksum                                                                             | Penghapusan sesuai kebijakan harus bisa diaudit                                             |
-| Skala 125 Tbps      | CDN di ISP, pre-positioning                                                                                               | Biaya egress untuk long-tail                                                                |
-| Biaya               | Tier storage, lazy re-transcode, per-title encoding, batch backlog                                                        | Keseimbangan kualitas vs byte butuh pengukuran terus                                        |
+| Target                 | Cara memenuhinya                                                                                         | Risiko yang tersisa                                                                 |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Mulai di bawah 2 detik | Bitrate rendah dulu, segmen pertama pendek, manifest diambil lebih awal, CDN dekat penonton              | Video sepi diambil dari origin dan mulai lebih lambat. Pre-warm untuk kreator besar |
+| Buffering rendah       | Bitrate menyesuaikan per segmen dan daftar bitrate per video                                             | Jaringan seluler buruk. Bitrate terendah harus cukup rendah                         |
+| Availability 99.99%    | Banyak edge CDN, origin shield, blob multi-zona, cache metadata. Menonton tetap bisa walau komentar mati | Pipeline transcode yang gagal menunda publikasi, bukan tontonan                     |
+| Durability             | Blob dengan erasure coding, asli diarsipkan, checksum                                                    | Penghapusan sesuai kebijakan harus bisa diaudit                                     |
+| Skala 125 Tbps         | CDN di dalam ISP dan pengisian di luar jam sibuk                                                         | Biaya egress untuk video sepi                                                       |
+| Biaya                  | Tingkatan storage, transcode ulang saat diminta, per-title encoding, tumpukan di luar jam sibuk          | Keseimbangan kualitas dan byte butuh pengukuran terus                               |
 
-Bottleneck 10x: kapasitas transcoding (worker, GPU) dan egress CDN (kapasitas fisik di ISP); metadata horizontal. SPOF: DAG scheduler; jalankan redundan dengan lease.
+Kalau beban naik 10 kali, yang pecah duluan adalah kapasitas transcoding dan kapasitas fisik CDN di ISP. Metadata bisa ditambah horizontal. Scheduler DAG adalah titik lemah tunggal, jadi dijalankan redundan dengan lease.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Live streaming?" → Ingest RTMP/SRT → transcoder real-time → segmen pendek (1–2 s) ke CDN dengan latency 5–15 s; low-latency HLS untuk lebih cepat; tidak ada DAG batch.
-- "Bagaimana mencegah unggahan berhak cipta?" → Fingerprint audio/video di pipeline, cocokkan ke basis referensi, tahan/klaim.
-- "Seek ke menit 40 pada video 2 jam?" → Manifest memberi segmen by waktu; player meminta segmen itu langsung; keyframe di batas segmen.
-- "Pengguna dengan koneksi 200 kbps?" → Rendition audio-only / 144p; player turun otomatis.
-- "Bagaimana memilih video mana yang di-pre-position ke ISP?" → Prediksi popularitas dari watch events (tren, upload kreator besar), diisi malam hari.
-- "Metrik kesehatan playback?" → Startup time, rebuffer ratio, bitrate rata-rata, error rate per edge/ISP; alert per region.
+- "Bagaimana siaran langsung?" Ingest lewat RTMP atau SRT, transcoder real-time, dan segmen 1 sampai 2 detik ke CDN. Latency 5 sampai 15 detik, tanpa DAG batch.
+- "Bagaimana mencegah unggahan berhak cipta?" Fingerprint audio dan video di pipeline, dicocokkan ke basis referensi, lalu ditahan atau diklaim.
+- "Bagaimana melompat ke menit 40 pada video 2 jam?" Manifest memetakan waktu ke segmen. Player meminta segmen itu langsung, karena keyframe ada di batas segmen.
+- "Bagaimana pengguna dengan koneksi 200 kbps?" Sediakan rendition audio saja atau 144p. Player turun otomatis.
+- "Bagaimana memilih video yang ditaruh lebih awal di ISP?" Prediksi popularitas dari event tontonan, tren, dan unggahan kreator besar. Pengisian dilakukan malam hari.
+- "Metrik apa yang dipantau untuk pemutaran?" Waktu mulai, rasio buffering, bitrate rata-rata, dan tingkat error per edge dan ISP. Alert per region.

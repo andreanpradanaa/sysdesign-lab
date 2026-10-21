@@ -6,7 +6,7 @@ minutes: 60
 type: case
 prerequisites:
   ['bagian-2/distributed-cache', 'bagian-2/message-queue', 'bagian-2/pub-sub', 'bagian-2/database']
-summary: 'Timeline yang terasa instan untuk ratusan juta user: fan-out on write vs on read, masalah selebriti, pendekatan hybrid, dan cache timeline sebagai inti sistem.'
+summary: 'Timeline yang terasa instan untuk ratusan juta pengguna. Intinya ada di pilihan antara menyusun timeline saat tulis atau saat baca, masalah akun selebriti, dan cache timeline sebagai jantung sistem.'
 sources:
   - title: 'System Design Primer — Design the Twitter timeline and search'
     url: 'https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/twitter/README.md'
@@ -19,95 +19,95 @@ sources:
 quiz:
   - q: 'Dengan fan-out on write murni, apa yang terjadi saat akun dengan 50 juta follower memposting?'
     options:
-      - text: 'Tidak ada masalah; satu tulisan ke DB'
+      - text: 'Tidak ada masalah, karena hanya satu tulisan ke database'
         correct: false
-        why: 'Fan-out on write menulis ke timeline cache tiap follower: 50 juta tulisan untuk satu post.'
-      - text: '50 juta tulisan ke timeline cache dipicu oleh satu post; worker fan-out sibuk berjam-jam dan follower melihat post dengan jeda besar; ini "masalah selebriti"'
+        why: 'Fan-out on write menulis ke cache timeline setiap follower. Satu post berarti 50 juta tulisan.'
+      - text: 'Satu post memicu 50 juta tulisan cache, dan follower melihatnya dengan jeda besar'
         correct: true
-        why: 'Biaya fan-out sebanding jumlah follower. Solusi hybrid: untuk akun dengan follower di atas ambang, jangan fan-out; gabungkan post mereka saat baca.'
-      - text: 'Post ditolak'
+        why: 'Biaya fan-out sebanding jumlah follower. Solusinya hybrid: akun besar tidak di-fan-out, postnya digabung saat baca.'
+      - text: 'Post itu ditolak oleh sistem'
         correct: false
-        why: 'Sistem tidak menolak; ia kewalahan.'
-      - text: 'DB utama crash'
+        why: 'Sistem tidak menolak. Ia kewalahan.'
+      - text: 'Database utama crash seketika'
         correct: false
-        why: 'Beban jatuh ke worker fan-out dan cache, bukan DB utama (post hanya ditulis sekali).'
-  - q: 'Kenapa timeline cache di Redis disimpan sebagai daftar ID post (bukan isi post) dengan panjang dibatasi (mis. 800)?'
+        why: 'Beban jatuh ke worker fan-out dan cache, bukan database utama, karena post hanya ditulis sekali.'
+  - q: 'Kenapa cache timeline menyimpan daftar ID post, bukan isi post, dengan panjang dibatasi sekitar 800?'
     options:
       - text: 'Karena Redis tidak bisa menyimpan teks'
         correct: false
-        why: 'Bisa; ini keputusan desain.'
-      - text: 'Supaya tiap entri kecil (8 byte), memori total terkendali (800 × 8 B × ratusan juta user ≈ ratusan GB), isi post di-cache terpisah (dibagi antar timeline), dan edit/hapus post cukup di satu tempat'
+        why: 'Redis bisa. Ini keputusan desain.'
+      - text: 'Supaya tiap entri kecil, isi post dibagi antar timeline, dan edit cukup di satu tempat'
         correct: true
-        why: 'Normalisasi di cache: timeline = daftar ID, post = objek yang dirujuk. Batas panjang karena hampir tidak ada yang scroll melewati ratusan post; sisanya dibangun dari DB bila perlu.'
-      - text: 'Supaya post diurutkan otomatis'
+        why: 'Timeline hanya daftar ID, dan isi post disimpan terpisah. Batas 800 cukup karena hampir tidak ada yang scroll lebih jauh.'
+      - text: 'Supaya post terurut secara otomatis'
         correct: false
-        why: 'Urutan datang dari ID yang terurut waktu (Snowflake), bukan dari penyimpanan ID vs isi.'
+        why: 'Urutan datang dari ID yang terurut waktu, bukan dari pilihan menyimpan ID atau isi.'
       - text: 'Karena isi post sering berubah'
         correct: false
-        why: 'Post jarang diedit; alasan utamanya memori dan dedup.'
-  - q: 'User A membuka timeline; sistem memakai pendekatan hybrid. Urutan operasi yang benar?'
+        why: 'Post jarang diedit. Alasan utamanya adalah memori dan menghindari duplikasi.'
+  - q: 'Pengguna membuka timeline pada sistem dengan pendekatan hybrid. Urutan operasi mana yang benar?'
     options:
-      - text: 'Baca semua post dari semua yang diikuti A langsung dari DB, urutkan'
+      - text: 'Baca semua post dari semua akun yang diikuti langsung dari database'
         correct: false
-        why: 'Itu fan-out on read murni; mahal untuk user yang mengikuti ribuan akun.'
-      - text: 'Ambil daftar ID dari timeline cache A (hasil fan-out on write dari akun biasa), ambil post terbaru akun selebriti yang diikuti A dari cache mereka, gabung dan urutkan by ID, lalu hydrate isi post dan user dari cache objek'
+        why: 'Itu fan-out on read murni. Mahal untuk pengguna yang mengikuti ribuan akun.'
+      - text: 'Ambil ID dari cache, gabungkan post akun selebriti, urutkan, lalu ambil isinya'
         correct: true
-        why: 'Hybrid: pre-computed untuk mayoritas, merge-on-read untuk sedikit akun besar. Merge murah karena jumlah selebriti yang diikuti satu user kecil.'
-      - text: 'Tunggu worker fan-out selesai, lalu baca cache'
+        why: 'Mayoritas sudah dihitung di muka. Penggabungan saat baca hanya untuk sedikit akun besar, jadi murah.'
+      - text: 'Tunggu worker fan-out selesai, baru baca cache'
         correct: false
-        why: 'Baca tidak boleh menunggu fan-out; cache dibaca apa adanya.'
-      - text: 'Hanya baca cache tanpa merge'
+        why: 'Baca tidak boleh menunggu fan-out. Cache dibaca apa adanya.'
+      - text: 'Baca cache saja tanpa menggabungkan apa pun'
         correct: false
-        why: 'Post selebriti akan hilang dari timeline.'
-  - q: 'User tidak aktif selama 6 bulan lalu login. Timeline cache-nya sudah dievict. Apa yang terjadi?'
+        why: 'Post dari akun selebriti akan hilang dari timeline.'
+  - q: 'Pengguna tidak aktif 6 bulan lalu login, dan cache timeline-nya sudah dibuang. Apa yang terjadi?'
     options:
-      - text: 'Timeline kosong selamanya'
+      - text: 'Timeline-nya kosong selamanya'
         correct: false
-        why: 'Sistem harus bisa membangun ulang.'
-      - text: 'Sistem membangun timeline dari DB (post terbaru dari akun yang diikuti, fan-out on read sekali), mengisi cache, lalu kembali ke jalur normal; fan-out on write juga dilewati untuk user tidak aktif agar hemat'
+        why: 'Sistem harus bisa membangun ulang timeline.'
+      - text: 'Sistem membangun timeline dari database sekali, mengisi cache, lalu kembali normal'
         correct: true
-        why: 'Cache adalah optimasi; jalur rekonstruksi dari sumber kebenaran harus ada. Melewati fan-out untuk user tidak aktif menghemat mayoritas tulisan.'
-      - text: 'User diminta mengikuti ulang akun'
+        why: 'Cache hanya optimasi. Jalur membangun ulang dari sumber kebenaran harus ada, dan pengguna tidak aktif memang dilewati saat fan-out.'
+      - text: 'Pengguna diminta mengikuti ulang semua akun'
         correct: false
-        why: 'Graf sosial ada di DB; tidak hilang.'
-      - text: 'Sistem menolak login'
+        why: 'Graf sosial tetap ada di database. Tidak ada yang hilang.'
+      - text: 'Sistem menolak login pengguna itu'
         correct: false
-        why: 'Tidak ada alasan untuk itu.'
+        why: 'Tidak ada alasan untuk menolak.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: timeline kronologis atau berperingkat? Berapa DAU? Rasio post vs baca? Apakah ada akun dengan puluhan juta follower? Media (gambar/video) disertakan?
+Klarifikasi: timeline kronologis atau berperingkat. Berapa pengguna aktif harian. Rasio post dan baca. Apakah ada akun dengan puluhan juta follower. Apakah media disertakan.
 
 ### Functional
 
-- User memposting teks (≤ 280 karakter) opsional dengan media.
-- User mengikuti user lain.
-- Home timeline: post dari akun yang diikuti, terbaru di atas (kronologis; ranking disebut sebagai ekstensi).
-- User timeline: post milik satu user.
-- Out of scope: pencarian, notifikasi, DM, iklan, ranking ML.
+- Pengguna memposting teks sampai 280 karakter, dengan media opsional.
+- Pengguna mengikuti pengguna lain.
+- Home timeline menampilkan post dari akun yang diikuti, terbaru di atas. Ranking disebut sebagai perluasan.
+- User timeline menampilkan post milik satu pengguna.
+- Di luar cakupan: pencarian, notifikasi, pesan langsung, iklan, dan ranking dengan model.
 
 ### Non-functional
 
-| NFR              | Target                                                                | Alasan                                |
+| Target           | Nilai                                                                 | Alasan                                |
 | ---------------- | --------------------------------------------------------------------- | ------------------------------------- |
-| Latency timeline | p99 &lt; 200 ms                                                       | Dibuka berkali-kali sehari            |
-| Availability     | 99.99% baca                                                           | Produk utama                          |
-| Konsistensi      | Eventual: post boleh muncul di timeline follower dalam beberapa detik | Tidak ada yang menyadari jeda 2 detik |
-| Skala            | 300 juta DAU, baca ≫ tulis                                            | Konsumer global                       |
-| Durability       | Post tidak hilang                                                     | Sumber kebenaran                      |
+| Latency timeline | p99 di bawah 200 ms                                                   | Dibuka berkali-kali sehari            |
+| Availability     | 99.99% untuk baca                                                     | Produk utama                          |
+| Konsistensi      | Eventual. Post boleh muncul di timeline follower dalam beberapa detik | Tidak ada yang menyadari jeda 2 detik |
+| Skala            | 300 juta pengguna aktif harian, baca jauh lebih banyak dari tulis     | Produk konsumen global                |
+| Durability       | Post tidak boleh hilang                                               | Sumber kebenaran                      |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 300 juta DAU; tiap user membuka timeline 10x/hari dan memposting 0.2x/hari; rata-rata mengikuti 200 akun; post 300 B teks + metadata.
+Asumsi: 300 juta pengguna aktif harian. Tiap pengguna membuka timeline 10 kali sehari dan memposting 0.2 kali sehari. Rata-rata mengikuti 200 akun. Satu post sekitar 300 byte teks dan metadata.
 
-- Baca timeline: 300M × 10 / 10^5 ≈ **30.000 QPS**, puncak 100.000.
-- Tulis post: 300M × 0.2 / 10^5 ≈ **600 post/detik**, puncak 2.000.
-- Fan-out on write: 600 post/s × 200 follower rata-rata = **120.000 tulisan cache/detik** (median); dengan akun besar, puncak jauh lebih tinggi; itulah masalahnya.
-- Storage post: 60M post/hari × 300 B ≈ 18 GB/hari → 5 tahun ≈ 33 TB (teks saja); media ke blob store, PB.
-- Timeline cache: 300M user × 800 ID × 8 B ≈ 2 TB bila semua user di-cache; hanya user aktif (mis. 30 hari) → ratusan GB, muat di cluster Redis.
+- Baca timeline: 300 juta kali 10 dibagi 100 ribu detik, hasilnya sekitar 30.000 QPS. Puncaknya 100.000 QPS.
+- Tulis post: 300 juta kali 0.2 dibagi 100 ribu detik, hasilnya sekitar 600 post per detik. Puncaknya 2.000.
+- Fan-out on write: 600 post per detik kali 200 follower, hasilnya 120.000 tulisan cache per detik untuk akun biasa. Akun besar membuat puncaknya jauh lebih tinggi, dan itulah masalahnya.
+- Storage post: 60 juta post per hari kali 300 byte, sekitar 18 GB per hari. Lima tahun sekitar 33 TB untuk teks. Media masuk blob store dalam skala PB.
+- Cache timeline: 300 juta pengguna kali 800 ID kali 8 byte, sekitar 2 TB bila semua pengguna disimpan. Hanya pengguna aktif 30 hari yang disimpan, jadi ratusan GB, muat di cluster Redis.
 
-Keputusan: baca dilayani dari cache yang sudah dihitung (pre-computed), tulis jarang tetapi fan-out mahal, media di blob store + CDN.
+Keputusan: baca dilayani dari cache yang sudah dihitung di muka. Tulis jarang, tetapi fan-out mahal. Media disimpan di blob store dan dilayani lewat CDN.
 
 ## 3. API design
 
@@ -119,7 +119,7 @@ GET  /api/v1/users/{id}/posts?cursor=&limit=20
 POST /api/v1/users/{id}/follow  · DELETE /api/v1/users/{id}/follow
 ```
 
-Cursor = post ID terakhir (terurut waktu), bukan offset: stabil saat ada post baru dan murah di cache.
+Cursor berisi ID post terakhir, bukan nomor halaman. Karena ID terurut waktu, cursor tetap stabil saat ada post baru dan murah dicari di cache.
 
 ## 4. Skema data
 
@@ -130,9 +130,9 @@ follows(follower_id, followee_id, created_at)  PK(follower_id, followee_id)  -- 
    + index terbalik (followee_id → followers) untuk fan-out, shard by followee_id (tabel/materialized kedua)
 ```
 
-- `posts` di-shard by `post_id` (merata, terurut waktu) atau by `author_id` (user timeline satu shard). Pilih `author_id` agar user timeline murah; post ID Snowflake tetap memberi urutan.
-- Graf `follows` disimpan dua arah karena dua pola akses: "siapa yang saya ikuti" (membangun timeline) dan "siapa yang mengikuti saya" (fan-out). Di skala Facebook ini adalah TAO; di skala kita, dua tabel/KV terpartisi.
-- Cache (Redis): `timeline:{user_id}` → list post_id (maks 800); `post:{id}` → objek post; `user:{id}` → profil ringkas.
+- Tabel post dipartisi berdasarkan penulis, sehingga user timeline berada di satu partisi. ID post memakai format Snowflake, yaitu gabungan timestamp, nomor mesin, dan nomor urut, sehingga tetap terurut waktu.
+- Graf follow disimpan dua arah karena ada dua pola akses: "siapa yang saya ikuti" untuk membangun timeline, dan "siapa yang mengikuti saya" untuk fan-out. Di skala Facebook ini adalah TAO. Di skala kita, dua tabel atau key-value store terpartisi.
+- Cache di Redis punya tiga jenis key. Key timeline per pengguna berisi daftar ID post, maksimal 800. Key post per ID berisi objek post. Key user per ID berisi profil ringkas.
 
 ## 5. High-level design
 
@@ -141,89 +141,103 @@ flowchart LR
   C[Client] --> LB[LB / API gateway]
   LB --> PS[Post service]
   LB --> TS[Timeline service]
-  PS --> PDB[(Posts DB\nshard by author)]
-  PS --> MQ[[Queue: post-created]]
+  PS --> PDB[("Posts DB\nshard by author")]
+  PS --> MQ[["Queue: post-created"]]
   MQ --> FO[Fan-out workers]
-  FO --> GR[(Graph store\nfollowers of X)]
-  FO --> TC[(Timeline cache\nRedis cluster)]
+  FO --> GR[("Graph store\nfollowers of X")]
+  FO --> TC[("Timeline cache\nRedis cluster")]
   TS --> TC
-  TS --> PC[(Post/user cache)]
-  TS --> CEL[(Celebrity post cache)]
+  TS --> PC[("Post/user cache")]
+  TS --> CEL[("Celebrity post cache")]
   PC -. miss .-> PDB
-  PS --> BLOB[(Media: blob + CDN)]
+  PS --> BLOB[("Media: blob + CDN")]
 ```
 
-**Alur tulis**: client → post service memvalidasi, menulis post ke DB (satu tulisan), mengunggah media ke blob store via presigned URL (sudah terjadi sebelumnya), mempublikasikan `post-created` → fan-out worker mengambil daftar follower penulis dari graph store, dan untuk tiap follower **aktif** menambahkan `post_id` ke `timeline:{follower}` (LPUSH + LTRIM 800). Bila penulis selebriti, lewati fan-out dan tulis ke `celebrity_posts:{author}`.
+Alur tulis:
 
-**Alur baca**: timeline service mengambil `timeline:{user}` (ID), mengambil daftar selebriti yang diikuti user (cache), mengambil post terbaru mereka, menggabung dan mengurutkan by ID, memotong 20, lalu hydrate `post:{id}` dan `user:{id}` dari cache objek (multi-get); miss diisi dari DB.
+1. Client mengirim post ke post service. Media sudah diunggah sebelumnya ke blob store lewat presigned URL.
+2. Post service memvalidasi isi dan menulis post ke database satu kali.
+3. Post service menerbitkan event `post-created` ke queue.
+4. Fan-out worker mengambil daftar follower penulis dari graph store.
+5. Untuk tiap follower yang aktif, worker menambahkan ID post ke timeline cache follower itu dan memotong daftarnya ke 800.
+6. Bila penulis adalah selebriti, worker melewati fan-out dan menulis ke cache post selebriti milik penulis itu.
+
+Alur baca:
+
+1. Timeline service mengambil daftar ID dari cache timeline pengguna.
+2. Timeline service mengambil daftar selebriti yang diikuti pengguna dari cache.
+3. Timeline service mengambil post terbaru para selebriti itu.
+4. Timeline service menggabungkan keduanya, mengurutkan berdasarkan ID, dan memotong 20 teratas.
+5. Timeline service mengambil isi post dan profil penulis dari cache objek dengan satu permintaan untuk banyak key. Yang tidak ada di cache diambil dari database.
 
 ## 6. Detailed design
 
-### 6.1 Fan-out: write vs read vs hybrid
+### 6.1 Fan-out: saat tulis, saat baca, atau gabungan
 
-| Pendekatan              | Tulis                                                                             | Baca                                             | Masalah                                                                 |
-| ----------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
-| Fan-out on write (push) | 1 post → N tulisan cache                                                          | O(1): baca satu list                             | Selebriti: jutaan tulisan per post; tulisan ke user tidak aktif sia-sia |
-| Fan-out on read (pull)  | 1 tulisan                                                                         | Gabung post dari K akun yang diikuti setiap baca | Latency baca tinggi, beban DB saat 30.000 QPS                           |
-| **Hybrid**              | Push untuk akun biasa; pull untuk selebriti (follower &gt; ambang, mis. 100 ribu) | Satu list + merge sedikit sumber                 | Ambang dan transisi akun yang tumbuh                                    |
+| Pendekatan                  | Biaya tulis                                                                              | Biaya baca                                                  | Masalah                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Fan-out on write, atau push | Satu post menjadi N tulisan cache                                                        | Konstan, cukup baca satu daftar                             | Selebriti memicu jutaan tulisan per post. Tulisan ke pengguna tidak aktif terbuang |
+| Fan-out on read, atau pull  | Satu tulisan                                                                             | Menggabungkan post dari semua akun yang diikuti setiap baca | Latency baca tinggi, dan database terbebani 30.000 QPS                             |
+| Hybrid                      | Push untuk akun biasa, pull untuk akun dengan follower di atas ambang, misalnya 100 ribu | Satu daftar ditambah penggabungan beberapa sumber           | Ambang dan transisi untuk akun yang tumbuh                                         |
 
-Pilihan: hybrid. Tambahan: lewati push untuk user tidak aktif &gt; 30 hari (rekonstruksi saat login), dan prioritaskan fan-out ke follower yang sedang online.
+Pilihan kita: hybrid. Tambahannya, lewati push untuk pengguna yang tidak aktif lebih dari 30 hari. Timeline mereka dibangun ulang saat login. Follower yang sedang online didahulukan saat fan-out.
 
 ```mermaid
 sequenceDiagram
   participant W as Fan-out worker
   participant G as Graph store
   participant R as Timeline cache
-  W->>G: followers(author), batch 10k, hanya aktif
+  W->>G: followers(author), batch 10k, hanya yang aktif
   loop tiap batch
-    W->>R: pipeline LPUSH timeline:{f} post_id, LTRIM 0 799
+    W->>R: LPUSH timeline:{f} post_id lalu LTRIM 0 799
   end
-  Note over W: 1 juta follower ≈ 100 batch, paralel di banyak worker,<br/>selesai dalam detik, selebriti dilewati
+  Note over W: 1 juta follower berarti sekitar 100 batch,<br/>paralel di banyak worker, selesai dalam detik
 ```
 
-### 6.2 Timeline cache
+### 6.2 Cache timeline
 
-- Redis cluster, key `timeline:{user_id}` → list ID, maks 800; TTL untuk user tidak aktif.
-- Memori: ~10 KB per user aktif; 100 juta user aktif ≈ 1 TB → cluster puluhan node dengan replica.
-- Rekonstruksi saat miss: ambil akun yang diikuti, ambil N post terbaru masing-masing dari DB/cache penulis, gabung, isi cache. Mahal tetapi jarang.
-- Hapus post: hapus dari `post:{id}` (timeline yang masih merujuk akan melewati ID yang tidak ada saat hydrate), dan secara async hapus dari timeline follower.
+- Redis cluster menyimpan key timeline per pengguna berisi daftar ID, maksimal 800. Entri pengguna tidak aktif diberi TTL.
+- Memori sekitar 10 KB per pengguna aktif. Seratus juta pengguna aktif berarti sekitar 1 TB, jadi cluster puluhan node dengan replica.
+- Saat cache tidak ada, timeline dibangun ulang: ambil akun yang diikuti, ambil beberapa post terbaru masing-masing, gabungkan, lalu isi cache. Mahal, tetapi jarang.
+- Saat post dihapus, objek post dihapus dari cache. Timeline yang masih merujuk ID itu akan melewatinya saat mengambil isi. Penghapusan dari daftar follower dilakukan secara asinkron.
 
 ### 6.3 Penyimpanan post dan ID
 
-- Post ID Snowflake (terurut waktu) membuat merge dan cursor sederhana.
-- Shard by author: user timeline = satu shard, range scan by ID. Hot author (selebriti) tidak menjadi hot shard untuk tulis (mereka jarang memposting), tetapi menjadi hot untuk baca; itu diserap cache selebriti.
-- Replika baca + cache objek `post:{id}` dengan TTL panjang (post immutable kecuali hapus).
+- ID Snowflake yang terurut waktu membuat penggabungan dan cursor menjadi sederhana.
+- Partisi berdasarkan penulis membuat user timeline hanya butuh satu partisi. Selebriti tidak menjadi partisi panas untuk tulis, karena mereka jarang memposting. Beban baca mereka diserap cache selebriti.
+- Replica baca dan cache objek post memakai TTL panjang, karena post tidak berubah kecuali dihapus.
 
 ### 6.4 Graf sosial
 
-- Dua indeks (following, followers) terpartisi; followers list untuk akun besar dipaginasi dan dibaca batch.
-- Follow/unfollow memengaruhi timeline: unfollow → hapus post followee dari timeline user (async, atau filter saat baca); follow → suntik beberapa post terbaru followee.
+- Dua index, yaitu daftar yang diikuti dan daftar follower, disimpan terpartisi. Daftar follower akun besar dibaca per halaman.
+- Berhenti mengikuti memengaruhi timeline. Post dari akun itu dihapus dari timeline secara asinkron, atau disaring saat baca.
+- Mulai mengikuti menyuntikkan beberapa post terbaru akun itu ke timeline.
 
 ### 6.5 Media
 
-Upload via presigned URL ke blob store, pemrosesan async (resize/transcode), URL CDN di post. Timeline service tidak menyentuh byte media.
+Client mengunggah langsung ke blob store lewat presigned URL, yaitu tautan unggah berbatas waktu yang ditandatangani server. Pemrosesan seperti ubah ukuran berjalan asinkron. Post menyimpan URL CDN. Timeline service tidak pernah menyentuh byte media.
 
-### 6.6 Ranking (ekstensi)
+### 6.6 Ranking sebagai perluasan
 
-Timeline kronologis cukup untuk kasus ini. Ranking: kandidat dari list yang sama (beberapa ratus), skor oleh model (engagement prediction) di timeline service, dengan cache hasil per user beberapa menit. Arsitektur dasarnya tidak berubah: kandidat dari cache, skor di jalur baca.
+Timeline kronologis cukup untuk kasus ini. Untuk ranking, kandidat diambil dari daftar yang sama, beberapa ratus post. Model memberi skor di timeline service, dan hasilnya di-cache per pengguna beberapa menit. Arsitektur dasarnya tidak berubah.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                      | Dipenuhi oleh                                                                                            | Risiko tersisa                                                                     |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Latency p99 &lt; 200 ms  | Baca = 1 list + merge kecil + multi-get cache; semua di memori                                           | Cache miss (user tidak aktif): rekonstruksi lebih lambat; terima                   |
-| Availability 99.99% baca | Cache cluster dengan replica; DB hanya untuk miss; degradasi: tampilkan cache basi bila fan-out tertunda | Kehilangan cluster cache = rekonstruksi massal; warm-up bertahap, rate limit ke DB |
-| Eventual (detik)         | Fan-out async via queue; lag dipantau                                                                    | Selebriti: pull saat baca, jadi instan                                             |
-| Skala 30.000 QPS baca    | Cache terpartisi, stateless timeline service                                                             | Hot user key (akun yang dibuka jutaan kali): replikasi key                         |
-| Durability               | Post di DB terreplikasi; cache hanya turunan                                                             | —                                                                                  |
+| Target                         | Cara memenuhi                                                                                              | Risiko tersisa                                                                                                 |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Latency p99 di bawah 200 ms    | Baca hanya satu daftar, penggabungan kecil, dan pengambilan isi dari cache. Semua di memori                | Pengguna tidak aktif memicu pembangunan ulang yang lebih lambat. Terima                                        |
+| Availability 99.99% untuk baca | Cache cluster dengan replica. Database hanya untuk cache miss. Saat fan-out tertunda, tampilkan cache lama | Kehilangan seluruh cluster cache memicu pembangunan ulang massal. Lakukan bertahap dan batasi laju ke database |
+| Eventual dalam detik           | Fan-out asinkron lewat queue, dengan lag yang dipantau                                                     | Selebriti dibaca saat pull, jadi seketika                                                                      |
+| Skala 30.000 QPS baca          | Cache terpartisi dan timeline service tanpa state                                                          | Akun yang dibuka jutaan kali menjadi key panas. Replikasi key itu                                              |
+| Durability                     | Post di database terreplikasi. Cache hanya turunan                                                         | Tidak ada                                                                                                      |
 
-Bottleneck pertama saat 10x: memori timeline cache dan throughput fan-out; keduanya horizontal (lebih banyak node, lebih banyak worker). SPOF: queue; gunakan cluster terreplikasi.
+Bottleneck pertama saat trafik naik 10 kali adalah memori cache timeline dan throughput fan-out. Keduanya bisa ditambah secara horizontal lewat node dan worker. Titik tunggal kegagalannya adalah queue. Pakai cluster terreplikasi.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Ambang selebriti berapa, dan bagaimana akun yang melewatinya?" → Mis. 100 ribu follower; saat melewati, tandai flag, hentikan push, post lama tetap di timeline; sebaliknya saat turun.
-- "Bagaimana notifikasi 'ada post baru' real-time?" → Pub-sub ke koneksi WebSocket per user online; timeline tetap pull saat user menekan refresh.
-- "Bagaimana mencegah post yang sama muncul dua kali?" → ID unik; dedup saat merge; fan-out idempotent (LPUSH bisa duplikat saat retry → cek keberadaan atau pakai sorted set by ID).
-- "Edit post?" → Objek `post:{id}` diperbarui; timeline merujuk ID sehingga otomatis.
-- "Multi-region?" → Cache per region, fan-out ke region follower, DB dengan replikasi lintas region; tulis ke region asal.
-- "Bagaimana mengukur bahwa sistem sehat?" → Lag fan-out, hit ratio cache timeline, p99 baca, rasio rekonstruksi.
+- "Ambang selebriti berapa, dan bagaimana akun yang melewatinya?" Misalnya 100 ribu follower. Saat melewati ambang, tandai akun, hentikan push, dan biarkan post lama tetap di timeline. Sebaliknya saat turun.
+- "Bagaimana notifikasi ada post baru secara real-time?" Pub-sub ke koneksi WebSocket pengguna yang online. Timeline tetap diambil saat pengguna menekan refresh.
+- "Bagaimana mencegah post yang sama muncul dua kali?" ID unik, deduplikasi saat penggabungan, dan fan-out yang aman diulang. Pengulangan LPUSH bisa menggandakan, jadi periksa keberadaan atau pakai sorted set.
+- "Edit post?" Objek post diperbarui. Timeline hanya merujuk ID, jadi otomatis ikut.
+- "Multi-region?" Cache per region. Fan-out ke region follower. Database dengan replikasi lintas region, dan tulis ke region asal.
+- "Bagaimana mengukur sistem ini sehat?" Lag fan-out, hit ratio cache timeline, p99 baca, dan rasio pembangunan ulang.

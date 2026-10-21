@@ -5,7 +5,7 @@ order: 1
 minutes: 60
 type: case
 prerequisites: ['bagian-1/estimasi-kapasitas', 'bagian-2/unique-id-generator', 'bagian-2/distributed-cache']
-summary: 'Studi kasus pertama: sistem yang kelihatan sepele tapi memaksa kita membahas ID generation, read-heavy caching, dan konsistensi.'
+summary: 'Studi kasus pertama. Sistemnya kelihatan sepele, tetapi memaksa kita membahas cara membuat ID, cache untuk beban baca, dan konsistensi.'
 sources:
   - title: 'System Design Primer — Design Pastebin (kasus serupa, gratis)'
     url: 'https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/pastebin/README.md'
@@ -18,127 +18,128 @@ sources:
   - title: 'Bloom filter — Wikipedia'
     url: 'https://en.wikipedia.org/wiki/Bloom_filter'
 quiz:
-  - q: 'Layanan menerima 100 juta URL baru per bulan dengan rasio baca:tulis 100:1. Mana estimasi QPS yang paling masuk akal?'
+  - q: 'Layanan menerima 100 juta URL baru per bulan dengan rasio baca dan tulis 100 banding 1. Mana estimasi QPS yang masuk akal?'
     options:
-      - text: 'Tulis ~40 QPS, baca ~4.000 QPS'
+      - text: 'Tulis sekitar 40 QPS, baca sekitar 4.000 QPS'
         correct: true
-        why: '100M / (30 × 86.400 ≈ 2.6M detik) ≈ 38 tulis/s ≈ 40. Baca 100x = 4.000 QPS. Angka inilah yang memaksa cache masuk ke desain.'
-      - text: 'Tulis ~4.000 QPS, baca ~40 QPS'
+        why: 'Seratus juta dibagi 2.6 juta detik hasilnya sekitar 40 tulis per detik. Baca 100 kali lipatnya, dan angka itulah yang memaksa cache masuk.'
+      - text: 'Tulis sekitar 4.000 QPS, baca sekitar 40 QPS'
         correct: false
-        why: 'Terbalik. Pemendek URL hampir selalu read-heavy: satu link dibuat sekali, diklik ribuan kali.'
-      - text: 'Tulis ~400 QPS, baca ~40.000 QPS'
+        why: 'Terbalik. Pemendek URL hampir selalu didominasi baca, karena satu link dibuat sekali dan diklik ribuan kali.'
+      - text: 'Tulis sekitar 400 QPS, baca sekitar 40.000 QPS'
         correct: false
-        why: 'Kelebihan satu orde; 400 tulis/s × 2.6M detik ≈ 1 miliar URL/bulan.'
+        why: 'Kelebihan satu tingkat. Tulis 400 per detik setara satu miliar URL per bulan.'
       - text: 'Tidak bisa dihitung tanpa tahu panjang URL'
         correct: false
-        why: 'Panjang URL memengaruhi storage dan bandwidth, bukan QPS.'
+        why: 'Panjang URL memengaruhi storage dan bandwidth, bukan jumlah request per detik.'
   - q: 'Kenapa short key 7 karakter base62 dianggap cukup untuk layanan ini?'
     options:
-      - text: 'Karena 62^7 ≈ 3.5 triliun kombinasi, cukup untuk ~3.000 tahun pada 100 juta URL/bulan'
+      - text: 'Karena 62 pangkat 7 sekitar 3.5 triliun kombinasi, cukup untuk ribuan tahun'
         correct: true
-        why: '62^7 ≈ 3.5 × 10^12. Pada 1.2 miliar URL/tahun, habis dalam ~2.900 tahun. 6 karakter (56 miliar) hanya ~47 tahun, masih oke tapi marginnya tipis.'
-      - text: 'Karena browser membatasi panjang URL 7 karakter'
+        why: 'Pada 1.2 miliar URL per tahun, ruang itu habis dalam sekitar 2.900 tahun. Enam karakter hanya memberi sekitar 47 tahun.'
+      - text: 'Karena browser membatasi panjang URL sampai 7 karakter'
         correct: false
-        why: 'Tidak ada batasan seperti itu; browser modern menerima URL ribuan karakter.'
+        why: 'Tidak ada batasan seperti itu. Browser modern menerima URL ribuan karakter.'
       - text: 'Karena hash MD5 menghasilkan tepat 7 karakter'
         correct: false
-        why: 'MD5 menghasilkan 128 bit (32 hex). Kalau dipotong 7 karakter, justru rawan collision dan perlu penanganan ekstra.'
+        why: 'MD5 menghasilkan 128 bit. Kalau dipotong 7 karakter, justru rawan tabrakan dan butuh penanganan ekstra.'
       - text: 'Karena 7 adalah panjang minimum supaya tidak bisa ditebak'
         correct: false
-        why: 'Keamanan dari tebakan bukan alasan utamanya; URL pendek memang publik. Ruang key yang cukup adalah alasannya.'
-  - q: 'Mana pernyataan yang BENAR tentang redirect 301 vs 302 untuk layanan pemendek URL?'
+        why: 'Keamanan dari tebakan bukan alasan utamanya. URL pendek memang publik. Ruang key yang cukup adalah alasannya.'
+  - q: 'Mana pernyataan yang benar tentang redirect 301 dan 302 untuk pemendek URL?'
     options:
-      - text: '301 mengurangi beban server karena browser meng-cache redirect, tapi klik berikutnya tidak tercatat di analytics'
+      - text: '301 mengurangi beban server, tetapi klik berikutnya tidak tercatat'
         correct: true
-        why: '301 = permanent; browser menyimpan dan langsung ke tujuan tanpa menyentuh server lagi. Bagus untuk beban, buruk untuk analytics. 302 kebalikannya.'
-      - text: '302 lebih cepat untuk user karena tidak lewat server'
+        why: 'Status 301 bersifat permanen. Browser menyimpannya dan langsung ke tujuan tanpa menyentuh server lagi, sehingga analytics hilang.'
+      - text: '302 lebih cepat untuk pengguna karena tidak lewat server'
         correct: false
-        why: 'Terbalik: 302 (temporary) membuat browser selalu menghubungi server pemendek, jadi justru lebih lambat tapi setiap klik tercatat.'
-      - text: '301 dan 302 identik dari sisi caching browser'
+        why: 'Terbalik. Status 302 bersifat sementara, jadi browser selalu menghubungi server pemendek lagi.'
+      - text: '301 dan 302 identik dari sisi cache browser'
         correct: false
-        why: 'Perbedaan caching adalah inti dari keduanya; lihat RFC 9110 bagian 3xx.'
-      - text: '302 wajib dipakai karena 301 sudah deprecated'
+        why: 'Perbedaan cache adalah inti dari keduanya. Lihat RFC 9110 bagian 3xx.'
+      - text: '302 wajib dipakai karena 301 sudah usang'
         correct: false
-        why: '301 tidak deprecated. 308/307 adalah varian yang mempertahankan method, bukan pengganti.'
-  - q: 'Dua request menulis short key yang sama secara bersamaan ke database. Mekanisme apa yang paling sederhana untuk mencegah dua URL berbeda memakai key yang sama?'
+        why: 'Status 301 tidak usang. Status 307 dan 308 hanya varian yang mempertahankan method.'
+  - q: 'Dua request menulis short key yang sama secara bersamaan. Mekanisme apa yang paling sederhana untuk mencegah dua URL berbagi key?'
     options:
-      - text: 'Unique constraint pada kolom short_key, lalu retry dengan key baru bila insert gagal'
+      - text: 'Unique constraint pada kolom short key, lalu ulangi dengan key baru bila gagal'
         correct: true
-        why: 'Constraint di DB adalah satu-satunya tempat yang melihat semua penulis. Ini murah, atomik, dan retry jarang terjadi bila key dihasilkan dari range/ID unik.'
-      - text: 'Cek dulu dengan SELECT, baru INSERT bila belum ada'
+        why: 'Constraint di database adalah satu-satunya tempat yang melihat semua penulis. Murah, atomik, dan pengulangan jarang terjadi.'
+      - text: 'Periksa dulu dengan SELECT, baru INSERT bila belum ada'
         correct: false
-        why: 'Check-then-act punya race condition: dua request bisa sama-sama melihat "belum ada" lalu sama-sama INSERT.'
-      - text: 'Simpan semua key di Bloom filter dan tolak bila filter bilang ada'
+        why: 'Cek lalu tulis punya celah waktu. Dua request bisa sama-sama melihat "belum ada" lalu sama-sama menulis.'
+      - text: 'Simpan semua key di bloom filter dan tolak bila filter bilang ada'
         correct: false
-        why: 'Bloom filter bisa false positive dan tidak atomik antar node; berguna sebagai pra-saring, bukan sebagai sumber kebenaran.'
-      - text: 'Kunci tabel seluruhnya (table lock) selama insert'
+        why: 'Bloom filter bisa salah positif dan tidak atomik antar node. Ia berguna sebagai saringan awal, bukan sumber kebenaran.'
+      - text: 'Kunci seluruh tabel selama proses insert'
         correct: false
-        why: 'Berhasil tapi membunuh throughput tulis; unique constraint memberikan jaminan yang sama tanpa serialisasi global.'
-  - q: 'Cache hit ratio untuk redirect turun drastis setelah tim mengganti kebijakan eviction. Hipotesis mana yang paling masuk akal?'
+        why: 'Berhasil, tetapi membunuh throughput tulis. Unique constraint memberi jaminan yang sama tanpa mengunci semuanya.'
+  - q: 'Hit ratio cache turun drastis setelah tim mengganti kebijakan eviction. Hipotesis mana yang paling masuk akal?'
     options:
-      - text: 'Kebijakan baru tidak mempertahankan URL populer (hot key) yang mengikuti distribusi 80/20'
+      - text: 'Kebijakan baru tidak mempertahankan URL populer yang mengikuti pola 80/20'
         correct: true
-        why: 'Trafik pemendek URL sangat condong (long-tail). LRU/LFU menjaga hot key tetap di cache; kebijakan seperti FIFO atau random membuang hot key dan menghancurkan hit ratio.'
-      - text: 'Cache terlalu besar sehingga lookup lambat'
+        why: 'Trafik pemendek URL sangat condong ke sedikit link populer. Kebijakan seperti FIFO membuang link populer dan menghancurkan hit ratio.'
+      - text: 'Cache terlalu besar sehingga pencarian menjadi lambat'
         correct: false
-        why: 'Ukuran cache tidak menurunkan hit ratio; lookup hash tetap O(1).'
-      - text: 'Database read replica terlalu sedikit'
+        why: 'Ukuran cache tidak menurunkan hit ratio. Pencarian hash tetap konstan.'
+      - text: 'Read replica database terlalu sedikit'
         correct: false
         why: 'Itu memengaruhi latency saat cache miss, bukan rasio hit itu sendiri.'
       - text: 'Short key terlalu panjang untuk disimpan di cache'
         correct: false
-        why: '7 karakter + URL ~100 B per entri; puluhan juta entri masih muat di RAM satu node.'
+        why: 'Satu entri hanya sekitar 7 karakter ditambah URL 100 byte. Puluhan juta entri masih muat di memori satu node.'
 ---
 
 ## 1. Requirements
 
-Mulai dengan klarifikasi. Pertanyaan yang pantas diajukan ke interviewer: "Apakah user boleh memilih alias sendiri?", "Perlu analytics klik?", "Berapa lama URL hidup?", "Skala: berapa URL baru per bulan?".
+Mulai dengan klarifikasi. Pertanyaan yang pantas kamu ajukan ke interviewer: apakah pengguna boleh memilih alias sendiri, apakah perlu analytics klik, berapa lama URL hidup, dan berapa URL baru per bulan.
 
 ### Functional
 
-- `POST` URL panjang → dapat URL pendek.
-- `GET` URL pendek → redirect ke URL panjang.
-- Opsional: alias kustom, masa berlaku (expiry), hapus URL.
-- Out of scope (sebutkan!): analytics detail, akun user, dashboard.
+- Pengguna mengirim URL panjang dan mendapat URL pendek.
+- Siapa pun yang membuka URL pendek diarahkan ke URL panjang.
+- Opsional: alias kustom, masa berlaku, dan hapus URL.
+- Di luar cakupan, dan sebutkan ini ke interviewer: analytics detail, akun pengguna, dashboard.
 
 ### Non-functional
 
-| NFR                 | Target                                       | Alasan                                                                                         |
-| ------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Availability        | 99.99%                                       | Link tersebar di tempat yang tidak kita kontrol (email, cetak); link mati = reputasi mati      |
-| Latency redirect    | p99 &lt; 50 ms di luar network               | Redirect ada di jalur kritis user                                                              |
-| Konsistensi         | Eventual untuk baca, kuat untuk unik-nya key | Dua URL berbeda tidak boleh berbagi key; URL baru boleh telat beberapa detik tampil di replica |
-| Durability          | Tidak boleh kehilangan mapping               | Mapping adalah satu-satunya data                                                               |
-| Prediktabilitas key | Tidak mudah ditebak berurutan                | Mencegah enumerasi massal                                                                      |
+| Target                  | Nilai                                        | Alasan                                                                                                      |
+| ----------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Availability            | 99.99%                                       | Link tersebar di tempat yang tidak kita kontrol, seperti email dan cetakan. Link mati berarti reputasi mati |
+| Latency redirect        | p99 di bawah 50 ms di luar waktu jaringan    | Redirect ada di jalur yang dirasakan pengguna                                                               |
+| Konsistensi             | Eventual untuk baca, kuat untuk keunikan key | Dua URL tidak boleh berbagi key. URL baru boleh telat beberapa detik muncul di replica                      |
+| Durability              | Mapping tidak boleh hilang                   | Mapping adalah satu-satunya data kita                                                                       |
+| Key tidak mudah ditebak | Tidak berurutan                              | Mencegah orang menebak link secara massal                                                                   |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: **100 juta URL baru/bulan**, rasio baca:tulis **100:1**, URL panjang rata-rata 100 byte, data disimpan 5 tahun.
+Asumsi: 100 juta URL baru per bulan, rasio baca dan tulis 100 banding 1, URL panjang rata-rata 100 byte, data disimpan 5 tahun.
 
-**QPS**
+QPS, yaitu jumlah request per detik:
 
-- Tulis: 100M / (30 × 86.400 s ≈ 2.6M s) ≈ **40 QPS**; peak ~100 QPS.
-- Baca: 40 × 100 = **4.000 QPS**; peak ~10.000 QPS.
+- Satu bulan sekitar 2.6 juta detik. Tulis 100 juta dibagi 2.6 juta hasilnya sekitar 40 QPS. Puncaknya sekitar 100 QPS.
+- Baca 100 kali tulis, jadi sekitar 4.000 QPS. Puncaknya sekitar 10.000 QPS.
 
-**Storage (5 tahun)**
+Storage untuk 5 tahun:
 
-- Jumlah URL: 100M × 12 × 5 = **6 miliar**.
-- Per baris: short key 7 B + URL 100 B + metadata (timestamp, expiry, user id) ~20 B ≈ 130 B, bulatkan **150 B**.
-- Total: 6 × 10^9 × 150 B ≈ **900 GB**. Muat di satu database besar, tapi partisi tetap disiapkan untuk pertumbuhan dan availability.
+- Jumlah URL: 100 juta kali 12 bulan kali 5 tahun, hasilnya 6 miliar.
+- Satu baris berisi key 7 byte, URL 100 byte, dan metadata sekitar 20 byte. Bulatkan menjadi 150 byte.
+- Total sekitar 6 miliar kali 150 byte, yaitu 900 GB. Ini muat di satu database besar, tetapi partisi tetap disiapkan untuk pertumbuhan.
 
-**Bandwidth**
+Bandwidth:
 
-- Baca: 4.000 QPS × ~500 B (header redirect) ≈ 2 MB/s. Kecil.
+- Baca 4.000 QPS kali sekitar 500 byte per respons redirect, hasilnya 2 MB per detik. Kecil.
 
-**Cache**
+Cache:
 
-- Aturan 80/20: 20% URL yang dibaca hari ini ≈ 20% × (4.000 × 86.400 ≈ 350M request, tapi unik jauh lebih sedikit). Asumsikan 20% dari 6B × 150 B terlalu besar; realistis kita cache **~10 juta entri terpanas ≈ 1.5 GB**. Muat di satu node Redis.
+- Aturan 80/20 mengatakan sebagian kecil URL menghasilkan sebagian besar klik.
+- Realistisnya kita cache sekitar 10 juta entri terpanas, yaitu sekitar 1.5 GB. Itu muat di satu node Redis.
 
-Keputusan dari angka: write 40 QPS → satu primary cukup; read 4.000 QPS → **cache wajib**, DB hanya menerima cache miss; storage ~1 TB → SQL atau KV keduanya bisa, pilih berdasarkan pola akses (by key saja).
+Keputusan dari angka ini: tulis 40 QPS berarti satu primary cukup. Baca 4.000 QPS berarti cache wajib, dan database hanya menerima cache miss. Storage sekitar 1 TB bisa dilayani SQL maupun key-value store, karena pola aksesnya hanya mencari berdasarkan key.
 
 ## 3. API design
 
-REST sederhana. Semua endpoint di belakang API gateway yang menerapkan rate limit per API key / IP.
+REST sederhana. Semua endpoint berada di belakang API gateway yang membatasi laju request per API key atau per IP.
 
 ```text
 POST /api/v1/urls
@@ -156,13 +157,13 @@ DELETE /api/v1/urls/{key}      (butuh auth pemilik)
 
 Catatan desain:
 
-- **Idempotency**: `POST` dengan `Idempotency-Key` header supaya retry client tidak membuat dua key untuk URL yang sama.
-- **Validasi**: tolak URL yang menunjuk ke domain kita sendiri (loop redirect) dan skema selain `http(s)`.
-- **Versi**: `/api/v1` untuk endpoint manajemen; `GET /{key}` tanpa versi karena dicetak di luar.
+- Request POST membawa header idempotency key. Idempotency key adalah penanda unik dari client supaya pengulangan request tidak membuat dua key untuk URL yang sama.
+- Validasi menolak URL yang menunjuk ke domain kita sendiri agar tidak terjadi redirect berputar. Validasi juga menolak skema selain http dan https.
+- Endpoint manajemen memakai versi di path. Endpoint GET tanpa versi, karena link-nya dicetak di luar.
 
 ## 4. Skema data
 
-Pola akses hanya dua: tulis satu baris, baca satu baris **by key**. Tidak ada join. Ini kandidat sempurna untuk key-value store, tapi SQL dengan satu tabel juga cukup di skala ini. Kita mulai dengan **PostgreSQL** (familiar, unique constraint gratis), dan siapkan jalur migrasi ke KV terpartisi.
+Pola aksesnya hanya dua: tulis satu baris, dan baca satu baris berdasarkan key. Tidak ada join. Ini kandidat sempurna untuk key-value store. Namun SQL dengan satu tabel juga cukup di skala ini. Kita mulai dengan PostgreSQL karena familiar dan unique constraint sudah tersedia, lalu siapkan jalur migrasi ke key-value store terpartisi.
 
 ```sql
 CREATE TABLE urls (
@@ -175,48 +176,61 @@ CREATE TABLE urls (
 CREATE INDEX urls_expires_idx ON urls (expires_at) WHERE expires_at IS NOT NULL;
 ```
 
-- `short_key` sebagai primary key memberi **unique constraint** sekaligus index untuk lookup.
-- Partial index pada `expires_at` untuk job pembersih (lihat detailed design).
-- Bila pindah ke KV: key = `short_key`, value = JSON kecil; partisi dengan consistent hashing.
+- Kolom short key sebagai primary key memberi unique constraint sekaligus index untuk pencarian.
+- Index parsial pada kolom kedaluwarsa dipakai oleh job pembersih.
+- Bila pindah ke key-value store, key adalah short key dan value adalah JSON kecil. Partisi memakai consistent hashing.
 
 ## 5. High-level design
 
 ```mermaid
 flowchart LR
   U[Client / Browser] --> LB[Load balancer]
-  LB --> GW[API gateway\nrate limit, auth]
+  LB --> GW["API gateway\nrate limit, auth"]
   GW --> W[Write service]
   GW --> R[Redirect service]
   W --> KG[Key generation service]
   W --> DB[(Primary DB)]
   DB --> RR[(Read replicas)]
-  R --> C[(Cache\nRedis)]
+  R --> C[("Cache\nRedis")]
   C -. miss .-> RR
   R -. 302 .-> U
   CL[Cleanup worker] --> DB
 ```
 
-Dua alur yang harus bisa dijelaskan end-to-end:
+Dua alur yang harus bisa kamu jelaskan dari awal sampai akhir.
 
-**Alur tulis (POST)**: gateway memvalidasi dan rate-limit → write service minta key dari _key generation service_ (atau memakai alias kustom) → `INSERT` ke primary → kembalikan 201. Cache **tidak** diisi di sini (write-around); biarkan request baca pertama yang mengisinya, karena mayoritas URL baru tidak pernah populer.
+Alur tulis untuk request POST:
 
-**Alur baca (GET)**: redirect service cek cache → hit: kirim 302 → miss: baca replica → bila ada, isi cache (cache-aside) lalu 302; bila tidak ada, 404 dan simpan _negative cache_ singkat (30 detik) untuk menahan serangan tebak key.
+1. Gateway memvalidasi request dan memeriksa rate limit.
+2. Write service meminta key dari key generation service, atau memakai alias kustom bila ada.
+3. Write service menulis baris baru ke primary database.
+4. Write service mengembalikan respons 201 ke client.
+
+Cache sengaja tidak diisi saat tulis. Request baca pertama yang akan mengisinya, karena mayoritas URL baru tidak pernah populer.
+
+Alur baca untuk request GET:
+
+1. Redirect service memeriksa cache.
+2. Bila ada, kirim respons 302 ke client.
+3. Bila tidak ada, baca dari replica.
+4. Bila ditemukan, isi cache lalu kirim 302.
+5. Bila tidak ditemukan, kirim 404 dan simpan tanda "tidak ada" di cache selama 30 detik. Ini menahan serangan tebak key agar tidak menembus ke database.
 
 ## 6. Detailed design
 
-### 6.1 Key generation
+### 6.1 Pembuatan key
 
-Tiga pendekatan yang biasa dibandingkan:
+Tiga pendekatan yang biasa dibandingkan.
 
-| Pendekatan                                    | Cara kerja                                                                             | Kelebihan                                                         | Kekurangan                                                                                                   |
-| --------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Hash URL (MD5/SHA) dipotong 7 karakter        | hash(longUrl) → ambil 7 char pertama                                                   | Stateless, URL sama → key sama                                    | Collision setelah dipotong; harus cek DB dan re-hash dengan salt                                             |
-| Auto-increment ID → base62                    | DB memberi ID 1, 2, 3… → encode                                                        | Tidak ada collision, sederhana                                    | Key berurutan mudah ditebak; auto-increment sulit di-shard                                                   |
-| **Key Generation Service (KGS) pre-generate** | Service terpisah membuat key acak unik di muka, dibagikan dalam batch ke write service | Tidak ada collision, tidak tertebak, write path tidak menunggu DB | Komponen tambahan; batch yang sudah dibagikan tapi tidak terpakai (saat crash) hilang, dan itu tidak apa-apa |
+| Pendekatan                                      | Cara kerja                                                                        | Kelebihan                                                               | Kekurangan                                                                            |
+| ----------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Hash URL dipotong 7 karakter                    | Hash MD5 atau SHA dari URL, ambil 7 karakter pertama                              | Tanpa state, URL sama menghasilkan key sama                             | Tabrakan setelah dipotong, jadi harus cek database dan hash ulang dengan salt         |
+| Auto-increment lalu base62                      | Database memberi nomor urut, lalu di-encode ke base62                             | Tidak ada tabrakan, sederhana                                           | Key berurutan mudah ditebak, dan auto-increment sulit dipartisi                       |
+| Key generation service yang membuat key di muka | Service terpisah membuat key acak unik lebih dulu, lalu membagikannya dalam batch | Tidak ada tabrakan, tidak tertebak, jalur tulis tidak menunggu database | Ada komponen tambahan. Batch yang hilang saat crash hanya memboroskan key, bukan data |
 
-Pilihan: **KGS pre-generate** dengan dua tabel (`unused_keys`, `used_keys`), tiap write service mengambil batch 1.000 key ke memori. Alternatif yang sama bagusnya: ID ala **Snowflake** (timestamp + machine id + sequence) di-encode base62, dengan bit-shuffle supaya tidak monoton.
+Pilihan kita: key generation service dengan dua tabel, satu untuk key yang belum dipakai dan satu untuk yang sudah dipakai. Setiap write service mengambil batch 1.000 key ke memori. Alternatif yang sama bagusnya adalah ID ala Snowflake, yaitu gabungan timestamp, nomor mesin, dan nomor urut, lalu di-encode base62 dengan pengacakan bit agar tidak monoton.
 
-Kenapa 7 karakter base62: 62^7 ≈ 3.5 × 10^12 kombinasi; pada 1.2 miliar URL/tahun cukup untuk ribuan tahun.
+Kenapa 7 karakter base62 cukup: 62 pangkat 7 sekitar 3.5 triliun kombinasi. Pada 1.2 miliar URL per tahun, itu cukup untuk ribuan tahun.
 
 ```mermaid
 sequenceDiagram
@@ -224,63 +238,64 @@ sequenceDiagram
   participant KGS as Key gen service
   participant DB as Primary DB
   WS->>KGS: minta batch 1000 key
-  KGS->>KGS: pindahkan 1000 key unused → used (transaksi)
-  KGS-->>WS: [k1..k1000] (disimpan di memori)
-  WS->>DB: INSERT (k1, longUrl)
-  DB-->>WS: ok (unique constraint menjaga)
+  KGS->>KGS: pindahkan 1000 key dari belum dipakai ke sudah dipakai dalam satu transaksi
+  KGS-->>WS: k1 sampai k1000, disimpan di memori
+  WS->>DB: INSERT k1 dan longUrl
+  DB-->>WS: ok, unique constraint menjaga
 ```
 
 ### 6.2 Redirect: 301 atau 302?
 
-| Kode                  | Browser                                      | Beban server  | Analytics                   | Pakai bila                                                     |
-| --------------------- | -------------------------------------------- | ------------- | --------------------------- | -------------------------------------------------------------- |
-| 301 Moved Permanently | Di-cache; klik berikutnya langsung ke tujuan | Turun drastis | Hilang setelah klik pertama | Tidak butuh analytics, ingin hemat                             |
-| 302 Found             | Tidak di-cache; selalu lewat server          | Penuh         | Setiap klik tercatat        | Produk mengandalkan analytics (hampir semua layanan komersial) |
+| Kode                  | Perilaku browser                                     | Beban server  | Analytics                   | Pakai bila                                                          |
+| --------------------- | ---------------------------------------------------- | ------------- | --------------------------- | ------------------------------------------------------------------- |
+| 301 Moved Permanently | Disimpan browser. Klik berikutnya langsung ke tujuan | Turun drastis | Hilang setelah klik pertama | Tidak butuh analytics dan ingin hemat                               |
+| 302 Found             | Tidak disimpan. Selalu lewat server                  | Penuh         | Setiap klik tercatat        | Produk mengandalkan analytics, yaitu hampir semua layanan komersial |
 
-Kita pilih **302** karena analytics biasanya menjadi alasan bisnis layanan ini ada, dan beban baca sudah ditangani cache.
+Kita memilih 302. Analytics biasanya menjadi alasan bisnis layanan ini ada, dan beban baca sudah ditangani cache.
 
 ### 6.3 Cache
 
-- **Cache-aside** dengan Redis; key = `short_key`, value = `long_url` (+ `expires_at`).
-- Eviction **LRU** (atau LFU) karena distribusi klik sangat _long-tail_: sedikit URL viral menghasilkan mayoritas trafik.
-- TTL entri = min(24 jam, sisa `expires_at`).
-- **Negative cache** untuk key yang tidak ada (TTL 30-60 s) supaya tebakan massal tidak menembus ke DB.
-- Skala: 10 juta entri × ~150 B ≈ 1.5 GB; satu node + replica cukup, cluster bila trafik naik 10x.
+- Pola cache-aside dengan Redis. Cache-aside berarti aplikasi memeriksa cache dulu dan mengisinya sendiri saat tidak ada. Key adalah short key, value adalah URL panjang beserta waktu kedaluwarsa.
+- Kebijakan eviction LRU atau LFU, yaitu membuang entri yang paling lama tidak dipakai atau paling jarang dipakai. Alasannya, sebaran klik sangat condong ke sedikit URL viral.
+- TTL entri adalah 24 jam atau sisa masa berlaku, mana yang lebih pendek.
+- Tanda "tidak ada" disimpan untuk key yang tidak ditemukan selama 30 sampai 60 detik, supaya tebakan massal tidak menembus ke database.
+- Ukuran: 10 juta entri kali sekitar 150 byte, yaitu 1.5 GB. Satu node dengan replica cukup. Cluster baru dibutuhkan bila trafik naik 10 kali.
 
 ### 6.4 Database: partisi dan replikasi
 
-- Saat ini 900 GB / 5 tahun muat di satu primary + 2 read replica (baca 4.000 QPS pun sebagian besar diserap cache).
-- Jalur scale: **hash partitioning** pada `short_key` (bukan range, agar tidak hot). Karena key acak, distribusi otomatis merata.
-- Replikasi async; baca dari replica boleh _stale_ beberapa detik; tulis + baca-sendiri (read-your-write) ditangani dengan membaca primary selama ~5 detik setelah membuat URL, atau cukup kembalikan URL dari respons POST tanpa membaca lagi.
+- Saat ini 900 GB untuk 5 tahun muat di satu primary dengan 2 read replica. Baca 4.000 QPS pun sebagian besar diserap cache.
+- Jalur scaling adalah partisi berdasarkan hash short key, bukan rentang, agar tidak ada partisi panas. Key acak membuat sebarannya otomatis merata.
+- Replikasi berjalan async. Baca dari replica boleh tertinggal beberapa detik. Pengguna yang baru membuat URL cukup menerima URL dari respons POST, sehingga tidak perlu membaca lagi.
 
-### 6.5 Expiry dan pembersihan
+### 6.5 Kedaluwarsa dan pembersihan
 
-- Jangan hapus sinkron. **Lazy expiry**: saat `GET`, bila `expires_at` lewat → 410 dan hapus dari cache.
-- **Cleanup worker** periodik (tiap jam, off-peak) menghapus baris kedaluwarsa dalam batch kecil dan mengembalikan key ke `unused_keys` (opsional; kebanyakan layanan tidak mendaur ulang key agar link lama tidak "berubah arti").
+- Jangan hapus secara sinkron. Saat GET menemukan URL yang sudah kedaluwarsa, kirim 410 dan hapus dari cache.
+- Cleanup worker berjalan tiap jam di luar jam sibuk. Ia menghapus baris kedaluwarsa dalam batch kecil.
+- Mengembalikan key ke daftar belum dipakai bersifat opsional. Kebanyakan layanan tidak mendaur ulang key agar link lama tidak berubah arti.
 
-### 6.6 Rate limiting dan abuse
+### 6.6 Rate limiting dan penyalahgunaan
 
-- Token bucket per API key dan per IP di gateway (state di Redis).
-- Validasi URL: tolak skema berbahaya, daftar hitam domain phishing (integrasi Safe Browsing, out of scope).
-- Alias kustom: hanya `[a-zA-Z0-9_-]`, panjang 4-32, dan tidak boleh bertabrakan dengan ruang key 7 karakter (cukup larang alias tepat 7 karakter, atau beri prefix).
+- Token bucket per API key dan per IP di gateway, dengan state di Redis.
+- Validasi URL menolak skema berbahaya. Daftar hitam domain phishing berada di luar cakupan.
+- Alias kustom hanya boleh huruf, angka, garis bawah, dan strip, dengan panjang 4 sampai 32. Alias tepat 7 karakter dilarang agar tidak bertabrakan dengan ruang key acak.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                    | Bagaimana dipenuhi                                                                                                                                       | Risiko tersisa                                                                                                       |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Availability 99.99%    | LB + beberapa instance stateless; DB primary dengan failover otomatis; cache replica; KGS punya key batch di memori service jadi KGS boleh down sebentar | Failover DB masih ada jeda detik; mitigasi: redirect service terus melayani dari cache saat DB down (read-only mode) |
-| Latency p99 &lt; 50 ms | Cache hit ~1 ms; miss → replica ~5 ms; semuanya satu datacenter                                                                                          | User jauh dari datacenter: tambahkan edge/PoP yang meng-cache redirect                                               |
-| Keunikan key           | Unique constraint + KGS memastikan tidak ada dua URL satu key                                                                                            | Alias kustom dan key acak bertabrakan: dipisah oleh aturan panjang                                                   |
-| Durability             | Replikasi sinkron ke minimal satu replica, backup harian                                                                                                 | Kehilangan batch key KGS saat crash hanya memboroskan key, bukan data                                                |
-| Tidak tertebak         | Key acak dari KGS                                                                                                                                        | Enumerasi tetap mungkin dengan 3.5T kombinasi, tapi hit rate ~0: negative cache + rate limit                         |
+| Target                     | Cara memenuhi                                                                                                                                                                                                   | Risiko tersisa                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Availability 99.99%        | Load balancer dengan beberapa instance stateless. Database primary dengan failover otomatis. Cache dengan replica. Write service menyimpan batch key di memori, jadi key generation service boleh mati sebentar | Failover database masih punya jeda beberapa detik. Redirect service tetap melayani dari cache saat database mati |
+| Latency p99 di bawah 50 ms | Cache hit sekitar 1 ms. Cache miss ke replica sekitar 5 ms. Semua di satu datacenter                                                                                                                            | Pengguna jauh dari datacenter. Tambahkan edge yang menyimpan redirect                                            |
+| Keunikan key               | Unique constraint dan key generation service memastikan tidak ada dua URL untuk satu key                                                                                                                        | Alias kustom dipisahkan dari key acak lewat aturan panjang                                                       |
+| Durability                 | Replikasi sinkron ke minimal satu replica, backup harian                                                                                                                                                        | Batch key yang hilang saat crash hanya memboroskan key                                                           |
+| Tidak tertebak             | Key acak dari key generation service                                                                                                                                                                            | Menebak tetap mungkin, tetapi hampir selalu meleset. Tanda "tidak ada" di cache dan rate limit menahannya        |
 
-Bottleneck pertama bila trafik naik 10x: **cache** (hit ratio dan memori) lalu **primary** untuk tulis. Keduanya punya jalur scale yang sudah disebut (cluster Redis, hash partitioning).
+Bottleneck pertama bila trafik naik 10 kali adalah cache, baik hit ratio maupun memorinya, lalu primary untuk tulis. Keduanya punya jalur scaling yang sudah disebut, yaitu cluster Redis dan partisi hash.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Bagaimana kalau user yang sama mengirim URL panjang yang sama dua kali? Haruskah dapat key yang sama?" → Produk yang memutuskan. Bila ya, simpan index `hash(long_url, owner_id)` dan kembalikan key lama; bila tidak, key baru lebih murah dan mendukung analytics per kampanye.
-- "Bagaimana menambahkan analytics klik tanpa memperlambat redirect?" → Redirect service menerbitkan event ke message queue (Kafka) secara _fire-and-forget_; consumer mengagregasi ke column store. Redirect tidak menunggu.
-- "KGS adalah single point of failure?" → Jalankan dua instance dengan range key berbeda (ganjil/genap atau partisi tabel `unused_keys`), dan write service menyimpan batch di memori sehingga toleran KGS down beberapa menit.
-- "Kenapa tidak Cassandra dari awal?" → Pola akses cocok, tapi di skala 40 write/s dan ~1 TB, kompleksitas operasional belum terbayar. Sebutkan titik pindah: saat write melewati kapasitas satu primary atau butuh multi-region aktif-aktif.
-- "Bagaimana multi-region?" → Redirect: cache di tiap region + replica lokal. Tulis: satu region primary (latency tulis tidak kritis), atau partisi key per region (prefix) agar tiap region punya primary sendiri tanpa konflik.
-- "Bagaimana mencegah link phishing?" → Validasi saat buat (daftar hitam, Safe Browsing API), pemindaian asinkron setelahnya, dan kemampuan menonaktifkan key (ubah menjadi halaman peringatan) tanpa menghapus.
+- "Pengguna yang sama mengirim URL panjang yang sama dua kali. Haruskah dapat key yang sama?" Produk yang memutuskan. Bila ya, simpan index dari hash URL dan pemilik, lalu kembalikan key lama. Bila tidak, key baru lebih murah dan mendukung analytics per kampanye.
+- "Bagaimana menambahkan analytics klik tanpa memperlambat redirect?" Redirect service menerbitkan event ke message queue tanpa menunggu balasan. Consumer mengagregasinya ke column store.
+- "Apakah key generation service adalah titik tunggal kegagalan?" Jalankan dua instance dengan rentang key berbeda. Write service juga menyimpan batch di memori, jadi tahan service mati beberapa menit.
+- "Kenapa tidak Cassandra dari awal?" Pola aksesnya cocok. Namun di skala 40 tulis per detik dan 1 TB, kerumitan operasionalnya belum terbayar. Titik pindahnya adalah saat tulis melewati kapasitas satu primary.
+- "Bagaimana kalau multi-region?" Redirect memakai cache dan replica di tiap region. Tulis cukup di satu region primary, atau key diberi awalan region agar tiap region punya primary sendiri.
+- "Bagaimana mencegah link phishing?" Validasi saat buat dengan daftar hitam dan Safe Browsing API, pemindaian asinkron setelahnya, dan kemampuan menonaktifkan key tanpa menghapusnya.

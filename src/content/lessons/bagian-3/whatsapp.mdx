@@ -11,7 +11,7 @@ prerequisites:
     'bagian-2/load-balancer',
     'bagian-1/abstraksi-distributed-system',
   ]
-summary: 'Pesan 1:1 dan grup yang sampai dalam ratusan milidetik ke miliaran perangkat yang sering offline: koneksi persisten, routing antar server, penyimpanan pesan sementara, status terkirim/dibaca, dan end-to-end encryption sebagai batasan desain.'
+summary: 'Pesan pribadi dan grup yang sampai dalam ratusan milidetik ke miliaran perangkat yang sering offline. Kita bahas koneksi persisten, penyimpanan pesan sementara, status terkirim dan dibaca, serta end-to-end encryption sebagai batasan desain.'
 sources:
   - title: 'RFC 6455 — The WebSocket Protocol'
     url: 'https://www.rfc-editor.org/rfc/rfc6455'
@@ -24,134 +24,134 @@ sources:
   - title: 'RFC 6120 — XMPP Core (model presence & routing pesan)'
     url: 'https://www.rfc-editor.org/rfc/rfc6120'
 quiz:
-  - q: 'Kenapa aplikasi chat memakai koneksi persisten (WebSocket/TCP) alih-alih HTTP polling untuk menerima pesan?'
+  - q: 'Kenapa aplikasi chat memakai koneksi persisten untuk menerima pesan, bukan HTTP polling?'
     options:
       - text: 'Karena HTTP tidak bisa mengirim JSON'
         correct: false
-        why: 'HTTP bisa; masalahnya arah dan biaya.'
-      - text: 'Karena server perlu mendorong pesan ke client segera tanpa client bertanya berulang; polling 100 juta client tiap detik = 100 juta request/detik yang mayoritas kosong'
+        why: 'HTTP bisa mengirim JSON. Masalahnya ada pada arah komunikasi dan biaya.'
+      - text: 'Karena server perlu mendorong pesan segera tanpa client bertanya berulang kali'
         correct: true
-        why: 'Koneksi persisten memberi push dengan latency rendah dan biaya per pesan kecil; harganya adalah server yang harus memelihara jutaan koneksi dan state-nya.'
-      - text: 'Karena WebSocket lebih aman'
+        why: 'Polling dari 100 juta client tiap detik berarti 100 juta request yang mayoritas kosong. Koneksi persisten memberi push dengan latency rendah.'
+      - text: 'Karena WebSocket lebih aman daripada HTTP'
         correct: false
-        why: 'Keamanan datang dari TLS dan E2EE, bukan dari jenis koneksi.'
+        why: 'Keamanan datang dari TLS dan enkripsi end-to-end, bukan dari jenis koneksi.'
       - text: 'Karena polling tidak bisa dilakukan di ponsel'
         correct: false
-        why: 'Bisa, tetapi boros baterai dan jaringan.'
-  - q: 'User A mengirim pesan ke B yang sedang offline. Alur yang benar?'
+        why: 'Polling bisa dilakukan, tetapi boros baterai dan jaringan.'
+  - q: 'Pengguna A mengirim pesan ke B yang sedang offline. Alur mana yang benar?'
     options:
       - text: 'Pesan ditolak dan A diminta mengirim ulang nanti'
         correct: false
-        why: 'Pengalaman buruk; sistem harus menyimpan sementara.'
-      - text: 'Server menerima, menyimpan ke inbox B (durable), mengirim ack "terkirim ke server" ke A, memicu push notification; saat B terhubung, server mengirim pesan dari inbox, B meng-ack, server menghapus dari inbox dan meneruskan status "delivered" ke A'
+        why: 'Pengalaman ini buruk. Sistem harus menyimpan pesan sementara untuk penerima.'
+      - text: 'Server menyimpan pesan ke inbox B, memberi ack ke A, lalu mengirim saat B online'
         correct: true
-        why: 'Store-and-forward dengan ack bertingkat: server (satu centang), perangkat (dua centang), dibaca (biru). Inbox dihapus setelah ack perangkat agar server tidak menyimpan pesan lebih lama dari perlu.'
-      - text: 'Server mengirim pesan lewat SMS'
+        why: 'Ini pola store-and-forward dengan ack bertingkat. Inbox dihapus setelah perangkat B mengonfirmasi penerimaan.'
+      - text: 'Server mengirim pesan lewat SMS sebagai pengganti'
         correct: false
-        why: 'SMS bukan jalur pesan aplikasi; push notification hanya memberi tahu ada pesan.'
-      - text: 'Server menyimpan pesan di koneksi A sampai B online'
+        why: 'SMS bukan jalur pesan aplikasi. Push notification hanya memberi tahu ada pesan baru.'
+      - text: 'Server menahan pesan di koneksi A sampai B online'
         correct: false
-        why: 'Koneksi A bisa putus; penyimpanan harus di server, durable.'
-  - q: 'Grup 1.000 anggota, satu anggota mengirim pesan. Bagaimana fanout dilakukan agar tidak membebani client pengirim?'
+        why: 'Koneksi A bisa putus kapan saja. Penyimpanan harus di server dan tahan restart.'
+  - q: 'Satu anggota mengirim pesan ke grup 1.000 orang. Bagaimana penyebarannya agar pengirim tidak terbebani?'
     options:
-      - text: 'Client pengirim mengirim 999 salinan'
+      - text: 'Client pengirim mengirim 999 salinan ke tiap anggota'
         correct: false
-        why: 'Bandwidth dan baterai pengirim; tetapi dengan E2EE sender-keys, client memang mengenkripsi sekali untuk grup dan server yang menyalin ke tiap anggota.'
-      - text: 'Client mengirim satu pesan ke server grup; server mengambil daftar anggota, menulis ke inbox tiap anggota (atau satu log grup yang dibaca tiap anggota dengan cursor), dan mendorong ke anggota yang online lewat server koneksi mereka'
+        why: 'Bandwidth dan baterai pengirim akan habis. Penyalinan ke tiap anggota adalah tugas server.'
+      - text: 'Client mengirim sekali ke server, lalu server menyalin ke inbox tiap anggota'
         correct: true
-        why: 'Fanout di server. Untuk grup besar, log per grup + cursor per anggota lebih hemat daripada menyalin ke 1.000 inbox; untuk grup kecil, inbox per anggota lebih sederhana.'
-      - text: 'Server menunggu semua anggota online'
+        why: 'Untuk grup besar, server bisa memakai satu log per grup dengan penunjuk posisi per anggota. Untuk grup kecil, inbox per anggota lebih sederhana.'
+      - text: 'Server menunggu semua anggota online lalu mengirim serentak'
         correct: false
-        why: 'Tidak akan pernah terjadi bersamaan.'
-      - text: 'Pesan grup tidak disimpan'
+        why: 'Semua anggota hampir tidak pernah online bersamaan.'
+      - text: 'Pesan grup tidak disimpan sama sekali'
         correct: false
-        why: 'Anggota offline butuh store-and-forward.'
-  - q: 'Dengan end-to-end encryption, mana yang TIDAK bisa dilakukan server?'
+        why: 'Anggota yang offline tetap butuh pesan disimpan sementara.'
+  - q: 'Dengan end-to-end encryption, hal apa yang tidak bisa dilakukan server?'
     options:
-      - text: 'Mengetahui siapa mengirim ke siapa dan kapan'
+      - text: 'Mengetahui siapa mengirim pesan ke siapa dan kapan'
         correct: false
-        why: 'Metadata routing tetap terlihat server; E2EE melindungi isi, bukan metadata.'
-      - text: 'Membaca isi pesan, mencari teks pesan, atau membuat pratinjau/moderasi berbasis isi di sisi server'
+        why: 'Metadata routing tetap terlihat server. Enkripsi melindungi isi, bukan metadata.'
+      - text: 'Membaca isi pesan atau mencari teks pesan di sisi server'
         correct: true
-        why: 'Kunci hanya ada di perangkat. Fitur yang butuh isi (pencarian, moderasi, pratinjau link) harus dilakukan di client atau tidak sama sekali. Ini batasan desain yang harus disebut.'
-      - text: 'Menyimpan pesan sementara untuk penerima offline'
+        why: 'Kunci hanya ada di perangkat. Fitur yang butuh isi, seperti pencarian dan pratinjau tautan, harus dilakukan di client.'
+      - text: 'Menyimpan pesan sementara untuk penerima yang offline'
         correct: false
-        why: 'Server menyimpan ciphertext; itu tetap bisa.'
-      - text: 'Mengirim push notification'
+        why: 'Server menyimpan teks terenkripsi. Itu tetap bisa dilakukan.'
+      - text: 'Mengirim push notification ke perangkat penerima'
         correct: false
-        why: 'Push hanya memberi tahu ada pesan; bisa tanpa isi.'
+        why: 'Push hanya memberi tahu ada pesan. Isinya tidak perlu disertakan.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: 1:1 saja atau grup (berapa anggota maksimum)? Media? Status terkirim/dibaca? Multi-device? Apakah pesan disimpan di server setelah terkirim? E2EE?
+Pertanyaan klarifikasi yang pantas kamu ajukan: hanya pesan pribadi atau juga grup? Berapa anggota maksimum per grup? Apakah ada media? Apakah perlu status terkirim dan dibaca? Apakah satu akun bisa dipakai di beberapa perangkat? Apakah server boleh menyimpan pesan setelah terkirim? Apakah isi pesan harus terenkripsi end-to-end?
 
 ### Functional
 
-- Pesan teks 1:1 dan grup (≤ 1.024 anggota), media lewat blob store (referensi di pesan).
-- Status: terkirim ke server, terkirim ke perangkat, dibaca; indikator online/mengetik (presence).
-- Pesan untuk penerima offline disimpan sementara dan dikirim saat online; push notification.
-- End-to-end encryption: server tidak bisa membaca isi.
-- Out of scope: panggilan suara/video, Stories, backup cloud (disebut sebagai ekstensi).
+- Pesan teks pribadi dan grup sampai 1.024 anggota. Media dikirim lewat blob store dan hanya referensinya yang masuk pesan.
+- Status pesan: terkirim ke server, terkirim ke perangkat, dan dibaca. Ada juga indikator online dan sedang mengetik.
+- Pesan untuk penerima offline disimpan sementara dan dikirim saat ia online. Push notification memberi tahu penerima.
+- End-to-end encryption, disingkat E2EE. Server tidak bisa membaca isi pesan.
+- Di luar cakupan: panggilan suara dan video, Stories, dan backup ke cloud.
 
 ### Non-functional
 
-| NFR                | Target                                                                          | Alasan                      |
-| ------------------ | ------------------------------------------------------------------------------- | --------------------------- |
-| Latency pengiriman | &lt; 500 ms end-to-end saat keduanya online                                     | Percakapan terasa real-time |
-| Reliability        | Pesan tidak hilang, tidak duplikat yang terlihat, urutan per percakapan terjaga | Inti produk                 |
-| Availability       | 99.99%                                                                          | Komunikasi penting          |
-| Skala              | 2 miliar user, 500 juta koneksi bersamaan, 100 miliar pesan/hari                | Global                      |
-| Privasi            | E2EE; server menyimpan ciphertext seminimal mungkin                             | Kepercayaan                 |
+| Target             | Nilai                                                                        | Alasan                                  |
+| ------------------ | ---------------------------------------------------------------------------- | --------------------------------------- |
+| Latency pengiriman | Di bawah 500 ms dari ujung ke ujung saat keduanya online                     | Percakapan harus terasa real-time       |
+| Reliability        | Pesan tidak hilang, tidak tampil ganda, dan urutannya terjaga per percakapan | Ini inti produk                         |
+| Availability       | 99.99%                                                                       | Komunikasi penting tidak boleh terputus |
+| Skala              | 2 miliar pengguna, 500 juta koneksi bersamaan, 100 miliar pesan per hari     | Layanan global                          |
+| Privasi            | E2EE, dan server menyimpan teks terenkripsi sesingkat mungkin                | Kepercayaan pengguna                    |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 100 miliar pesan/hari; 500 juta koneksi bersamaan; pesan rata-rata 100 B ciphertext + 100 B metadata; pesan disimpan di server paling lama 30 hari (untuk penerima offline), mayoritas terkirim dalam detik.
+Asumsi: 100 miliar pesan per hari, 500 juta koneksi bersamaan, dan setiap pesan sekitar 100 byte teks terenkripsi ditambah 100 byte metadata. Pesan disimpan di server paling lama 30 hari untuk penerima yang offline.
 
-- Pesan: 10^11 / 10^5 ≈ **1 juta pesan/detik**, puncak 3 juta.
-- Koneksi: 500 juta; satu server koneksi modern menangani ~1 juta koneksi idle (memori ~10 KB/koneksi = 10 GB) → ~500 server koneksi minimum, ~1.500 dengan headroom.
-- Storage sementara: bila 10% pesan menunggu rata-rata 1 jam: 10^10 × 200 B ≈ 2 TB bergulir; untuk 30 hari penerima offline total, puluhan TB. KV terpartisi.
-- Bandwidth: 1 juta × 200 B ≈ 200 MB/s untuk teks; media jauh lebih besar tetapi lewat blob + CDN.
-- Presence: 500 juta × status change beberapa kali per jam → ratusan ribu update/detik; harus eventual dan dibatasi (hanya ke kontak yang membuka chat).
+- Laju pesan: 100 miliar dibagi 100 ribu detik berarti sekitar 1 juta pesan per detik. Puncaknya sekitar 3 juta per detik.
+- Koneksi: satu server modern bisa menangani sekitar 1 juta koneksi diam dengan memori 10 KB per koneksi. Jadi kita butuh minimal 500 server koneksi, atau sekitar 1.500 dengan cadangan.
+- Penyimpanan sementara: kalau 10% pesan menunggu rata-rata satu jam, data yang bergulir sekitar 2 TB. Untuk penerima yang offline sampai 30 hari, totalnya puluhan TB di key-value store terpartisi.
+- Bandwidth teks: 1 juta pesan dikali 200 byte berarti sekitar 200 MB per detik. Media jauh lebih besar, tetapi lewat blob store dan CDN.
+- Presence, yaitu status online: 500 juta pengguna berganti status beberapa kali per jam. Itu ratusan ribu update per detik, jadi harus eventual dan hanya dikirim ke orang yang sedang membuka chat.
 
-Keputusan: lapisan koneksi terpisah dari logika, routing user → server koneksi di KV, inbox per user di KV terpartisi, media di blob store.
+Keputusan dari angka ini: lapisan koneksi dipisah dari logika pesan. Routing pengguna ke server koneksi disimpan di key-value store. Inbox per pengguna hidup di key-value store terpartisi, dan media di blob store.
 
 ## 3. API design
 
-Dua jalur: HTTP untuk operasi "dingin" (login, kunci, media) dan **koneksi persisten** (WebSocket atau TCP kustom) untuk pesan dan status.
+Ada dua jalur. HTTP dipakai untuk operasi yang jarang, seperti login dan kunci enkripsi. Koneksi persisten lewat WebSocket dipakai untuk pesan dan status.
 
 ```text
 HTTP
 POST /v1/auth/verify            nomor → OTP → token perangkat
-PUT  /v1/keys                   publish identity/prekeys (E2EE)
+PUT  /v1/keys                   publish identity key dan prekey (E2EE)
 GET  /v1/keys/{userId}          ambil prekey bundle penerima
-POST /v1/media/uploads          presigned URL (ciphertext media)
+POST /v1/media/uploads          presigned URL untuk media terenkripsi
 
 WebSocket frames (biner, mis. protobuf)
-→ SEND    { clientMsgId, to (user|group), ciphertext, ts }
-← ACK     { clientMsgId, serverMsgId, status: server }
-← MESSAGE { serverMsgId, from, chat, ciphertext, ts }
-→ DELIVERED { serverMsgId }     ← diteruskan ke pengirim sebagai status
+→ SEND      { clientMsgId, to (user|group), ciphertext, ts }
+← ACK       { clientMsgId, serverMsgId, status: server }
+← MESSAGE   { serverMsgId, from, chat, ciphertext, ts }
+→ DELIVERED { serverMsgId }     diteruskan ke pengirim sebagai status
 → READ      { chatId, uptoMsgId }
-→/← PRESENCE, TYPING (best-effort, tanpa ack)
+→/← PRESENCE, TYPING           best-effort, tanpa ack
 ```
 
-`clientMsgId` (UUID dari client) membuat SEND idempotent: retry setelah koneksi putus tidak menggandakan pesan.
+Client membuat `clientMsgId` sendiri. Dengan itu, pengiriman ulang setelah koneksi putus tidak menggandakan pesan.
 
 ## 4. Skema data
 
 ```text
--- Routing (KV, in-memory + replika): user_id → {conn_server, conn_id, last_seen}
--- Inbox (KV terpartisi by user_id, mis. Cassandra/ScyllaDB):
+-- Routing (key-value di memori, direplikasi): user_id → {conn_server, conn_id, last_seen}
+-- Inbox (key-value terpartisi by user_id, mis. Cassandra/ScyllaDB):
    inbox: (user_id, server_msg_id) → {from, chat_id, ciphertext, ts}   -- dihapus setelah ack perangkat
--- Grup (DB/KV): group_id → {members[], admins, version}
--- Group log (untuk grup besar): (group_id, server_msg_id) → payload; cursor per anggota
--- Pesan di perangkat: sumber kebenaran riwayat ada di client (SQLite); server tidak menyimpan riwayat setelah terkirim
--- Kunci: user_id → identity key, signed prekey, one-time prekeys (dikonsumsi)
--- Media: blob store, key acak + kunci simetris di dalam pesan terenkripsi
+-- Grup: group_id → {members[], admins, version}
+-- Log grup besar: (group_id, server_msg_id) → payload, dengan cursor per anggota
+-- Riwayat pesan: sumber kebenaran ada di perangkat (SQLite); server tidak menyimpan riwayat setelah terkirim
+-- Kunci: user_id → identity key, signed prekey, one-time prekeys
+-- Media: blob store, key acak; kunci simetris dikirim di dalam pesan terenkripsi
 ```
 
-`server_msg_id` terurut waktu per partisi (Snowflake) memberi urutan per percakapan.
+`server_msg_id` dibuat terurut waktu per partisi, misalnya dengan Snowflake. Itu memberi urutan per percakapan.
 
 ## 5. High-level design
 
@@ -159,31 +159,46 @@ WebSocket frames (biner, mis. protobuf)
 flowchart LR
   A[Client A] <-->|WebSocket| CS1[Connection server 1]
   B[Client B] <-->|WebSocket| CS2[Connection server 2]
-  CS1 --> MS[Message service\nvalidasi, persist, route]
-  MS --> INB[(Inbox KV\nterpartisi by user)]
-  MS --> RT[(Routing KV\nuser → conn server)]
+  CS1 --> MS[Message service\nvalidasi, simpan, routing]
+  MS --> INB[("Inbox KV\nterpartisi by user")]
+  MS --> RT[("Routing KV\nuser ke conn server")]
   MS -->|B online di CS2| CS2
   MS -->|B offline| PN[Push notification service] --> APNS[APNs / FCM]
   MS --> GS[Group service]
-  GS --> GDB[(Group membership)]
-  A -->|media ciphertext| BLOB[(Blob + CDN)]
+  GS --> GDB[("Keanggotaan grup")]
+  A -->|media terenkripsi| BLOB[("Blob + CDN")]
   CS1 --> PR[Presence service\npub-sub]
   LB[L4 LB / DNS] --> CS1
   LB --> CS2
 ```
 
-**Alur 1:1 (B online)**: A SEND ke CS1 → message service menulis ke inbox B (durable) dan ACK ke A (satu centang) → lookup routing: B di CS2 → kirim ke CS2 → B menerima, DELIVERED → message service menghapus dari inbox B, meneruskan status ke A (dua centang) → B membaca, READ → status ke A.
+Alur pesan pribadi saat B online:
 
-**Alur 1:1 (B offline)**: sama sampai inbox; tidak ada entri routing → push notification tanpa isi; saat B terhubung, CS mengambil inbox B dan mengalirkan pesan berurutan; ack per pesan menghapusnya.
+1. Client A mengirim SEND ke connection server CS1.
+2. Message service menulis pesan ke inbox B secara durable, lalu mengirim ACK ke A. Ini centang satu.
+3. Message service mencari B di routing store dan menemukannya di CS2.
+4. CS2 mendorong pesan ke B. B membalas DELIVERED.
+5. Message service menghapus pesan dari inbox B dan meneruskan status ke A. Ini centang dua.
+6. B membaca pesan dan mengirim READ. Statusnya diteruskan ke A.
+
+Alur saat B offline:
+
+1. Langkah 1 dan 2 sama. Pesan tersimpan di inbox B.
+2. Routing store tidak punya entri untuk B, jadi message service mengirim push notification tanpa isi pesan.
+3. Saat B tersambung, connection server membaca inbox B dan mengalirkan pesan secara berurutan.
+4. Setiap ack dari B menghapus satu pesan dari inbox.
 
 ## 6. Detailed design
 
 ### 6.1 Lapisan koneksi
 
-- Server koneksi **stateful ringan**: memegang socket dan user_id; tidak memegang logika bisnis. Bahasa/runtime yang hemat per koneksi (WhatsApp memakai Erlang; Go/Netty sebanding).
-- L4 load balancer membagi koneksi baru; setelah terhubung, koneksi tetap di satu server. Routing KV diperbarui saat connect/disconnect dengan **lease** (TTL + heartbeat) agar server yang mati tidak menyisakan entri basi.
-- Server mati: client reconnect (backoff + jitter) ke server lain; entri routing lama kedaluwarsa; pesan yang dikirim selama jeda tetap aman di inbox. Reconnect storm saat satu server mati 1 juta koneksi: jitter dan rate limit koneksi baru.
-- Heartbeat/keepalive hemat baterai (interval menit, dinegosiasi dengan NAT timeout).
+Connection server memegang socket dan user_id, tetapi tidak memegang logika bisnis. Ia stateful, tetapi ringan. WhatsApp memakai Erlang untuk lapisan ini. Go atau Netty memberi hasil sebanding.
+
+Load balancer L4 membagi koneksi baru. Setelah tersambung, koneksi tetap di satu server. Entri routing diperbarui saat connect dan disconnect dengan lease. Lease adalah izin berbatas waktu yang harus diperpanjang lewat heartbeat, sehingga server yang mati tidak meninggalkan entri basi.
+
+Kalau satu server koneksi mati, client menyambung ulang ke server lain dengan jeda acak. Entri routing lama kedaluwarsa sendiri. Pesan yang dikirim selama jeda tetap aman di inbox. Satu server yang mati bisa memicu satu juta koneksi menyambung ulang sekaligus. Jeda acak dan rate limit koneksi baru meredam badai itu.
+
+Heartbeat dibuat hemat baterai, dengan interval menit yang disesuaikan dengan batas waktu NAT.
 
 ### 6.2 Reliability: store-and-forward dan ack
 
@@ -193,61 +208,63 @@ sequenceDiagram
   participant S as Message service
   participant I as Inbox B
   participant B
-  A->>S: SEND(clientMsgId=c1)
-  S->>I: put(msgId=m1)  (durable, quorum)
-  S-->>A: ACK(c1→m1) ✓
-  S->>B: MESSAGE(m1)  (bila online)
-  B-->>S: DELIVERED(m1)
-  S->>I: delete(m1)
-  S-->>A: STATUS(m1, delivered) ✓✓
-  Note over A,S: retry SEND(c1) setelah putus → S mengenali c1, mengembalikan m1 tanpa duplikat
+  A->>S: SEND clientMsgId c1
+  S->>I: simpan m1 secara durable dengan quorum
+  S-->>A: ACK c1 menjadi m1, centang satu
+  S->>B: MESSAGE m1 bila online
+  B-->>S: DELIVERED m1
+  S->>I: hapus m1
+  S-->>A: STATUS m1 delivered, centang dua
+  Note over A,S: SEND ulang c1 setelah putus dikenali S dan tidak digandakan
 ```
 
-- **Tidak hilang**: ACK ke pengirim hanya setelah inbox durable (quorum tulis). Client mengirim ulang sampai ACK.
-- **Tidak duplikat**: dedup `clientMsgId` di server (TTL beberapa jam) dan `server_msg_id` di client.
-- **Urutan**: per percakapan, client mengurutkan by `server_msg_id`; pengiriman dari inbox berurutan; pesan yang datang "mundur" setelah reconnect ditangani client dengan sorting.
-- **Multi-device**: tiap perangkat punya inbox dan kunci sendiri; pengirim mengenkripsi ke tiap perangkat penerima (fanout kecil); status delivered per perangkat, ditampilkan sebagai "terkirim" bila minimal satu.
+Tiga jaminan yang harus kamu sebut:
+
+- Tidak hilang. ACK ke pengirim hanya dikirim setelah inbox menulis dengan quorum. Client mengirim ulang sampai menerima ACK.
+- Tidak ganda. Server menyimpan `clientMsgId` beberapa jam untuk mengenali duplikat. Client menyimpan `server_msg_id` untuk hal yang sama.
+- Berurutan. Client mengurutkan pesan per percakapan berdasarkan `server_msg_id`. Pesan yang datang terlambat setelah sambung ulang ditata ulang oleh client.
+
+Untuk beberapa perangkat per akun, setiap perangkat punya inbox dan kunci sendiri. Pengirim mengenkripsi ke setiap perangkat penerima. Status terkirim dihitung per perangkat dan ditampilkan sebagai terkirim bila minimal satu perangkat menerima.
 
 ### 6.3 Grup
 
-- Keanggotaan di DB dengan versi; perubahan anggota adalah pesan sistem.
-- Pengiriman: client mengenkripsi sekali (sender keys), mengirim ke server; group service mengambil anggota, menulis ke inbox tiap anggota (grup kecil) atau ke **group log** dengan cursor per anggota (grup besar), lalu mendorong ke yang online.
-- Grup 1.024 anggota × 1 pesan = 1.024 tulisan inbox atau 1 tulisan log + 1.024 cursor read; log lebih hemat tulis tetapi menambah kompleksitas pembersihan (hapus entri setelah semua cursor melewati atau TTL).
+Keanggotaan grup disimpan dengan nomor versi. Perubahan anggota dikirim sebagai pesan sistem. Client mengenkripsi pesan grup sekali dengan sender key, lalu mengirimnya ke server. Group service mengambil daftar anggota dan menyalin ke inbox tiap anggota untuk grup kecil. Untuk grup besar, group service menulis satu kali ke log grup dan tiap anggota memegang cursor. Cursor adalah penunjuk posisi terakhir yang sudah dibaca.
+
+Grup 1.024 anggota berarti 1.024 tulisan inbox per pesan, atau satu tulisan log ditambah 1.024 pembacaan cursor. Log lebih hemat tulis, tetapi pembersihannya lebih rumit.
 
 ### 6.4 Presence dan typing
 
-- Best-effort, tanpa durability. Presence service menerima connect/disconnect/heartbeat, menyimpan `last_seen` di KV, dan mempublikasikan perubahan hanya ke user yang **sedang membuka chat** dengan orang itu (subscribe saat chat dibuka, unsubscribe saat ditutup) untuk membatasi fanout.
-- Typing indicator: dikirim langsung antar server koneksi tanpa persist, dengan rate limit.
+Presence bersifat best-effort tanpa durability. Presence service menerima connect, disconnect, dan heartbeat, lalu menyimpan `last_seen`. Perubahan hanya dipublikasikan ke pengguna yang sedang membuka chat dengan orang itu. Client berlangganan saat membuka chat dan berhenti saat menutupnya. Indikator mengetik dikirim langsung antar connection server tanpa disimpan, dengan rate limit.
 
 ### 6.5 Push notification
 
-Saat penerima offline: kirim push lewat APNs/FCM tanpa isi (atau isi terenkripsi yang didekripsi di perangkat). Push tidak dapat diandalkan sebagai jalur pengiriman; hanya pemicu untuk membuka koneksi.
+Saat penerima offline, server mengirim push lewat APNs atau FCM tanpa isi pesan. Push tidak bisa diandalkan sebagai jalur pengiriman. Ia hanya pemicu agar aplikasi membuka koneksi.
 
 ### 6.6 Media
 
-Client mengenkripsi file, mengunggah ciphertext ke blob store via presigned URL, mengirim pesan berisi URL + kunci + hash. Penerima mengunduh dari CDN dan mendekripsi. Server tidak bisa membaca media; dedup lintas pengirim tidak mungkin tanpa membocorkan isi (trade-off yang disadari).
+Client mengenkripsi file, mengunggah hasilnya ke blob store lewat presigned URL, lalu mengirim pesan berisi URL, kunci, dan hash. Presigned URL adalah tautan bertanda tangan yang berlaku sementara. Penerima mengunduh dari CDN dan mendekripsi. Server tidak bisa membaca media, sehingga dedup lintas pengirim tidak mungkin tanpa membocorkan isi.
 
 ### 6.7 E2EE sebagai batasan
 
-Server menyimpan hanya ciphertext dan metadata routing; fitur yang butuh isi (pencarian, pratinjau link, moderasi) dilakukan di client. Key exchange (X3DH) lewat prekey bundle yang diambil dari server; ratchet per sesi di perangkat. Backup riwayat adalah fitur client (terenkripsi dengan kunci user).
+Server hanya menyimpan teks terenkripsi dan metadata routing. Fitur yang butuh isi, seperti pencarian, pratinjau tautan, dan moderasi, dilakukan di client. Pertukaran kunci memakai prekey bundle yang diambil dari server. Backup riwayat adalah fitur client yang dienkripsi dengan kunci pengguna.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                                    | Dipenuhi oleh                                                                                | Risiko tersisa                                                                         |
-| -------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Latency &lt; 500 ms                    | Koneksi persisten, routing KV in-memory, satu hop server-ke-server                           | Lintas region: tempatkan user di region terdekat; pesan lintas region menambah ~100 ms |
-| Tidak hilang / tidak duplikat / urut   | Inbox durable sebelum ACK, clientMsgId dedup, server_msg_id terurut, ack bertingkat          | Inbox KV partition down: tulis ke partisi cadangan (hinted) dan sinkronkan             |
-| Availability 99.99%                    | Server koneksi stateless-ish dan banyak, routing dengan lease, inbox terreplikasi            | Reconnect storm saat kegagalan besar; jitter + rate limit                              |
-| Skala 1 juta pesan/s, 500 juta koneksi | ~1.500 server koneksi, inbox KV terpartisi (tulis ~1 juta/s tersebar), fanout grup di server | Grup raksasa dan user dengan ribuan grup: log per grup, batas ukuran grup              |
-| Privasi                                | E2EE, inbox dihapus setelah delivered, metadata minimal                                      | Metadata tetap ada; retensi log dibatasi                                               |
+| Target                               | Cara memenuhinya                                                                    | Risiko yang tersisa                                                              |
+| ------------------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Latency di bawah 500 ms              | Koneksi persisten, routing di memori, dan satu hop antar server                     | Lintas region menambah sekitar 100 ms. Tempatkan pengguna di region terdekat     |
+| Tidak hilang, tidak ganda, berurutan | Inbox durable sebelum ACK, dedup clientMsgId, server_msg_id terurut, ack bertingkat | Partisi inbox mati. Tulis ke partisi cadangan lalu sinkronkan                    |
+| Availability 99.99%                  | Banyak server koneksi ringan, routing dengan lease, inbox terreplikasi              | Badai sambung ulang saat kegagalan besar. Jeda acak dan rate limit               |
+| Skala 1 juta pesan per detik         | Sekitar 1.500 server koneksi dan inbox terpartisi                                   | Grup raksasa dan pengguna dengan ribuan grup. Log per grup dan batas ukuran grup |
+| Privasi                              | E2EE, inbox dihapus setelah terkirim, metadata minimal                              | Metadata tetap ada. Batasi retensi log                                           |
 
-Bottleneck 10x: inbox KV dan jumlah server koneksi, keduanya horizontal. SPOF: routing KV; replikasi dan fallback "coba semua region" bila miss.
+Kalau beban naik 10 kali, yang pecah duluan adalah inbox dan jumlah server koneksi. Keduanya bisa ditambah secara horizontal. Routing store adalah titik lemah tunggal, jadi ia direplikasi.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Bagaimana memastikan urutan pesan saat pengirim mengirim cepat dari dua perangkat?" → `server_msg_id` dari satu partisi per percakapan memberi urutan total; client menampilkan by ID.
-- "Server koneksi mati dengan 1 juta koneksi?" → Client reconnect dengan jitter; routing lease kedaluwarsa; inbox menjamin tidak ada yang hilang.
-- "Bagaimana 'dibaca' diteruskan tanpa membanjiri?" → READ membawa `uptoMsgId` (satu status untuk banyak pesan).
-- "Pesan ke user di region lain?" → Routing KV global (atau lookup region asal user), relay antar region lewat koneksi server-ke-server persisten.
-- "Bagaimana moderasi spam tanpa membaca isi?" → Sinyal metadata: laju kirim, rasio blokir/lapor, pola grup; batasan E2EE disebut jujur.
-- "Backup riwayat?" → Client mengenkripsi dengan kunci user dan mengunggah ke blob; server tetap tidak bisa membaca.
+- "Bagaimana urutan pesan dijaga saat pengirim memakai dua perangkat?" `server_msg_id` dari satu partisi per percakapan memberi urutan total. Client menampilkan berdasarkan ID itu.
+- "Server koneksi dengan satu juta koneksi mati, lalu apa?" Client menyambung ulang dengan jeda acak. Lease routing kedaluwarsa. Inbox menjamin tidak ada pesan hilang.
+- "Bagaimana status dibaca diteruskan tanpa membanjiri?" READ membawa `uptoMsgId`, jadi satu status mencakup banyak pesan.
+- "Bagaimana pesan ke pengguna di region lain?" Routing global mencari region asal pengguna. Server antar region berkomunikasi lewat koneksi persisten.
+- "Bagaimana mendeteksi spam tanpa membaca isi?" Pakai sinyal metadata: laju kirim, rasio blokir dan laporan, serta pola grup. Sebutkan batasan E2EE dengan jujur.
+- "Bagaimana backup riwayat?" Client mengenkripsi dengan kunci pengguna dan mengunggah ke blob store. Server tetap tidak bisa membaca.

@@ -5,7 +5,7 @@ order: 13
 minutes: 55
 type: case
 prerequisites: ['bagian-2/distributed-monitoring', 'bagian-2/task-scheduler', 'bagian-2/blob-store']
-summary: 'Mengirim ribuan perubahan per hari ke ribuan server tanpa menjatuhkan produksi: artefak immutable, pipeline bertahap, rollout progresif dengan health gate otomatis, rollback cepat, dan konfigurasi sebagai bagian dari deploy.'
+summary: 'Mengirim ribuan perubahan per hari ke ribuan server tanpa menjatuhkan produksi. Kuncinya ada di artefak yang tidak bisa diubah, rollout bertahap dengan pemeriksaan kesehatan otomatis, rollback cepat, dan konfigurasi yang ikut dikendalikan.'
 sources:
   - title: 'Google SRE Book — Release Engineering'
     url: 'https://sre.google/sre-book/release-engineering/'
@@ -18,99 +18,99 @@ sources:
   - title: 'Martin Fowler — Continuous Delivery'
     url: 'https://martinfowler.com/bliki/ContinuousDelivery.html'
 quiz:
-  - q: 'Kenapa artefak (image/container, binary) harus immutable dan diidentifikasi oleh hash/versi, bukan "latest"?'
+  - q: 'Kenapa artefak deploy harus diidentifikasi oleh hash isinya, bukan oleh tag seperti "latest"?'
     options:
       - text: 'Karena registry tidak mendukung tag'
         correct: false
-        why: 'Registry mendukung; masalahnya tag yang bisa berpindah.'
-      - text: 'Supaya yang diuji di staging persis sama dengan yang dijalankan di produksi, rollback = menunjuk versi lama yang masih ada, dan dua server tidak diam-diam menjalankan isi berbeda di bawah nama yang sama'
+        why: 'Registry mendukung tag. Masalahnya tag bisa dipindahkan ke isi yang berbeda.'
+      - text: 'Supaya yang diuji di staging persis sama dengan yang berjalan di produksi'
         correct: true
-        why: 'Reproducibility dan rollback bergantung pada identitas artefak yang tidak berubah. "latest" membuat deploy tidak dapat diaudit.'
-      - text: 'Supaya artefak lebih kecil'
+        why: 'Hash mengikat identitas ke isi. Rollback pun tinggal menunjuk hash lama yang masih tersimpan.'
+      - text: 'Supaya ukuran artefak menjadi lebih kecil'
         correct: false
-        why: 'Ukuran tidak terkait.'
-      - text: 'Supaya tidak perlu registry'
+        why: 'Cara penamaan tidak memengaruhi ukuran artefak.'
+      - text: 'Supaya tidak perlu registry sama sekali'
         correct: false
-        why: 'Registry tetap dibutuhkan.'
-  - q: 'Rollout canary 1% → 10% → 50% → 100% dengan analisis otomatis. Metrik mana yang menjadi gate dan kenapa dibandingkan dengan baseline, bukan ambang absolut?'
+        why: 'Registry tetap dibutuhkan untuk menyimpan dan membagikan artefak.'
+  - q: 'Saat canary, kenapa metrik versi baru dibandingkan dengan versi lama pada waktu yang sama, bukan dengan ambang tetap?'
     options:
-      - text: 'Jumlah deploy per hari'
+      - text: 'Karena ambang tetap lebih sulit dikonfigurasi'
         correct: false
-        why: 'Bukan indikator kesehatan versi baru.'
-      - text: 'Error rate, latency p99, dan metrik bisnis kunci pada canary dibandingkan dengan baseline versi lama pada waktu yang sama; perbandingan relatif menghilangkan efek musiman/trafik yang memengaruhi keduanya'
+        why: 'Ambang tetap mudah dikonfigurasi, tetapi gagal saat trafik atau latency berubah karena faktor luar.'
+      - text: 'Karena perbandingan dua populasi di waktu yang sama menghilangkan efek musiman'
         correct: true
-        why: 'Canary analysis: dua populasi, satu waktu. Ambang absolut gagal saat trafik atau latency memang berubah karena faktor luar.'
-      - text: 'Penggunaan CPU saja'
+        why: 'Canary dan baseline merasakan trafik yang sama. Selisih di antara keduanya adalah efek versi baru.'
+      - text: 'Karena penggunaan CPU adalah metrik yang paling penting'
         correct: false
-        why: 'CPU bukan gejala yang dirasakan user.'
-      - text: 'Jumlah log'
+        why: 'CPU bukan gejala yang dirasakan pengguna. Gate memakai error rate, latency, dan metrik bisnis.'
+      - text: 'Karena jumlah log lebih mudah dihitung'
         correct: false
-        why: 'Tidak informatif.'
-  - q: 'Skema database perlu kolom baru dan kode baru memakainya. Urutan deploy yang aman?'
+        why: 'Jumlah log tidak mencerminkan kesehatan versi baru.'
+  - q: 'Skema database butuh kolom baru dan kode baru akan memakainya. Urutan deploy mana yang aman?'
     options:
       - text: 'Deploy kode dan migrasi bersamaan dalam satu langkah'
         correct: false
-        why: 'Selama rollout, versi lama dan baru berjalan bersama; salah satu akan rusak.'
-      - text: 'Expand-contract: migrasi tambah kolom (kompatibel mundur) dulu, deploy kode yang menulis ke kolom lama dan baru, backfill, deploy kode yang membaca kolom baru, baru hapus kolom lama di rilis berikutnya'
+        why: 'Selama rollout, versi lama dan baru berjalan bersama. Salah satunya pasti rusak.'
+      - text: 'Tambah kolom dulu, deploy kode yang menulis ke dua kolom, lalu hapus kolom lama belakangan'
         correct: true
-        why: 'Setiap langkah kompatibel dengan versi sebelum dan sesudahnya, sehingga rollout dan rollback kode aman tanpa migrasi balik.'
-      - text: 'Hapus kolom lama dulu agar bersih'
+        why: 'Pola expand-contract membuat setiap langkah kompatibel dengan versi sebelum dan sesudahnya.'
+      - text: 'Hapus kolom lama dulu supaya skema bersih'
         correct: false
-        why: 'Versi lama yang masih berjalan akan gagal.'
-      - text: 'Matikan sistem selama migrasi'
+        why: 'Versi lama yang masih berjalan akan gagal membaca kolom yang hilang.'
+      - text: 'Matikan sistem selama migrasi berlangsung'
         correct: false
-        why: 'Downtime yang tidak perlu.'
-  - q: 'Deploy ke 5.000 server dalam 20 menit. Server mengunduh artefak 500 MB dari satu registry. Masalah dan solusinya?'
+        why: 'Downtime tidak diperlukan bila migrasi dibuat kompatibel mundur.'
+  - q: 'Deploy ke 5.000 server harus mengunduh artefak 500 MB dari satu registry. Apa solusinya?'
     options:
-      - text: 'Tidak ada masalah; registry sanggup'
+      - text: 'Tidak ada masalah karena registry pasti sanggup'
         correct: false
-        why: '5.000 × 500 MB = 2.5 TB dalam 20 menit ≈ 2 GB/s dari satu titik; registry dan jaringannya jenuh.'
-      - text: 'Distribusi artefak harus di-cache per rack/zona (registry mirror, cache pull-through) atau peer-to-peer, dengan layer image yang dibagi agar hanya delta yang diunduh'
+        why: 'Total 2.5 TB dalam 20 menit berarti 2 GB per detik dari satu titik. Registry akan jenuh.'
+      - text: 'Cache artefak per zona atau peer-to-peer, dan bagi image menjadi layer'
         correct: true
-        why: 'Distribusi adalah bottleneck deploy skala besar; mirror bertingkat dan P2P (seperti yang dipakai perusahaan besar) memotong beban origin ribuan kali.'
-      - text: 'Deploy lebih lambat, 2 server per menit'
+        why: 'Mirror bertingkat dan berbagi antar node memotong beban origin ribuan kali.'
+      - text: 'Deploy lebih lambat, dua server per menit'
         correct: false
-        why: 'Membutuhkan hampir dua hari.'
-      - text: 'Kirim artefak lewat email'
+        why: 'Dengan laju itu rollout membutuhkan hampir dua hari.'
+      - text: 'Kirim artefak lewat email ke tiap tim'
         correct: false
-        why: 'Tidak serius.'
+        why: 'Ini bukan cara distribusi yang serius.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: target deploy (VM, container/Kubernetes, serverless, mobile/web statis)? Berapa service dan deploy per hari? Apakah ada regulasi (approval, audit)? Multi-region?
+Pertanyaan klarifikasi yang layak diajukan: target deploy berupa VM, container di Kubernetes, atau serverless? Berapa service dan berapa deploy per hari? Apakah ada regulasi yang mewajibkan approval dan audit? Berapa region?
 
-Asumsi: ratusan service di Kubernetes multi-region, ribuan deploy/hari, tim mandiri men-deploy sendiri.
+Asumsi: ratusan service di Kubernetes multi-region, ribuan deploy per hari, dan tiap tim men-deploy sendiri.
 
 ### Functional
 
-- Pipeline: commit → build → test → artefak immutable → deploy ke environment (dev, staging, prod) dengan promosi.
-- Strategi rollout: rolling, canary dengan analisis otomatis, blue-green; per region bertahap.
-- Rollback cepat (satu klik/otomatis) ke versi sebelumnya.
-- Konfigurasi dan secret ter-versi dan ter-deploy bersama (atau terpisah tapi terkendali); feature flag.
-- Visibilitas: status deploy, siapa men-deploy apa, audit; approval opsional.
-- Out of scope: CI build system detail, manajemen cluster, infrastruktur sebagai kode (disebut).
+- Pipeline dari commit sampai produksi: build, test, artefak yang tidak bisa diubah, lalu deploy ke dev, staging, dan produksi dengan promosi antar lingkungan.
+- Strategi rollout: rolling, canary dengan analisis otomatis, dan blue-green. Rollout berjalan bertahap per region.
+- Rollback ke versi sebelumnya dengan satu perintah atau otomatis.
+- Konfigurasi dan secret ikut ter-versi dan ter-deploy secara terkendali. Feature flag tersedia.
+- Visibilitas: status deploy, siapa men-deploy apa, dan jejak audit. Approval opsional.
+- Di luar cakupan: detail sistem build, pengelolaan cluster, dan infrastruktur sebagai kode.
 
 ### Non-functional
 
-| NFR                        | Target                                                                                                         | Alasan                                  |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Keamanan rilis             | Tidak ada downtime saat deploy normal; insiden akibat deploy terdeteksi &lt; 5 menit dan rollback &lt; 2 menit | Deploy adalah penyebab insiden terbesar |
-| Throughput                 | 5.000 deploy/hari, paralel antar service                                                                       | Tim mandiri                             |
-| Latency                    | Commit → prod &lt; 1 jam untuk perubahan biasa                                                                 | Umpan balik cepat                       |
-| Reproducibility            | Artefak immutable, deploy deterministik, audit lengkap                                                         | Kepatuhan, debugging                    |
-| Availability sistem deploy | 99.9%, tetapi produksi tidak bergantung padanya saat runtime                                                   | Deploy sistem mati ≠ produksi mati      |
-| Skala                      | 10.000+ instance, multi-region                                                                                 | —                                       |
+| Target                     | Nilai                                                                                                         | Alasan                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Keamanan rilis             | Deploy normal tanpa downtime. Insiden akibat deploy terdeteksi di bawah 5 menit dan rollback di bawah 2 menit | Deploy adalah penyebab insiden terbesar        |
+| Throughput                 | 5.000 deploy per hari, paralel antar service                                                                  | Tim bekerja mandiri                            |
+| Latency                    | Dari commit sampai produksi di bawah 1 jam untuk perubahan biasa                                              | Umpan balik cepat                              |
+| Reproducibility            | Artefak tidak bisa diubah, deploy deterministik, audit lengkap                                                | Kepatuhan dan debugging                        |
+| Availability sistem deploy | 99.9%, dan produksi tidak bergantung padanya saat runtime                                                     | Sistem deploy mati bukan berarti produksi mati |
+| Skala                      | Lebih dari 10.000 instance di beberapa region                                                                 | Platform besar                                 |
 
 ## 2. Estimasi kapasitas
 
-- Deploy: 5.000/hari ≈ 0.06/s rata-rata, puncak ~1/s pada jam kerja; tiap deploy ratusan langkah (per instance/pod); orkestrator menangani ribuan langkah paralel.
-- Artefak: 5.000 build × 500 MB = 2.5 TB/hari ke registry; dengan layer sharing ~10x lebih kecil; retensi 90 hari → puluhan TB di blob store.
-- Distribusi: 10.000 instance × beberapa deploy/hari × delta 50 MB ≈ TB/hari; mirror per zona dan P2P menekan egress origin.
-- Metrik untuk canary analysis: query ke sistem monitoring tiap 30–60 s per rollout aktif (ratusan rollout bersamaan) → ribuan query/menit; ringan.
-- Audit/event: puluhan ribu event/hari; kecil.
+- Deploy: 5.000 per hari berarti sekitar 0.06 per detik rata-rata. Puncaknya sekitar 1 per detik pada jam kerja. Tiap deploy terdiri dari ratusan langkah per instance, jadi orkestrator menangani ribuan langkah paralel.
+- Artefak: 5.000 build dikali 500 MB adalah 2.5 TB per hari masuk ke registry. Berbagi layer memotongnya sekitar 10 kali. Retensi 90 hari membutuhkan puluhan TB di blob store.
+- Distribusi: 10.000 instance dikali beberapa deploy per hari dikali delta 50 MB adalah beberapa TB per hari. Mirror per zona dan peer-to-peer menekan beban origin.
+- Analisis canary: tiap rollout aktif mengirim query ke sistem monitoring setiap 30 sampai 60 detik. Ratusan rollout bersamaan berarti ribuan query per menit. Beban ini ringan.
+- Audit dan event: puluhan ribu per hari. Kecil.
 
-Keputusan: control plane (orkestrator) terpisah dari data plane (cluster yang menjalankan beban); registry di blob store dengan mirror; state deploy di DB transaksional; eksekusi langkah lewat worker + queue.
+Keputusan desain: control plane yang mengorkestrasi dipisahkan dari data plane yang menjalankan beban. Registry memakai blob store dengan mirror. State deploy disimpan di database transaksional. Langkah dieksekusi worker lewat queue.
 
 ## 3. API design
 
@@ -126,7 +126,7 @@ POST /v1/flags/{name}                   { env, rollout: 25%, rules } (feature fl
 Webhook/event: release.started, step.completed, analysis.failed, release.rolled_back
 ```
 
-Semua operasi idempotent by `releaseId`; setiap perubahan tercatat dengan actor (user/CI) untuk audit.
+Semua operasi aman diulang karena memakai `releaseId` sebagai kunci. Setiap perubahan mencatat siapa pelakunya, baik manusia maupun CI, untuk audit.
 
 ## 4. Skema data
 
@@ -140,7 +140,7 @@ analysis_runs(release_id, target, step, metric, canary_value, baseline_value, ve
 feature_flags(name, env, rules JSONB, version)
 ```
 
-Artefak di registry (blob store) by digest; konfigurasi di repo ter-versi (git ref) dan dirender saat deploy; secret di vault, hanya referensi yang disimpan.
+Artefak tersimpan di registry berdasarkan digest, yaitu hash dari isinya. Konfigurasi tersimpan di repo yang ter-versi dan dirender saat deploy. Secret tersimpan di vault, dan database hanya menyimpan referensinya.
 
 ## 5. High-level design
 
@@ -162,28 +162,38 @@ flowchart LR
   CFG[("Config repo + vault")] --> W
 ```
 
-**Alur rilis**: CI membangun artefak, menandatangani, mendaftarkan digest → pengembang (atau otomatis) membuat release dengan strategi dan langkah → orchestrator menjalankan state machine per target (env, region): langkah 1 canary 1% → worker memperbarui bobot trafik/replika di cluster → analisis membandingkan canary vs baseline selama jendela → lulus: langkah berikutnya; gagal: rollback otomatis (bobot kembali 0, pod canary dihapus) + alert → selesai: `service_state` diperbarui, versi lama tetap tersedia untuk rollback.
+Alur satu rilis:
 
-**Rollback**: deploy versi sebelumnya (digest yang sudah ada di cluster/cache) dengan langkah dipercepat; konfigurasi ikut kembali ke ref sebelumnya.
+1. CI membangun artefak, menandatanganinya, dan mendaftarkan digest-nya ke Deploy API.
+2. Pengembang, atau pipeline otomatis, membuat release dengan strategi dan daftar langkah.
+3. Orchestrator menjalankan state machine untuk tiap target, yaitu pasangan lingkungan dan region.
+4. Worker di region tujuan menerapkan langkah pertama, misalnya canary 1% trafik, ke cluster.
+5. Canary analysis membandingkan metrik canary dengan baseline selama jendela waktu tertentu.
+6. Bila lulus, orchestrator lanjut ke langkah berikutnya. Bila gagal, orchestrator menjalankan rollback otomatis dan mengirim alert.
+7. Setelah semua langkah selesai, `service_state` diperbarui dan versi lama tetap tersedia untuk rollback.
+
+Rollback berarti men-deploy versi sebelumnya dengan langkah yang dipercepat. Digest lama biasanya masih ada di cache node. Konfigurasi ikut kembali ke ref sebelumnya.
 
 ## 6. Detailed design
 
-### 6.1 Artefak, supply chain, dan distribusi
+### 6.1 Artefak, rantai pasok, dan distribusi
 
-- Build reproducible; hasil = image/binary dengan **digest** sebagai identitas; tag hanya alias.
-- Tanda tangan dan provenance (siapa membangun dari commit apa) diverifikasi saat deploy (admission); SBOM untuk audit kerentanan.
-- Distribusi: registry mirror pull-through per zona/region; untuk ribuan node, P2P (node berbagi layer) agar origin hanya melayani beberapa unduhan per layer; pre-pull ke node sebelum rollout dimulai agar langkah deploy tidak menunggu unduhan.
+Build harus reproducible, artinya commit yang sama menghasilkan artefak yang sama. Hasil build diidentifikasi oleh digest, sedangkan tag hanya alias.
+
+Artefak ditandatangani dan membawa provenance, yaitu catatan siapa membangunnya dari commit apa. Admission controller di cluster memverifikasi keduanya sebelum menjalankan. SBOM, daftar komponen di dalam artefak, disimpan untuk audit kerentanan.
+
+Distribusi memakai registry mirror pull-through per zona. Untuk ribuan node, node saling berbagi layer secara peer-to-peer sehingga origin hanya melayani beberapa unduhan per layer. Artefak ditarik ke node sebelum rollout dimulai, supaya langkah deploy tidak menunggu unduhan.
 
 ### 6.2 Strategi rollout
 
-| Strategi            | Cara                                                          | Kelebihan                             | Kekurangan                                                  | Kapan                             |
-| ------------------- | ------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------- | --------------------------------- |
-| Rolling             | Ganti instance sedikit demi sedikit (maxSurge/maxUnavailable) | Hemat kapasitas, sederhana            | Dua versi berjalan bersama; rollback = rolling lagi         | Default untuk service stateless   |
-| Canary              | Sebagian kecil trafik ke versi baru dengan analisis           | Dampak kecil, keputusan berbasis data | Butuh routing trafik dan metrik yang bisa dipisah per versi | Perubahan berisiko, service besar |
-| Blue-green          | Lingkungan baru penuh, lalu switch trafik                     | Rollback instan (switch balik)        | Kapasitas 2x sementara                                      | Perubahan besar, migrasi runtime  |
-| Per region bertahap | Region kecil dulu, tunggu, lanjut                             | Membatasi blast radius global         | Lebih lama                                                  | Selalu untuk produksi global      |
+| Strategi            | Cara kerja                                                             | Kelebihan                                | Kekurangan                                                    | Kapan dipakai                        |
+| ------------------- | ---------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------- | ------------------------------------ |
+| Rolling             | Ganti instance sedikit demi sedikit dengan batas surge dan unavailable | Hemat kapasitas dan sederhana            | Dua versi berjalan bersama, dan rollback berarti rolling lagi | Default untuk service stateless      |
+| Canary              | Sebagian kecil trafik ke versi baru dengan analisis                    | Dampak kecil dan keputusan berbasis data | Butuh routing trafik dan metrik yang terpisah per versi       | Perubahan berisiko dan service besar |
+| Blue-green          | Lingkungan baru lengkap, lalu trafik dipindah                          | Rollback seketika dengan memindah balik  | Kapasitas dua kali lipat sementara                            | Perubahan besar dan migrasi runtime  |
+| Per region bertahap | Region kecil dulu, tunggu, lalu lanjut                                 | Membatasi dampak global                  | Lebih lama                                                    | Selalu untuk produksi global         |
 
-Semua strategi berjalan bersama: canary di dalam region, region bertahap global.
+Semua strategi berjalan bersama. Canary dipakai di dalam region, dan region dijalankan bertahap secara global.
 
 ### 6.3 Canary analysis otomatis
 
@@ -199,47 +209,52 @@ flowchart LR
   CMP -- tidak cukup data --> E[Perpanjang jendela / minta manual]
 ```
 
-- Metrik harus ber-label versi (dari service mesh/ingress atau label pod) agar canary dan baseline terpisah.
-- Baseline = versi lama pada waktu yang sama (bukan histori), untuk menghilangkan efek musiman.
-- Verdict dengan toleransi (mis. error rate canary ≤ 1.2× baseline dan p99 ≤ baseline + 20 ms) atau uji statistik; metrik bisnis (konversi) sebagai gate tambahan.
-- Jeda minimum per langkah agar metrik lambat (crash setelah 5 menit, kebocoran memori) terlihat; bake time lebih lama untuk langkah terakhir.
+Metrik harus berlabel versi, misalnya dari service mesh atau label pod, supaya canary dan baseline bisa dipisah. Baseline adalah versi lama pada waktu yang sama, bukan data historis. Cara ini menghilangkan efek musiman.
+
+Verdict memakai toleransi relatif. Contohnya error rate canary paling banyak 1.2 kali baseline dan p99 paling banyak baseline ditambah 20 ms. Metrik bisnis seperti konversi menjadi gate tambahan.
+
+Setiap langkah punya jeda minimum supaya masalah yang muncul lambat tetap terlihat, misalnya crash setelah 5 menit atau kebocoran memori. Langkah terakhir diberi waktu tunggu lebih lama.
 
 ### 6.4 Orchestrator dan eksekusi
 
-- State machine per release target disimpan di DB; orchestrator stateless mengambil pekerjaan via lease (beberapa instance, satu pemilik per release) sehingga kegagalan orchestrator tidak menggantung rilis.
-- Langkah dieksekusi oleh worker per region (dekat cluster, kredensial lokal) lewat queue; idempotent (menerapkan "keadaan yang diinginkan", bukan perintah), sehingga retry aman.
-- Kontrol konkurensi: satu rilis aktif per service per env; antrian; batas jumlah rilis bersamaan per cluster; freeze window (mis. akhir pekan, peak sale) dengan pengecualian darurat.
-- Produksi **tidak bergantung** pada sistem deploy saat runtime: bila sistem deploy mati, yang berjalan tetap berjalan; rollback darurat tersedia lewat jalur manual terdokumentasi.
+State machine tiap target rilis disimpan di database. Orchestrator sendiri stateless dan mengambil pekerjaan lewat lease, yaitu izin berbatas waktu yang harus diperpanjang. Satu rilis hanya punya satu pemilik, dan kegagalan orchestrator tidak menggantung rilis.
 
-### 6.5 Konfigurasi, secret, migrasi, flag
+Worker per region mengeksekusi langkah lewat queue, dekat dengan cluster dan memakai kredensial lokal. Langkah bersifat idempotent, artinya aman diulang, karena worker menerapkan keadaan yang diinginkan alih-alih menjalankan perintah.
 
-- Konfigurasi di repo (ter-versi), dirender per env/region, di-deploy sebagai bagian rilis (perubahan config = rilis dengan canary juga).
-- Secret dari vault saat runtime; rotasi tanpa rebuild.
-- Migrasi DB: expand-contract; migrasi dijalankan sebagai langkah terpisah sebelum kode, selalu kompatibel mundur; alat migrasi idempotent dan ter-lock.
-- Feature flag: memisahkan deploy dari release; perubahan perilaku dinyalakan bertahap by persen/segmen tanpa deploy; flag punya pemilik dan tanggal kedaluwarsa.
+Kontrol konkurensi mencakup satu rilis aktif per service per lingkungan, antrian, dan batas jumlah rilis bersamaan per cluster. Freeze window, misalnya akhir pekan atau masa promo besar, memblokir rilis kecuali lewat jalur darurat.
+
+Produksi tidak bergantung pada sistem deploy saat runtime. Bila sistem deploy mati, yang sedang berjalan tetap berjalan. Rollback darurat tersedia lewat jalur manual yang terdokumentasi.
+
+### 6.5 Konfigurasi, secret, migrasi, dan flag
+
+Konfigurasi hidup di repo yang ter-versi dan dirender per lingkungan dan region. Perubahan konfigurasi adalah rilis yang juga melewati canary. Secret diambil dari vault saat runtime, sehingga rotasi tidak membutuhkan build ulang.
+
+Migrasi database memakai pola expand-contract. Pertama, tambah kolom baru yang kompatibel mundur. Kedua, deploy kode yang menulis ke kolom lama dan baru. Ketiga, isi data lama ke kolom baru. Keempat, deploy kode yang membaca kolom baru. Terakhir, hapus kolom lama di rilis berikutnya. Migrasi dijalankan sebagai langkah terpisah sebelum kode, dan alat migrasinya aman diulang.
+
+Feature flag memisahkan deploy dari peluncuran fitur. Perilaku baru dinyalakan bertahap berdasarkan persentase atau segmen tanpa deploy ulang. Setiap flag punya pemilik dan tanggal kedaluwarsa.
 
 ### 6.6 Observability dan audit
 
-Setiap rilis: timeline langkah, verdict analisis, link dashboard versi; event ke chat. Audit append-only: siapa, apa, kapan, dari commit apa, dengan approval bila diperlukan. Metrik sistem: lead time commit → prod, frekuensi deploy, rasio rollback, MTTR.
+Setiap rilis punya timeline langkah, verdict analisis, dan tautan dashboard per versi. Event dikirim ke chat tim. Audit bersifat append-only dan mencatat siapa, apa, kapan, dari commit apa, dan approval bila ada. Metrik sistem deploy sendiri meliputi lead time dari commit ke produksi, frekuensi deploy, rasio rollback, dan waktu pemulihan.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                                                         | Dipenuhi oleh                                                                                         | Risiko tersisa                                                                                |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Tanpa downtime, deteksi &lt; 5 menit, rollback &lt; 2 menit | Rolling/canary dengan health gate, artefak lama tersedia di cache node, rollback = langkah dipercepat | Masalah yang hanya muncul di 100% (kapasitas): tahap terakhir dengan bake time dan load-aware |
-| 5.000 deploy/hari                                           | Orchestrator stateless + worker per region, paralel antar service                                     | Kontensi cluster: batas konkurensi per cluster                                                |
-| Commit → prod &lt; 1 jam                                    | Pipeline otomatis, promosi otomatis saat gate lulus                                                   | Bake time canary memakan sebagian; untuk perubahan kecil langkah lebih sedikit                |
-| Reproducibility                                             | Digest, tanda tangan, config ter-versi, audit                                                         | Dependensi runtime (secret, data) di luar artefak: catat versinya                             |
-| Sistem deploy mati                                          | Produksi independen, rollback manual terdokumentasi                                                   | Insiden saat sistem deploy mati memperlama MTTR; prioritaskan availability-nya                |
-| Multi-region                                                | Region bertahap, worker lokal, mirror lokal                                                           | Rilis yang berjalan lama memerlukan toleransi dua versi lama                                  |
+| Target                                                              | Dipenuhi oleh                                                                                                | Risiko tersisa                                                                                       |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Tanpa downtime, deteksi di bawah 5 menit, rollback di bawah 2 menit | Rolling dan canary dengan gate kesehatan. Artefak lama ada di cache node. Rollback adalah langkah dipercepat | Masalah yang hanya muncul pada 100% beban. Mitigasi: langkah terakhir dengan waktu tunggu lebih lama |
+| 5.000 deploy per hari                                               | Orchestrator stateless dan worker per region, paralel antar service                                          | Kontensi di cluster. Mitigasi: batas konkurensi per cluster                                          |
+| Commit sampai produksi di bawah 1 jam                               | Pipeline otomatis dan promosi otomatis saat gate lulus                                                       | Waktu tunggu canary memakan sebagian. Perubahan kecil memakai langkah lebih sedikit                  |
+| Reproducibility                                                     | Digest, tanda tangan, konfigurasi ter-versi, audit                                                           | Dependensi runtime seperti secret dan data berada di luar artefak. Catat versinya                    |
+| Sistem deploy mati                                                  | Produksi independen, rollback manual terdokumentasi                                                          | Insiden saat sistem deploy mati memperlama pemulihan. Prioritaskan availability-nya                  |
+| Multi-region                                                        | Region bertahap, worker lokal, mirror lokal                                                                  | Rilis yang berjalan lama membutuhkan toleransi terhadap dua versi yang hidup bersama                 |
 
-Bottleneck 10x: distribusi artefak (mirror/P2P) dan query analisis (cache, agregasi); SPOF: deploy DB (replikasi) dan registry (mirror + replika).
+Bottleneck pertama saat beban 10 kali lipat adalah distribusi artefak dan query analisis. Keduanya diatasi dengan mirror, peer-to-peer, dan cache agregasi. Titik kegagalan tunggal ada di database deploy dan registry. Keduanya direplikasi dan registry punya mirror.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Service stateful (database, queue broker)?" → Rolling per node dengan drain, satu node per waktu, cek replikasi sebelum lanjut; operator/controller khusus.
-- "Bagaimana deploy mobile app?" → Rollout bertahap di store + feature flag server-side; tidak bisa rollback binary, maka kill switch lewat flag.
-- "Dua tim men-deploy service yang saling bergantung?" → Kontrak API kompatibel mundur, deploy independen; dependency hanya pada versi minimum, bukan rilis bersama.
-- "Bagaimana memastikan artefak yang di-deploy memang dari CI?" → Tanda tangan + provenance diverifikasi oleh admission controller; registry menolak unsigned.
-- "Hotfix saat freeze?" → Jalur darurat dengan approval dua orang, audit, dan tetap melalui canary dipercepat.
-- "Rollback yang tidak bisa (migrasi data merusak)?" → Expand-contract mencegahnya; bila terjadi, roll forward dengan fix + restore data dari backup/PITR.
+- "Bagaimana dengan service stateful seperti database dan broker?" Rolling per node dengan drain, satu node per waktu, dan cek replikasi sebelum lanjut. Biasanya memakai operator khusus.
+- "Bagaimana deploy aplikasi mobile?" Rollout bertahap di app store ditambah feature flag di sisi server. Binary tidak bisa di-rollback, jadi kill switch lewat flag.
+- "Dua tim men-deploy service yang saling bergantung?" Kontrak API harus kompatibel mundur sehingga deploy bisa independen. Dependency hanya pada versi minimum, bukan rilis bersama.
+- "Bagaimana memastikan artefak yang di-deploy memang dari CI?" Tanda tangan dan provenance diverifikasi oleh admission controller. Registry menolak artefak yang tidak ditandatangani.
+- "Hotfix saat freeze window?" Jalur darurat dengan approval dua orang dan audit. Hotfix tetap melewati canary yang dipercepat.
+- "Rollback tidak mungkin karena migrasi data merusak?" Expand-contract mencegahnya. Bila terlanjur terjadi, roll forward dengan perbaikan dan pulihkan data dari backup.

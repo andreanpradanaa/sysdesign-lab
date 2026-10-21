@@ -6,7 +6,7 @@ minutes: 55
 type: case
 prerequisites:
   ['bagian-2/message-queue', 'bagian-2/task-scheduler', 'bagian-2/blob-store', 'bagian-2/rate-limiter']
-summary: 'Menjalankan kode orang asing dengan aman dan adil: antrian submission, worker tersandbox dengan batas CPU/memori/waktu, pengukuran yang konsisten, dan penanganan contest dengan lonjakan ribuan submission per detik.'
+summary: 'Menjalankan kode orang asing dengan aman dan adil. Submission masuk antrian, worker menjalankannya di sandbox dengan batas CPU, memori, dan waktu, pengukurannya konsisten, dan sistem tahan lonjakan ribuan submission per detik saat contest.'
 sources:
   - title: 'gVisor docs — Architecture (sandbox syscall)'
     url: 'https://gvisor.dev/docs/'
@@ -19,98 +19,99 @@ sources:
   - title: 'Judge0 — Open-source online code execution system (docs)'
     url: 'https://ce.judge0.com/'
 quiz:
-  - q: 'Kenapa kode submission TIDAK boleh dijalankan di proses yang sama atau container biasa tanpa pembatasan tambahan?'
+  - q: 'Kenapa kode submission tidak boleh dijalankan di proses yang sama atau di container biasa tanpa pembatasan tambahan?'
     options:
-      - text: 'Karena kode user selalu lambat'
+      - text: 'Karena kode pengguna selalu berjalan lambat'
         correct: false
-        why: 'Kecepatan bukan alasannya.'
-      - text: 'Karena kode tidak dipercaya: bisa membaca file lain, membuka jaringan, fork bomb, menghabiskan memori, atau mengeksploitasi kernel; dibutuhkan isolasi berlapis (namespace, cgroups, seccomp, tanpa jaringan, filesystem read-only) dan idealnya sandbox dengan batas kernel (gVisor/microVM)'
+        why: 'Kecepatan bukan alasannya. Alasannya adalah keamanan.'
+      - text: 'Karena kode tidak dipercaya bisa membaca file lain, membuka jaringan, atau menghabiskan sumber daya'
         correct: true
-        why: 'Ancaman utamanya adalah eskalasi dan DoS. Container biasa berbagi kernel host; sandbox dengan permukaan syscall terbatas atau microVM mengurangi risiko eksploit kernel.'
-      - text: 'Karena bahasa pemrograman berbeda'
+        why: 'Ancaman utamanya adalah eskalasi hak dan penolakan layanan. Isolasi berlapis dan sandbox kernel mengurangi risikonya.'
+      - text: 'Karena tiap bahasa pemrograman butuh container berbeda'
         correct: false
-        why: 'Bahasa dikelola oleh image per bahasa; bukan alasan keamanan.'
-      - text: 'Karena output harus dibandingkan'
+        why: 'Image per bahasa memang ada, tetapi itu soal kemudahan, bukan keamanan.'
+      - text: 'Karena output harus dibandingkan dengan jawaban kunci'
         correct: false
-        why: 'Perbandingan output tidak terkait isolasi.'
-  - q: 'Dua submission identik mendapat waktu eksekusi berbeda (120 ms vs 190 ms) karena berjalan di mesin berbeda. Bagaimana membuat penilaian "Time Limit Exceeded" adil?'
+        why: 'Perbandingan output tidak berhubungan dengan isolasi.'
+  - q: 'Dua submission identik mendapat waktu 120 ms dan 190 ms di mesin berbeda. Bagaimana membuat verdict batas waktu adil?'
     options:
-      - text: 'Pakai waktu dinding (wall-clock) apa adanya'
+      - text: 'Pakai waktu dinding apa adanya'
         correct: false
-        why: 'Wall-clock dipengaruhi beban mesin lain.'
-      - text: 'Ukur CPU time proses (bukan wall-clock) di mesin dengan spesifikasi seragam, satu submission per core yang dipin (cpuset), batas memori lewat cgroups, dan kalibrasi limit per bahasa dengan solusi referensi; wall-clock hanya sebagai pengaman (mis. 2× limit)'
+        why: 'Waktu dinding ikut dipengaruhi beban proses lain di mesin yang sama.'
+      - text: 'Ukur CPU time di mesin seragam dengan satu submission per core'
         correct: true
-        why: 'Konsistensi pengukuran adalah requirement keadilan. Worker homogen, isolasi core, dan limit per bahasa memperkecil variasi.'
-      - text: 'Jalankan tiga kali dan ambil rata-rata'
+        why: 'Konsistensi pengukuran adalah syarat keadilan. Limit per bahasa dikalibrasi dengan solusi referensi.'
+      - text: 'Jalankan tiga kali lalu ambil rata-ratanya'
         correct: false
-        why: 'Mengalikan biaya tiga kali; membantu sedikit tetapi bukan solusi utama.'
-      - text: 'Naikkan limit menjadi 10 detik untuk semua'
+        why: 'Biayanya tiga kali lipat dan variasinya hanya berkurang sedikit.'
+      - text: 'Naikkan batas waktu menjadi 10 detik untuk semua soal'
         correct: false
-        why: 'Menghilangkan makna batas waktu.'
-  - q: 'Contest dimulai: 50.000 peserta mengirim submission dalam menit pertama. Desain apa yang menjaga sistem tetap responsif?'
+        why: 'Batas yang terlalu longgar membuat verdict batas waktu kehilangan makna.'
+  - q: 'Contest dimulai dan 50.000 peserta mengirim submission dalam menit pertama. Desain apa yang menjaga sistem tetap responsif?'
     options:
       - text: 'Menjalankan submission secara sinkron di API server'
         correct: false
-        why: 'API server akan jenuh dan user menunggu tanpa umpan balik.'
-      - text: 'Submission masuk antrian durable dengan status "queued"; pool worker sandbox menarik sesuai kapasitas (autoscale dari lag); hasil dipublikasikan ke client lewat polling/push; rate limit per user; prioritas contest di atas latihan'
+        why: 'API server akan jenuh dan pengguna menunggu tanpa umpan balik.'
+      - text: 'Antrian durable, pool worker yang menyesuaikan kapasitas, dan prioritas untuk contest'
         correct: true
-        why: 'Queue menyerap lonjakan, worker menentukan laju; user melihat posisi antrian. Kapasitas dihitung dari lag dan waktu eksekusi rata-rata.'
-      - text: 'Menolak submission setelah 1.000 per menit'
+        why: 'Queue menyerap lonjakan dan worker menentukan laju. Pengguna melihat posisi antrian sambil menunggu.'
+      - text: 'Menolak submission setelah seribu per menit'
         correct: false
-        why: 'Merusak contest.'
+        why: 'Penolakan massal merusak contest.'
       - text: 'Menjalankan semua submission di satu mesin besar'
         correct: false
-        why: 'Tidak horizontal dan menjadi SPOF.'
-  - q: 'Bagaimana memverifikasi output submission untuk soal dengan banyak jawaban benar (mis. "kembalikan urutan apa pun yang valid")?'
+        why: 'Satu mesin tidak bisa ditambah secara horizontal dan menjadi titik kegagalan tunggal.'
+  - q: 'Bagaimana memverifikasi output untuk soal yang punya banyak jawaban benar?'
     options:
       - text: 'Bandingkan string output dengan jawaban kunci'
         correct: false
-        why: 'Menolak jawaban valid yang berbeda.'
-      - text: 'Pakai checker khusus per soal: program (dari pembuat soal) yang menerima input, output peserta, dan jawaban referensi lalu memutuskan benar/salah; checker pun dijalankan tersandbox'
+        why: 'Jawaban valid yang berbeda dari kunci akan ditolak.'
+      - text: 'Pakai program checker dari pembuat soal yang menilai output peserta'
         correct: true
-        why: 'Soal dengan jawaban tidak unik membutuhkan validator; interaktif bahkan memerlukan interactor yang berkomunikasi dengan solusi.'
+        why: 'Checker menerima input, output peserta, dan jawaban referensi, lalu memutuskan benar atau salah. Checker juga berjalan di sandbox.'
       - text: 'Terima semua output yang tidak kosong'
         correct: false
-        why: 'Tidak menilai apa pun.'
-      - text: 'Minta peserta memverifikasi sendiri'
+        why: 'Cara ini tidak menilai apa pun.'
+      - text: 'Minta peserta memverifikasi jawabannya sendiri'
         correct: false
-        why: 'Tidak dapat dipercaya.'
+        why: 'Peserta tidak bisa dipercaya untuk menilai dirinya sendiri.'
 ---
 
 ## 1. Requirements
 
-Klarifikasi: bahasa yang didukung? Latihan saja atau contest dengan leaderboard real-time? Soal dengan checker khusus/interaktif? Batas waktu dan memori per soal? Apakah ada eksekusi "run" (uji dengan input sendiri) selain "submit"?
+Pertanyaan klarifikasi: bahasa apa saja yang didukung? Hanya latihan atau juga contest dengan leaderboard real-time? Apakah ada soal dengan checker khusus atau soal interaktif? Berapa batas waktu dan memori per soal? Apakah ada fitur "run" dengan input sendiri selain "submit"?
 
 ### Functional
 
-- Pengguna melihat soal, menulis kode di beberapa bahasa, menjalankan dengan input kustom, dan submit untuk dinilai terhadap test case tersembunyi.
-- Verdict: Accepted, Wrong Answer, Time Limit Exceeded, Memory Limit Exceeded, Runtime Error, Compile Error; dengan waktu dan memori terpakai.
-- Contest: durasi tetap, leaderboard, penalti; submission contest diprioritaskan.
-- Pembuat soal mengunggah test case, solusi referensi, checker opsional.
-- Out of scope: editor kolaboratif, plagiarism detection (disebut), diskusi.
+- Pengguna melihat soal, menulis kode dalam beberapa bahasa, menjalankannya dengan input sendiri, dan mengirimnya untuk dinilai terhadap test case tersembunyi.
+- Verdict yang dikembalikan: Accepted, Wrong Answer, Time Limit Exceeded, Memory Limit Exceeded, Runtime Error, atau Compile Error. Verdict disertai waktu dan memori yang terpakai.
+- Contest punya durasi tetap, leaderboard, dan penalti. Submission contest diprioritaskan.
+- Pembuat soal mengunggah test case, solusi referensi, dan checker bila perlu.
+- Di luar cakupan: editor kolaboratif, deteksi plagiarisme, dan forum diskusi.
 
 ### Non-functional
 
-| NFR             | Target                                                                            | Alasan               |
-| --------------- | --------------------------------------------------------------------------------- | -------------------- |
-| Keamanan        | Kode user tidak bisa mengakses host, jaringan, atau submission lain               | Kode tidak dipercaya |
-| Keadilan        | Pengukuran waktu/memori konsisten antar mesin dan waktu                           | Verdict harus adil   |
-| Latency verdict | p50 &lt; 5 s untuk soal biasa di luar puncak; posisi antrian terlihat saat puncak | Umpan balik          |
-| Availability    | 99.9%; contest tidak boleh terganggu                                              | Reputasi             |
-| Skala           | 10 juta submission/bulan; puncak contest 1.000 submission/detik                   | Lonjakan ekstrem     |
-| Biaya           | Worker sandbox adalah biaya utama; autoscale                                      | —                    |
+| Target          | Nilai                                                                           | Alasan               |
+| --------------- | ------------------------------------------------------------------------------- | -------------------- |
+| Keamanan        | Kode pengguna tidak bisa mengakses host, jaringan, atau submission lain         | Kode tidak dipercaya |
+| Keadilan        | Pengukuran waktu dan memori konsisten antar mesin dan antar waktu               | Verdict harus adil   |
+| Latency verdict | Median di bawah 5 detik di luar puncak. Saat puncak, posisi antrian terlihat    | Umpan balik          |
+| Availability    | 99.9%, dan contest tidak boleh terganggu                                        | Reputasi             |
+| Skala           | 10 juta submission per bulan dan puncak 1.000 submission per detik saat contest | Lonjakan ekstrem     |
+| Biaya           | Worker sandbox adalah biaya utama, jadi kapasitasnya harus bisa naik turun      | Efisiensi            |
 
 ## 2. Estimasi kapasitas
 
-Asumsi: 10 juta submission/bulan; rata-rata 20 test case × 0.2 s CPU = 4 s CPU per submission (plus kompilasi ~1 s); puncak contest 1.000 submission/detik selama menit pertama.
+Asumsi: 10 juta submission per bulan. Tiap submission menjalankan sekitar 20 test case dengan 0.2 detik CPU per test, jadi sekitar 4 detik CPU ditambah 1 detik kompilasi. Puncak contest 1.000 submission per detik selama menit pertama.
 
-- Rata-rata: 10^7 / 2.6×10^6 s ≈ **4 submission/detik** × 5 s CPU ≈ 20 core sibuk; kecil.
-- Puncak contest: 1.000/s × 5 s = **5.000 core** untuk verdict instan; tidak masuk akal secara biaya. Target realistis: 500–1.000 core (autoscale, pre-warm sebelum contest) dengan antrian beberapa menit di menit pertama, prioritas untuk soal mudah/submission pertama.
-- Storage: kode 10^7 × 5 KB = 50 GB/bulan; test case per soal (ratusan KB–puluhan MB) × 5.000 soal ≈ puluhan GB; output/log verdict kecil. Blob store untuk test case dan kode.
-- Antrian: 60.000 pesan di menit pertama contest; trivial untuk broker.
-- Leaderboard: 50.000 peserta × puluhan update/menit → sorted set di memori.
+- Rata-rata: 10 juta dibagi 2.6 juta detik per bulan adalah sekitar 4 submission per detik. Dikali 5 detik CPU berarti sekitar 20 core sibuk. Kecil.
+- Puncak contest: 1.000 submission per detik dikali 5 detik CPU membutuhkan 5.000 core untuk verdict seketika. Itu tidak masuk akal secara biaya.
+- Target realistis: 500 sampai 1.000 core yang dinaikkan sebelum contest. Antrian beberapa menit pada menit pertama diterima, dengan prioritas untuk soal mudah dan submission pertama.
+- Storage kode: 10 juta dikali 5 KB adalah 50 GB per bulan. Test case per soal berukuran ratusan KB sampai puluhan MB. Lima ribu soal membutuhkan puluhan GB. Semua disimpan di blob store.
+- Antrian: 60.000 pesan di menit pertama contest. Ini ringan untuk broker.
+- Leaderboard: 50.000 peserta dengan puluhan pembaruan per menit. Sorted set di memori cukup.
 
-Keputusan: API stateless + queue durable + pool worker sandbox homogen yang autoscale; test case di-cache lokal di worker; hasil ke DB + push ke client.
+Keputusan desain: API stateless, queue durable, pool worker sandbox yang seragam dan bisa naik turun, cache test case di tiap worker, hasil disimpan di database dan didorong ke client.
 
 ## 3. API design
 
@@ -124,7 +125,7 @@ GET  /v1/contests/{id}/leaderboard?cursor=  → peringkat
 POST /v1/problems (author)  { statement, limits, tests[] (upload via presigned URL), checker?, referenceSolution }
 ```
 
-Rate limit: submission per user per menit (mis. 10), run per menit lebih longgar; ukuran kode maksimum.
+Rate limit membatasi submission per pengguna per menit, misalnya 10, sedangkan "run" lebih longgar. Ukuran kode juga dibatasi.
 
 ## 4. Skema data
 
@@ -139,7 +140,7 @@ leaderboard (Redis sorted set per contest): score|penalty → user_id, dimateria
 language_images(lang, image_digest, compile_cmd, run_cmd, limits_multiplier)
 ```
 
-Kode dan test case di blob store; DB hanya referensi dan hasil. Idempotency key mencegah submission ganda saat retry.
+Kode dan test case disimpan di blob store. Database hanya menyimpan referensi dan hasil. Idempotency key mencegah submission ganda saat client mengulang request.
 
 ## 5. High-level design
 
@@ -161,7 +162,16 @@ flowchart LR
   AS[Autoscaler\ndari lag antrian] --> W2
 ```
 
-**Alur submit**: client → submission service memvalidasi (ukuran, bahasa, rate limit), menyimpan kode ke blob, membuat record `queued`, mengirim pesan ke queue dengan prioritas → worker mengambil pesan (lease/visibility timeout lebih panjang dari total limit), menandai `running`, mengunduh kode dan test case (cache lokal per problem), kompilasi di sandbox, menjalankan tiap test case di sandbox baru dengan limit, membandingkan output (atau checker), menghasilkan verdict → publish hasil → service memperbarui DB, leaderboard, dan push ke client.
+Alur satu submission:
+
+1. Client mengirim kode ke submission service lewat gateway yang memeriksa auth dan rate limit.
+2. Submission service memvalidasi ukuran dan bahasa, menyimpan kode ke blob store, dan membuat record berstatus `queued`.
+3. Submission service mengirim pesan ke queue dengan prioritas sesuai jenisnya.
+4. Worker mengambil pesan dengan lease yang lebih panjang dari total batas waktu, lalu menandai status `running`.
+5. Worker mengunduh kode dan test case. Test case di-cache lokal per soal.
+6. Worker mengompilasi di sandbox, lalu menjalankan tiap test case di sandbox baru dengan batas waktu dan memori.
+7. Worker membandingkan output, atau memanggil checker, dan menyusun verdict.
+8. Worker menerbitkan hasil. Submission service memperbarui database, leaderboard diperbarui, dan client menerima push.
 
 ## 6. Detailed design
 
@@ -178,67 +188,76 @@ flowchart LR
   T2 --> VD[Verdict agregat\n+ waktu/memori maksimum]
 ```
 
-Lapisan isolasi (defense in depth):
+Isolasi dibuat berlapis supaya satu lapisan yang jebol belum berarti bencana.
 
-| Lapisan        | Mekanisme                                               | Melindungi dari                                          |
-| -------------- | ------------------------------------------------------- | -------------------------------------------------------- |
-| Namespace      | PID, mount, net, user                                   | Melihat proses/filesystem host; jaringan dimatikan total |
-| cgroups v2     | cpu, memory (+ swap 0), pids                            | Fork bomb, OOM host, CPU hog; sekaligus pengukuran       |
-| seccomp        | Allowlist syscall per bahasa                            | Syscall berbahaya                                        |
-| Filesystem     | Root read-only, tmpfs kecil untuk kerja, no setuid      | Modifikasi, exfiltrasi                                   |
-| Sandbox kernel | gVisor (syscall diinterposisi) atau microVM Firecracker | Eksploit kernel host                                     |
-| Waktu          | CPU time limit via rlimit/cgroups + wall-clock guard    | Sleep/IO stall                                           |
+| Lapisan        | Mekanisme                                                                | Melindungi dari                                                                    |
+| -------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Namespace      | PID, mount, network, user                                                | Melihat proses atau filesystem host. Jaringan dimatikan total                      |
+| cgroups v2     | Batas CPU, memori tanpa swap, jumlah proses                              | Fork bomb, kehabisan memori host, dan CPU yang dikuasai. Sekaligus alat pengukuran |
+| seccomp        | Daftar syscall yang diizinkan per bahasa                                 | Syscall berbahaya                                                                  |
+| Filesystem     | Root hanya-baca, tmpfs kecil untuk kerja, tanpa setuid                   | Modifikasi dan pencurian data                                                      |
+| Sandbox kernel | gVisor yang mencegat syscall, atau microVM Firecracker                   | Eksploit kernel host                                                               |
+| Waktu          | Batas CPU time lewat rlimit dan cgroups, ditambah pengaman waktu dinding | Program yang tidur atau macet di I/O                                               |
 
-Satu sandbox per test case (atau per submission dengan reset) agar test case tidak saling memengaruhi; output dibatasi ukurannya (mencegah output bomb); stdin/stdout lewat file, bukan pipe tanpa batas.
+Setiap test case berjalan di sandbox baru, atau sandbox yang direset, supaya test case tidak saling memengaruhi. Ukuran output dibatasi untuk mencegah output bomb. Input dan output lewat file, bukan pipe tanpa batas.
 
 ### 6.2 Keadilan pengukuran
 
-- Worker homogen (tipe instance sama), CPU frequency scaling dimatikan, satu submission per core dengan `cpuset`, tidak ada tetangga berisik (jangan menjalankan dua submission di core hyperthread sepasang).
-- Ukur **CPU time** (user+sys) dari cgroups; wall-clock sebagai pengaman 2–3×.
-- Limit per bahasa: faktor pengali (Python 3×, Java 2× + memori JVM) dikalibrasi dengan solusi referensi saat soal dibuat; verdikt "TLE" dengan toleransi kecil di ambang.
-- Memori: peak dari cgroups memory.peak; JVM/.NET memerlukan pengaturan heap eksplisit.
+Worker harus seragam, dengan tipe instance yang sama dan pengaturan frekuensi CPU yang dimatikan. Satu submission mendapat satu core lewat cpuset, dan dua submission tidak boleh berbagi pasangan hyperthread.
+
+Yang diukur adalah CPU time, yaitu waktu user ditambah sys dari cgroups. Waktu dinding hanya pengaman dengan batas 2 sampai 3 kali.
+
+Limit per bahasa memakai faktor pengali, misalnya Python 3 kali dan Java 2 kali ditambah memori JVM. Faktor dikalibrasi dengan solusi referensi saat soal dibuat. Verdict batas waktu diberi toleransi kecil di ambang.
+
+Memori diukur dari puncak pemakaian menurut cgroups. JVM dan .NET membutuhkan pengaturan heap yang eksplisit.
 
 ### 6.3 Antrian, prioritas, dan skala
 
-- Queue dengan beberapa tingkat prioritas: contest aktif &gt; latihan &gt; run; dalam contest, submission pertama per (user, soal) lebih dulu agar umpan balik merata.
-- Visibility timeout = total limit + margin; worker mengirim heartbeat untuk submission panjang; worker mati → pesan kembali → submission dijalankan ulang (idempotent: hasil lama ditimpa by submission id).
-- Autoscale worker dari lag dan waktu eksekusi rata-rata; **pre-warm** kapasitas sebelum contest (jadwal diketahui); cache image bahasa dan test case di node.
-- Posisi antrian dan ETA ditampilkan ke user; batas submission per user per menit menahan spam.
+Queue punya beberapa tingkat prioritas. Contest aktif di atas latihan, dan latihan di atas "run". Di dalam contest, submission pertama per pasangan pengguna dan soal diproses lebih dulu agar umpan balik merata.
+
+Visibility timeout, yaitu masa pesan disembunyikan selama diproses, diset lebih panjang dari total batas waktu. Worker mengirim heartbeat untuk submission panjang. Worker yang mati membuat pesan kembali ke antrian dan submission dijalankan ulang. Hasil lama ditimpa berdasarkan id submission.
+
+Jumlah worker menyesuaikan lag antrian dan waktu eksekusi rata-rata. Kapasitas dinaikkan sebelum contest karena jadwalnya diketahui. Image bahasa dan test case di-cache di node.
+
+Pengguna melihat posisi antrian dan perkiraan waktu. Batas submission per pengguna per menit menahan spam.
 
 ### 6.4 Penilaian: perbandingan output dan checker
 
-- Default: bandingkan token (abaikan whitespace di akhir); mode presisi untuk floating point (epsilon).
-- Checker khusus (testlib-style): program pembuat soal dijalankan di sandbox juga; interaktif: interactor dan solusi dihubungkan lewat pipe di dalam sandbox dengan limit terpisah.
-- Verdict agregat: berhenti di test pertama yang gagal (hemat) untuk contest ICPC-style, atau jalankan semua untuk skor parsial (IOI-style) tergantung aturan.
-- Hasil per test disimpan; pesan checker dibatasi untuk tidak membocorkan test case tersembunyi.
+Mode default membandingkan token dan mengabaikan whitespace di akhir. Mode presisi dipakai untuk bilangan pecahan dengan toleransi epsilon.
+
+Checker khusus, misalnya bergaya testlib, adalah program dari pembuat soal yang juga berjalan di sandbox. Soal interaktif memakai interactor yang terhubung ke solusi lewat pipe di dalam sandbox dengan batas terpisah.
+
+Verdict agregat berhenti di test pertama yang gagal untuk contest bergaya ICPC. Untuk skor parsial bergaya IOI, semua test dijalankan. Hasil per test disimpan, dan pesan checker dibatasi agar tidak membocorkan test case tersembunyi.
 
 ### 6.5 Contest dan leaderboard
 
-- Jam contest dari server; submission ditandai contest hanya jika diterima sebelum `end_at` (dengan grace network kecil, diterapkan konsisten).
-- Leaderboard di sorted set: skor gabungan (poin, penalti) sebagai score; update saat verdict; halaman diambil dengan ZRANGE; dimaterialisasi ke DB untuk hasil akhir; freeze leaderboard di menit akhir (opsional).
-- Anti-cheat dasar: deteksi kemiripan kode async (MOSS-like) setelah contest; rate limit; satu sesi per user.
+Jam contest berasal dari server. Submission dihitung sebagai bagian contest hanya bila diterima sebelum waktu berakhir, dengan toleransi jaringan kecil yang diterapkan konsisten.
+
+Leaderboard memakai sorted set. Skornya gabungan poin dan penalti, diperbarui saat verdict keluar, dan halamannya diambil dengan ZRANGE. Hasil akhir disimpan ke database. Leaderboard bisa dibekukan di menit-menit akhir.
+
+Anti-cheat dasar meliputi deteksi kemiripan kode setelah contest, rate limit, dan satu sesi per pengguna.
 
 ### 6.6 Pengelolaan soal
 
-Pembuat mengunggah test via presigned URL; solusi referensi dijalankan untuk menghasilkan output yang diharapkan dan mengkalibrasi limit; validator input memeriksa batasan; versi test case agar submission lama tetap dapat direproduksi.
+Pembuat soal mengunggah test case lewat presigned URL, yaitu tautan unggah berbatas waktu langsung ke blob store. Solusi referensi dijalankan untuk menghasilkan output yang diharapkan dan mengkalibrasi batas. Validator memeriksa input terhadap batasan soal. Test case diberi versi supaya submission lama tetap bisa direproduksi.
 
 ## 7. Evaluasi terhadap non-functional requirements
 
-| NFR                | Dipenuhi oleh                                                                                                            | Risiko tersisa                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Keamanan           | Isolasi berlapis + gVisor/microVM, tanpa jaringan, read-only, pids/mem limit                                             | Zero-day kernel/sandbox: worker ephemeral, tanpa secret, jaringan egress ditutup di level host                 |
-| Keadilan           | Worker homogen, cpuset, CPU time, kalibrasi per bahasa                                                                   | Variasi cache CPU ~5%: toleransi di ambang                                                                     |
-| Latency verdict    | Worker tersedia + cache test case; prioritas                                                                             | Puncak contest: antrian menit; posisi antrian terlihat; pre-warm                                               |
-| Availability 99.9% | API stateless, queue durable, worker ephemeral; contest tidak bergantung pada komponen non-kritis (anti-cheat, analitik) | Kegagalan broker: cluster terreplikasi; submission tetap tersimpan di DB sebagai "queued" dan dapat di-requeue |
-| Skala              | Horizontal worker, blob untuk artefak, DB shard by waktu                                                                 | Biaya worker; batasi test case per soal dan early-exit                                                         |
+| Target             | Dipenuhi oleh                                                                                                          | Risiko tersisa                                                                                                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Keamanan           | Isolasi berlapis ditambah gVisor atau microVM, tanpa jaringan, root hanya-baca, batas proses dan memori                | Zero-day di kernel atau sandbox. Mitigasi: worker sekali pakai tanpa secret, jaringan keluar ditutup di level host               |
+| Keadilan           | Worker seragam, cpuset, CPU time, kalibrasi per bahasa                                                                 | Variasi cache CPU sekitar 5%. Mitigasi: toleransi di ambang                                                                      |
+| Latency verdict    | Worker tersedia dan test case di cache, dengan prioritas                                                               | Puncak contest membuat antrian beberapa menit. Mitigasi: posisi antrian terlihat dan kapasitas dinaikkan sebelumnya              |
+| Availability 99.9% | API stateless, queue durable, worker sekali pakai. Contest tidak bergantung pada komponen sampingan seperti anti-cheat | Broker gagal. Mitigasi: cluster terreplikasi, dan submission tetap tersimpan di database sebagai `queued` untuk diantrikan ulang |
+| Skala              | Worker horizontal, blob untuk artefak, database dibagi per waktu                                                       | Biaya worker. Mitigasi: batasi test case per soal dan berhenti di kegagalan pertama                                              |
 
-Bottleneck 10x: kapasitas worker (biaya) dan unduh test case (cache lokal, image bahasa pre-pulled). SPOF: queue (replikasi) dan leaderboard store (replika + rebuild dari DB).
+Bottleneck pertama saat beban 10 kali lipat adalah kapasitas worker dan unduhan test case. Keduanya diatasi dengan autoscaling, cache lokal, dan image yang sudah ditarik. Titik kegagalan tunggal ada di queue dan store leaderboard. Keduanya direplikasi, dan leaderboard bisa dibangun ulang dari database.
 
 ## 8. Pertanyaan lanjutan interviewer
 
-- "Bagaimana menjalankan 'run' interaktif (REPL) atau notebook?" → Sesi sandbox berumur panjang dengan limit total dan idle timeout; jauh lebih mahal; batasi per user.
-- "Bahasa yang butuh JIT warm-up atau GC (Java, Go)?" → Faktor limit per bahasa, ukuran heap eksplisit, dan pengukuran CPU time, bukan wall-clock.
-- "Soal dengan test case 1 GB?" → Cache di node, streaming input, atau generator test di dalam sandbox dari seed.
-- "Mencegah kebocoran test case tersembunyi lewat output/pesan error?" → Batasi output, sembunyikan stderr detail, checker message generik.
-- "Menjalankan ulang semua submission bila test case diperbaiki (rejudge)?" → Job batch prioritas rendah, versi test case, verdict lama disimpan untuk audit.
-- "Multi-region?" → Queue dan worker per region, submission dirutekan ke region user, test case direplikasi ke blob tiap region.
+- "Bagaimana menjalankan sesi interaktif seperti REPL atau notebook?" Sandbox berumur panjang dengan batas total dan idle timeout. Jauh lebih mahal, jadi dibatasi per pengguna.
+- "Bagaimana dengan bahasa yang butuh pemanasan JIT atau garbage collector?" Faktor limit per bahasa, ukuran heap eksplisit, dan pengukuran CPU time, bukan waktu dinding.
+- "Soal dengan test case 1 GB?" Cache di node, streaming input, atau generator test di dalam sandbox dari seed.
+- "Bagaimana mencegah kebocoran test case lewat output atau pesan error?" Batasi output, sembunyikan detail stderr, dan buat pesan checker generik.
+- "Bagaimana menilai ulang semua submission bila test case diperbaiki?" Job batch berprioritas rendah, test case ber-versi, dan verdict lama disimpan untuk audit.
+- "Bagaimana multi-region?" Queue dan worker per region, submission dirutekan ke region pengguna, dan test case direplikasi ke blob tiap region.
