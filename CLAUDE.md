@@ -41,5 +41,6 @@ Konten baru: ikuti format di overview (pelajaran: tujuan, konsep, mermaid, tabel
 - Test: `pnpm test` · coverage: `pnpm test:coverage` · watch: `pnpm test:watch`
 - Type-check: `pnpm check` · lint: `pnpm lint` (`pnpm lint:fix`) · format: `pnpm format` / `pnpm format:check`
 - Build: `pnpm build` · preview build: `pnpm preview`
+- Deploy manual ke Pages (selama CI terkunci): `pnpm deploy:pages`
 - Dev server: `pnpm dev` (atau `pnpm astro dev --background`, stop: `pnpm astro dev stop`); preview app lewat `.claude/launch.json` (nama `dev`, port 4321)
 - Graph: `graphify update .`

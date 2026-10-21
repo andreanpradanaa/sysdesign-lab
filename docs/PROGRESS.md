@@ -2,16 +2,16 @@
 
 Diperbarui: 2026-10-21. Total konten **58/58 (100%)**; tersisa deploy ke GitHub Pages (butuh repo) dan ekspor progress (opsional).
 
-| Prioritas | Fitur                                                   | Progress   | %    | x/y   | Status                        |
-| --------- | ------------------------------------------------------- | ---------- | ---- | ----- | ----------------------------- |
-| P0        | Fondasi (scaffold, tooling, CI)                         | ██████████ | 100% | 6/6   | Selesai                       |
-| P0        | Platform (progress, kuis, mock, cheat sheet, dark mode) | ██████████ | 100% | 7/7   | Selesai                       |
-| P0        | Bagian 1 — Fondasi (5 modul)                            | ██████████ | 100% | 5/5   | Selesai                       |
-| P1        | Bagian 2 — Building blocks (17 modul)                   | ██████████ | 100% | 17/17 | Selesai                       |
-| P1        | Bagian 3 — Studi kasus (16)                             | ██████████ | 100% | 16/16 | Selesai                       |
-| P2        | Bagian 4 — Outage & rangkuman (4)                       | ██████████ | 100% | 4/4   | Selesai                       |
-| P1        | Mock interview (soal per studi kasus)                   | ██████████ | 100% | 16/16 | Selesai                       |
-| P2        | Deploy (GitHub Pages)                                   | ░░░░░░░░░░ | 0%   | 0/1   | Terblokir (butuh repo GitHub) |
+| Prioritas | Fitur                                                   | Progress   | %    | x/y   | Status                 |
+| --------- | ------------------------------------------------------- | ---------- | ---- | ----- | ---------------------- |
+| P0        | Fondasi (scaffold, tooling, CI)                         | ██████████ | 100% | 6/6   | Selesai                |
+| P0        | Platform (progress, kuis, mock, cheat sheet, dark mode) | ██████████ | 100% | 7/7   | Selesai                |
+| P0        | Bagian 1 — Fondasi (5 modul)                            | ██████████ | 100% | 5/5   | Selesai                |
+| P1        | Bagian 2 — Building blocks (17 modul)                   | ██████████ | 100% | 17/17 | Selesai                |
+| P1        | Bagian 3 — Studi kasus (16)                             | ██████████ | 100% | 16/16 | Selesai                |
+| P2        | Bagian 4 — Outage & rangkuman (4)                       | ██████████ | 100% | 4/4   | Selesai                |
+| P1        | Mock interview (soal per studi kasus)                   | ██████████ | 100% | 16/16 | Selesai                |
+| P2        | Deploy (GitHub Pages)                                   | ██████████ | 100% | 3/3   | Selesai (via gh-pages) |
 
 Legenda: Belum mulai · Berjalan · Selesai · Terblokir. Bar = 10 blok, tiap blok 10%.
 
@@ -63,4 +63,7 @@ Legenda: Belum mulai · Berjalan · Selesai · Terblokir. Bar = 10 blok, tiap bl
 
 ## Deploy
 
-- [ ] Buat repo GitHub, aktifkan Pages (Source: GitHub Actions), set `SITE_URL`/`BASE_PATH` di workflow
+- [x] Repo GitHub publik andreanpradanaa/sysdesign-lab, main ter-push
+- [x] Situs live: https://andreanpradanaa.github.io/sysdesign-lab/ (source Pages: branch gh-pages)
+- [x] Deploy manual satu perintah: `pnpm deploy:pages` (build dengan BASE_PATH lalu push dist ke gh-pages)
+- [ ] Workflow CI masih gagal karena akun GitHub terkunci billing; setelah beres, kembalikan source Pages ke GitHub Actions (build_type=workflow) agar deploy otomatis saat push
