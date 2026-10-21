@@ -17,6 +17,7 @@ Platform belajar System Design pribadi (statis, Bahasa Indonesia, istilah teknis
 - Spec fitur: `docs/features/<fitur>/spec.md`; peta fitur & format konten: `docs/features/overview.md`.
 - Kontrak "API" = skema frontmatter + key localStorage: `docs/api/`.
 - Progress proyek: `docs/PROGRESS.md`. Indeks dokumen: `docs/README.md`.
+- Gaya bahasa: ikuti `docs/features/gaya-bahasa.md` (kalimat ≤30 kata, tanpa panah/titik koma di prosa, istilah Inggris diberi pengantar, opsi kuis ≤20 kata); lint di test aktif untuk prefix di `STYLE_CHECKED`.
 - Sumber konten: hanya gratis (System Design Primer, ByteByteGo gratis, DDIA ringkasan, blog engineering, RFC). Jangan pernah menyalin teks/diagram educative.io atau sumber berbayar lain. Test konten menolak link educative.io.
 
 ## Workflow pengerjaan fitur / konten

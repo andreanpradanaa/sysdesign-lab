@@ -5,7 +5,7 @@ order: 2
 minutes: 25
 type: lesson
 prerequisites: ['bagian-1/cara-kerja-interview']
-summary: 'Kebiasaan kecil yang membedakan sesi yang mengalir dari sesi yang tersendat: apa yang dilakukan, apa yang dihindari, dan kalimat yang bisa langsung dipakai.'
+summary: 'Kebiasaan kecil yang membedakan sesi yang mengalir dari sesi yang tersendat: apa yang dilakukan, apa yang dihindari, dan kalimat siap pakai.'
 sources:
   - title: 'System Design Primer — Study guide & approach'
     url: 'https://github.com/donnemartin/system-design-primer#study-guide'
@@ -14,142 +14,142 @@ sources:
   - title: 'Jackson Gabbard — Intro to Architecture and Systems Design Interviews (video)'
     url: 'https://www.youtube.com/watch?v=ZgdS0EUmn70'
 quiz:
-  - q: 'Interviewer menantang: "Saya rasa cache di sini tidak perlu." Respons terbaik?'
+  - q: 'Interviewer berkata cache di desainmu tidak perlu. Respons mana yang paling baik?'
     options:
       - text: 'Langsung menghapus cache dari desain'
         correct: false
         why: 'Menyerah tanpa argumen menunjukkan keputusanmu tidak punya dasar. Interviewer mungkin hanya menguji.'
-      - text: 'Mempertahankan dengan angka: rasio baca:tulis dan QPS yang membuat DB tidak sanggup tanpa cache, lalu membuka diri bila asumsinya berbeda'
+      - text: 'Mempertahankan dengan angka baca dan tulis, lalu terbuka bila asumsinya berbeda'
         correct: true
-        why: 'Membela keputusan dengan data, bukan ego, dan tetap terbuka. Kalau interviewer punya info baru (mis. baca jauh lebih kecil), kamu menyesuaikan dengan alasan.'
-      - text: 'Mengatakan "semua sistem besar punya cache"'
+        why: 'Kamu membela keputusan dengan data, bukan ego. Kalau interviewer punya informasi baru, kamu menyesuaikan dengan alasan.'
+      - text: 'Mengatakan semua sistem besar punya cache'
         correct: false
-        why: 'Generalisasi, bukan argumen untuk kasus ini.'
+        why: 'Ini generalisasi, bukan argumen untuk kasus yang sedang dibahas.'
       - text: 'Berdebat sampai interviewer setuju'
         correct: false
-        why: 'Ngotot tanpa data buruk; kolaborasi adalah bagian dari penilaian.'
-  - q: 'Mana yang termasuk "don''t" saat menggambar high-level design?'
+        why: 'Ngotot tanpa data merugikan. Kolaborasi adalah bagian dari penilaian.'
+  - q: 'Mana yang termasuk hal yang harus dihindari saat menggambar high-level design?'
     options:
-      - text: 'Memberi nama tiap kotak dan panah'
+      - text: 'Memberi nama setiap kotak dan panah'
         correct: false
-        why: 'Ini justru "do": diagram tanpa label memaksa interviewer menebak.'
-      - text: 'Menggambar dalam diam selama beberapa menit lalu menjelaskan sekaligus'
+        why: 'Ini justru dianjurkan. Diagram tanpa label memaksa interviewer menebak.'
+      - text: 'Menggambar dalam diam lalu menjelaskan sekaligus di akhir'
         correct: true
-        why: 'Diam membuat interviewer kehilangan jalur pikiranmu dan tidak bisa mengarahkan. Bicara sambil menggambar.'
-      - text: 'Menjelaskan satu alur baca dan satu alur tulis end-to-end'
+        why: 'Diam membuat interviewer kehilangan jalur pikiranmu dan tidak bisa mengarahkan. Bicaralah sambil menggambar.'
+      - text: 'Menjelaskan satu alur baca dan satu alur tulis'
         correct: false
-        why: 'Ini "do": alur end-to-end membuktikan komponen benar-benar terhubung.'
+        why: 'Ini dianjurkan. Alur dari awal sampai akhir membuktikan komponen benar-benar terhubung.'
       - text: 'Menyebut komponen yang sengaja disederhanakan'
         correct: false
-        why: 'Ini "do": menyatakan penyederhanaan menunjukkan kamu sadar, bukan lupa.'
-  - q: 'Kamu tidak tahu detail internal Cassandra tapi merasa cocok untuk kasus ini. Apa yang sebaiknya kamu lakukan?'
+        why: 'Ini dianjurkan. Menyatakan penyederhanaan menunjukkan kamu sadar, bukan lupa.'
+  - q: 'Kamu merasa Cassandra cocok, tetapi tidak tahu detail internalnya. Apa yang sebaiknya kamu lakukan?'
     options:
       - text: 'Sebut Cassandra dan berharap tidak ditanya'
         correct: false
         why: 'Hampir pasti ditanya. Jawaban yang mengambang merusak kredibilitas bagian lain yang sebenarnya kuat.'
-      - text: 'Sebut kebutuhannya (write-heavy, partisi horizontal, tanpa join) dan katakan "wide-column store seperti Cassandra", lalu bahas pada level pola akses yang kamu kuasai'
+      - text: 'Sebut kebutuhannya, lalu bahas pada tingkat pola akses yang kamu kuasai'
         correct: true
-        why: 'Berbicara pada level kebutuhan dan pola, jujur tentang batas pengetahuan, tetap menunjukkan penalaran yang benar.'
+        why: 'Kamu bicara pada tingkat kebutuhan dan pola, jujur tentang batas pengetahuan, dan tetap menunjukkan penalaran yang benar.'
       - text: 'Hindari membahas database sama sekali'
         correct: false
-        why: 'Database hampir selalu ada di deep dive; menghindar justru menonjol.'
+        why: 'Database hampir selalu ditanya di deep dive. Menghindar justru mencolok.'
       - text: 'Pilih PostgreSQL untuk semua kasus karena paling familiar'
         correct: false
-        why: 'Familiar bagus, tapi harus bisa dijelaskan kapan Postgres tidak cukup; kalau tidak, terlihat seperti satu palu untuk semua paku.'
-  - q: 'Mana kebiasaan yang paling membantu manajemen waktu?'
+        why: 'Familiar itu bagus, tetapi kamu harus bisa menjelaskan kapan PostgreSQL tidak cukup.'
+  - q: 'Kebiasaan mana yang paling membantu mengelola waktu?'
     options:
-      - text: 'Menulis agenda tahap di sudut papan di awal dan mencoretnya saat selesai'
+      - text: 'Menulis agenda tahap di sudut papan dan mencoretnya saat selesai'
         correct: true
-        why: 'Agenda tertulis membuat kamu dan interviewer sama-sama melihat progres, dan memudahkan berkata "saya lanjut ke tahap berikutnya".'
+        why: 'Agenda tertulis membuat kamu dan interviewer sama-sama melihat progres. Pindah tahap pun jadi mudah.'
       - text: 'Menyelesaikan tiap komponen sampai sempurna sebelum pindah'
         correct: false
         why: 'Kesempurnaan satu komponen tidak menebus komponen lain yang tidak sempat dibahas.'
       - text: 'Menunggu interviewer mengingatkan waktu'
         correct: false
-        why: 'Interviewer biasanya membiarkan kamu mengelola sendiri; itu bagian dari penilaian.'
+        why: 'Interviewer biasanya membiarkan kamu mengelola waktu sendiri. Itu bagian dari penilaian.'
       - text: 'Berbicara lebih cepat'
         correct: false
-        why: 'Kecepatan bicara menurunkan kejelasan tanpa menambah kedalaman.'
+        why: 'Bicara cepat menurunkan kejelasan tanpa menambah kedalaman.'
 ---
 
 ## Tujuan belajar
 
 Setelah pelajaran ini kamu bisa:
 
-- Membedakan kebiasaan yang membuat sesi **mengalir** dari yang membuatnya **tersendat**.
+- Membedakan kebiasaan yang membuat sesi mengalir dari kebiasaan yang membuatnya tersendat.
 - Merespons tantangan interviewer tanpa menyerah dan tanpa ngotot.
-- Memakai beberapa kalimat siap pakai untuk pindah tahap, menyatakan asumsi, dan mengakui batas pengetahuan.
+- Memakai kalimat siap pakai untuk pindah tahap, menyatakan asumsi, dan mengakui batas pengetahuan.
 
-## Do
+## Yang sebaiknya kamu lakukan
 
-**Sebelum menggambar**
+Sebelum menggambar:
 
-- Ulangi soal dengan kata-katamu sendiri, lalu tanya 3-5 pertanyaan klarifikasi: siapa user, fitur inti, skala, latency yang dapat diterima, konsistensi vs availability.
-- Tulis requirements di papan, termasuk yang **sengaja di-skip**. Interviewer tidak bisa menuduhmu lupa kalau kamu menulis "out of scope".
+- Ulangi soal dengan kata-katamu sendiri. Lalu ajukan 3 sampai 5 pertanyaan: siapa penggunanya, apa fitur intinya, berapa skalanya, berapa latency yang bisa diterima, dan mana yang lebih penting antara konsistensi atau ketersediaan.
+- Tulis requirements di papan, termasuk yang sengaja kamu lewati. Interviewer tidak bisa menuduhmu lupa kalau kamu menulis "di luar cakupan".
 - Tulis agenda tahap di sudut papan dan coret saat selesai.
 
-**Saat merancang**
+Saat merancang:
 
-- Bicara sambil menggambar. Beri nama tiap kotak dan panah.
-- Jelaskan **satu alur baca dan satu alur tulis** end-to-end sebelum deep dive.
-- Kaitkan tiap keputusan dengan angka: "4.000 QPS baca dan 40 tulis, jadi cache dulu sebelum read replica."
-- Sebut alternatif yang ditolak: "bisa juga X, tapi Y lebih cocok karena Z."
+- Bicara sambil menggambar. Beri nama setiap kotak dan panah.
+- Jelaskan satu alur baca dan satu alur tulis dari awal sampai akhir sebelum masuk deep dive.
+- Kaitkan setiap keputusan dengan angka. Contoh: "Ada 4.000 request baca per detik dan 40 tulis, jadi cache dulu sebelum read replica."
+- Sebut alternatif yang kamu tolak. Contoh: "Bisa juga pakai X, tetapi Y lebih cocok karena Z."
 
-**Saat ditantang**
+Saat ditantang:
 
-- Anggap tantangan sebagai pertanyaan, bukan vonis. Jawab dengan data; kalau interviewer memberi informasi baru, ubah desain dan katakan kenapa.
-- Jujur pada batas pengetahuan: "Saya tahu polanya, tapi belum pernah mengoperasikan ini di produksi."
+- Anggap tantangan sebagai pertanyaan, bukan vonis. Jawab dengan data. Kalau interviewer memberi informasi baru, ubah desain dan katakan kenapa.
+- Jujur tentang batas pengetahuan. Contoh: "Saya tahu polanya, tetapi belum pernah mengoperasikannya di produksi."
 
-## Don't
+## Yang sebaiknya kamu hindari
 
-- **Jangan menggambar sebelum bertanya.** Sistem yang rapi untuk masalah yang salah tidak dinilai.
-- **Jangan diam lama.** Interviewer tidak bisa mengarahkan atau memberi kredit untuk pikiran yang tidak diucapkan.
-- **Jangan name-dropping.** Setiap teknologi yang disebut adalah undangan untuk ditanya internalnya.
-- **Jangan over-engineer.** Multi-region aktif-aktif untuk aplikasi 1.000 user adalah sinyal negatif; mulailah sederhana, lalu tunjukkan jalur scale.
-- **Jangan tenggelam di satu komponen.** Setelah ~10 menit deep dive, tanyakan "mau saya lanjut ke bagian lain atau dalami ini lebih jauh?"
-- **Jangan mengabaikan failure mode.** Tiap komponen baru: apa yang terjadi kalau ini mati, lambat, atau mengembalikan data basi?
-- **Jangan berdebat untuk menang.** Kolaborasi adalah sebagian dari penilaian.
+- Jangan menggambar sebelum bertanya. Sistem yang rapi untuk masalah yang salah tidak dinilai.
+- Jangan diam lama. Interviewer tidak bisa mengarahkan atau memberi nilai untuk pikiran yang tidak diucapkan.
+- Jangan menyebut teknologi hanya untuk terdengar hebat. Setiap teknologi yang kamu sebut adalah undangan untuk ditanya cara kerja dalamnya.
+- Jangan merancang berlebihan. Arsitektur multi-region untuk aplikasi 1.000 pengguna adalah sinyal negatif. Mulai sederhana, lalu tunjukkan jalur untuk tumbuh.
+- Jangan tenggelam di satu komponen. Setelah sekitar 10 menit deep dive, tanyakan apakah interviewer ingin lanjut ke bagian lain.
+- Jangan mengabaikan cara sistem gagal. Untuk setiap komponen baru, tanyakan: apa yang terjadi kalau ini mati, lambat, atau mengembalikan data lama?
+- Jangan berdebat untuk menang. Kolaborasi adalah bagian dari penilaian.
 
-## Pola respons saat ditantang
+## Cara merespons saat ditantang
 
 ```mermaid
 flowchart LR
-  A[Interviewer menantang keputusan] --> B{Apakah saya punya\nalasan berbasis angka/requirement?}
-  B -- ya --> C[Jelaskan alasan + alternatif yang ditolak]
+  A[Interviewer menantang keputusan] --> B{Punya alasan\nberbasis angka?}
+  B -- ya --> C[Jelaskan alasan dan alternatif yang ditolak]
   C --> D{Interviewer memberi\ninformasi baru?}
   D -- ya --> E[Ubah desain, sebutkan apa yang berubah dan kenapa]
-  D -- tidak --> F[Pertahankan, tawarkan kondisi yang akan mengubah pilihan]
-  B -- tidak --> G[Akui, tanya batasan yang relevan, putuskan ulang dengan cepat]
+  D -- tidak --> F[Pertahankan, sebut kondisi yang akan mengubah pilihanmu]
+  B -- tidak --> G[Akui, tanyakan batasan yang relevan, putuskan ulang]
 ```
 
 ## Kalimat siap pakai
 
-| Situasi           | Kalimat                                                                                                             |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Pindah tahap      | "Saya kunci requirements ini dulu; kalau ada yang berubah, kita kembali. Sekarang estimasi."                        |
-| Menyatakan asumsi | "Saya asumsikan 10 juta DAU dan rasio baca 100:1. Kalau asumsinya beda, bilang saja."                               |
-| Menolak scope     | "Analytics saya keluarkan dari scope supaya kita fokus ke jalur utama; bisa dibahas di akhir kalau ada waktu."      |
-| Batas pengetahuan | "Saya belum pernah mengoperasikan ini, tapi polanya adalah ... ; yang penting di sini adalah ..."                   |
-| Menawarkan arah   | "Ada tiga bagian yang bisa didalami: key generation, cache, atau failover DB. Mana yang paling menarik untuk Anda?" |
-| Menutup           | "Kalau ada waktu lagi, yang paling saya khawatirkan adalah ... karena ..."                                          |
+| Situasi           | Kalimat                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Pindah tahap      | "Saya kunci requirements ini dulu. Kalau ada yang berubah, kita kembali. Sekarang estimasi."                             |
+| Menyatakan asumsi | "Saya asumsikan 10 juta pengguna aktif harian dan rasio baca 100 banding 1. Kalau asumsinya beda, tolong koreksi."       |
+| Menolak cakupan   | "Analytics saya keluarkan dari cakupan supaya kita fokus ke jalur utama. Bisa dibahas di akhir kalau ada waktu."         |
+| Batas pengetahuan | "Saya belum pernah mengoperasikan ini, tetapi polanya begini. Yang penting di sini adalah ini."                          |
+| Menawarkan arah   | "Ada tiga bagian yang bisa didalami: pembuatan key, cache, atau failover database. Mana yang paling menarik untuk Anda?" |
+| Menutup           | "Kalau ada waktu lagi, yang paling saya khawatirkan adalah bagian ini, karena alasan ini."                               |
 
 ## Trade-off: seberapa detail?
 
-| Pilihan                                                     | Kelebihan                 | Kekurangan                     | Kapan                                        |
-| ----------------------------------------------------------- | ------------------------- | ------------------------------ | -------------------------------------------- |
-| Sangat detail di awal (tiap endpoint, tiap kolom)           | Terlihat teliti           | Habis waktu sebelum high-level | Hindari; detail secukupnya untuk melanjutkan |
-| Abstrak terus ("ada service, ada DB")                       | Cepat                     | Tidak ada bukti kedalaman      | Hindari; pilih 2-3 titik untuk dalam         |
-| Lebar dulu, dalam di titik yang dipilih bersama interviewer | Gambaran utuh + kedalaman | Butuh disiplin waktu           | Default                                      |
+| Pilihan                                    | Kelebihan                   | Kekurangan                         | Kapan                                          |
+| ------------------------------------------ | --------------------------- | ---------------------------------- | ---------------------------------------------- |
+| Sangat detail sejak awal                   | Terlihat teliti             | Waktu habis sebelum gambaran besar | Hindari. Detail secukupnya untuk melanjutkan   |
+| Abstrak terus                              | Cepat                       | Tidak ada bukti kedalaman          | Hindari. Pilih 2 sampai 3 titik untuk didalami |
+| Lebar dulu, dalam di titik yang disepakati | Gambaran utuh dan kedalaman | Butuh disiplin waktu               | Jadikan default                                |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Kenapa tidak pakai X saja?" → Jelaskan kondisi di mana X lebih baik dan kenapa kondisi itu tidak berlaku di sini.
-- "Bagaimana kamu tahu angkanya segitu?" → Sebutkan asumsi dan cara menghitungnya; akui bila itu tebakan terdidik.
-- "Apa kelemahan desainmu?" → Selalu siapkan satu; menjawab "tidak ada" adalah sinyal negatif.
-- "Kalau saya minta disederhanakan, apa yang kamu buang dulu?" → Menguji apakah kamu tahu komponen mana yang esensial.
+- "Kenapa tidak pakai X saja?" Jelaskan kondisi saat X lebih baik, dan kenapa kondisi itu tidak berlaku di sini.
+- "Dari mana angka itu?" Sebutkan asumsi dan cara menghitungnya. Akui kalau itu tebakan terdidik.
+- "Apa kelemahan desainmu?" Selalu siapkan satu. Menjawab "tidak ada" adalah sinyal negatif.
+- "Kalau saya minta disederhanakan, apa yang kamu buang dulu?" Ini menguji apakah kamu tahu komponen mana yang esensial.
 
 ## Ringkasan
 
-1. Do: bertanya dulu, bicara sambil menggambar, kaitkan keputusan dengan angka, sebut alternatif dan failure mode.
-2. Don't: menggambar sebelum bertanya, diam, name-dropping, over-engineering, tenggelam di satu komponen, berdebat untuk menang.
-3. Saat ditantang: jawab dengan data, ubah desain bila ada informasi baru, dan jujur pada batas pengetahuan.
+1. Lakukan: bertanya dulu, bicara sambil menggambar, kaitkan keputusan dengan angka, sebut alternatif dan cara gagalnya.
+2. Hindari: menggambar sebelum bertanya, diam, menyebut teknologi tanpa alasan, merancang berlebihan, tenggelam di satu komponen, berdebat untuk menang.
+3. Saat ditantang: jawab dengan data, ubah desain bila ada informasi baru, dan jujur tentang batas pengetahuanmu.

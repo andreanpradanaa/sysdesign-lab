@@ -26,7 +26,7 @@ const mocks = (await getCollection('mocks')).sort((a, b) => a.data.order - b.dat
     {mocks.length === 0 && <p class="muted">Belum ada soal mock.</p>}
   </div>
 
-  <h2>Tahap yang dinilai</h2>
+  <h2>Delapan tahap yang dicentang</h2>
   <ol>
     {STAGES.map((s) => (
       <li>
@@ -46,7 +46,7 @@ const mocks = (await getCollection('mocks')).sort((a, b) => a.data.order - b.dat
       {RUBRIC.map((c) => (
         <tr>
           <td>{c.label}</td>
-          <td>{c.hint.replace(/^4 = /, '')}</td>
+          <td>{c.hint}</td>
         </tr>
       ))}
     </tbody>

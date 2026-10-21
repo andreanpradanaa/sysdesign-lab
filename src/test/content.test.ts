@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import matter from 'gray-matter';
-import { validateQuiz } from '../lib/quiz';
+import { validateQuiz, type QuizQuestion } from '../lib/quiz';
 import { plannedOrder } from '../data/curriculum';
 
 const ROOT = join(process.cwd(), 'src/content/lessons');
@@ -68,6 +68,57 @@ function mermaidLint(body: string): string[] {
   return errors;
 }
 
+/** Pemeriksaan gaya bahasa (docs/features/gaya-bahasa.md). Hanya untuk file yang sudah ditulis ulang. */
+export const STYLE_CHECKED = ['bagian-1/'];
+const MAX_SENTENCE_WORDS = 30;
+const MAX_OPTION_WORDS = 20;
+const MAX_QUESTION_WORDS = 30;
+const MAX_PARENS_PER_100 = 1;
+
+function proseLines(body: string): string[] {
+  const noCode = body.replace(/```[\s\S]*?```/g, '');
+  return noCode
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('|') && !l.startsWith('#') && !l.startsWith('<') && !/^!\[/.test(l))
+    .map((l) => l.replace(/^(\d+\.|[-*])\s+/, '').replace(/[*_`]/g, ''));
+}
+
+function styleLint(body: string): string[] {
+  const errors: string[] = [];
+  const lines = proseLines(body);
+  let words = 0;
+  let parens = 0;
+  for (const line of lines) {
+    if (line.includes('→')) errors.push(`panah di prosa: ${line.slice(0, 80)}`);
+    if (/;\s/.test(line)) errors.push(`titik koma di prosa: ${line.slice(0, 80)}`);
+    parens += (line.match(/\(/g) ?? []).length;
+    for (const sentence of line.split(/(?<=[.!?])\s+(?=[A-Z"“])/)) {
+      const n = sentence.trim().split(/\s+/).filter(Boolean).length;
+      words += n;
+      if (n > MAX_SENTENCE_WORDS) errors.push(`kalimat ${n} kata: ${sentence.slice(0, 80)}`);
+    }
+  }
+  if (words > 0 && (parens * 100) / words > MAX_PARENS_PER_100) {
+    errors.push(`tanda kurung ${parens} per ${words} kata (batas ${MAX_PARENS_PER_100}/100)`);
+  }
+  return errors;
+}
+
+function quizStyleLint(quiz: QuizQuestion[]): string[] {
+  const errors: string[] = [];
+  quiz.forEach((q, i) => {
+    const qn = q.q.split(/\s+/).length;
+    if (qn > MAX_QUESTION_WORDS) errors.push(`soal #${i + 1} ${qn} kata`);
+    q.options.forEach((o, j) => {
+      const n = o.text.split(/\s+/).length;
+      if (n > MAX_OPTION_WORDS)
+        errors.push(`soal #${i + 1} opsi #${j + 1} ${n} kata: ${o.text.slice(0, 60)}`);
+    });
+  });
+  return errors;
+}
+
 const files = walk(ROOT);
 const planned = new Set(plannedOrder());
 
@@ -110,6 +161,12 @@ describe('konten pelajaran', () => {
         expect(content.includes('```mermaid')).toBe(true);
         expect(mermaidLint(content)).toEqual([]);
       });
+      if (STYLE_CHECKED.some((prefix) => id.startsWith(prefix))) {
+        it('mengikuti pedoman gaya bahasa', () => {
+          expect(styleLint(content)).toEqual([]);
+          expect(quizStyleLint(data.quiz ?? [])).toEqual([]);
+        });
+      }
       it('tidak merujuk sumber berbayar', () => {
         expect(content).not.toMatch(/educative\.io/i);
         for (const s of data.sources) expect(s.url).not.toMatch(/educative\.io/i);

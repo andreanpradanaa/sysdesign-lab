@@ -16,122 +16,122 @@ sources:
   - title: 'ByteByteGo — Back-of-the-envelope estimation (artikel gratis)'
     url: 'https://blog.bytebytego.com/p/back-of-the-envelope-estimation'
 quiz:
-  - q: 'Sebuah layanan menerima 50 juta request per hari. Berapa perkiraan QPS rata-rata yang pantas disebut di interview?'
+  - q: 'Sebuah layanan menerima 50 juta request per hari. Berapa perkiraan QPS rata-rata yang pantas disebut?'
     options:
       - text: 'Sekitar 600 QPS'
         correct: true
-        why: '50.000.000 / 86.400 ≈ 578, dibulatkan ke 600. Bulatkan ke angka yang mudah; presisi dua digit sudah lebih dari cukup.'
+        why: '50 juta dibagi 86.400 detik hasilnya sekitar 578, dibulatkan ke 600. Dua digit sudah lebih dari cukup.'
       - text: 'Sekitar 60 QPS'
         correct: false
-        why: 'Kurang satu orde. Kesalahan umum: membagi dengan 10^6 detik, padahal satu hari hanya ~86.400 ≈ 10^5 detik.'
+        why: 'Kurang satu tingkat. Kesalahan umumnya membagi dengan satu juta detik, padahal sehari hanya sekitar 100 ribu detik.'
       - text: 'Sekitar 6.000 QPS'
         correct: false
-        why: 'Kelebihan satu orde. 6.000 QPS × 86.400 ≈ 518 juta request/hari, bukan 50 juta.'
-      - text: 'Tidak bisa dihitung tanpa tahu distribusi trafik per jam'
+        why: 'Kelebihan satu tingkat. 6.000 QPS setara lebih dari 500 juta request per hari.'
+      - text: 'Tidak bisa dihitung tanpa tahu sebaran trafik per jam'
         correct: false
-        why: 'Distribusi memang penting untuk peak, tapi rata-rata tetap bisa dan harus dihitung dulu. Peak kemudian diestimasi 2-3x rata-rata.'
-  - q: 'Latency mana yang paling mendekati satu round trip di dalam satu datacenter?'
+        why: 'Sebaran penting untuk puncak, tetapi rata-rata tetap bisa dihitung dulu. Puncak lalu ditaksir 2 sampai 3 kali rata-rata.'
+  - q: 'Latency mana yang paling mendekati satu bolak-balik di dalam satu datacenter?'
     options:
-      - text: '~100 ns'
+      - text: 'Sekitar 100 nanodetik'
         correct: false
-        why: 'Itu orde akses main memory (RAM), bukan network.'
-      - text: '~0.5 ms'
+        why: 'Itu waktu akses memori utama, bukan jaringan.'
+      - text: 'Sekitar 0.5 milidetik'
         correct: true
-        why: 'Round trip intra-datacenter ≈ 500 µs. Inilah sebabnya satu request yang memanggil 20 service secara berurutan sudah memakan ~10 ms hanya untuk network.'
-      - text: '~10 ms'
+        why: 'Bolak-balik di dalam datacenter sekitar 500 mikrodetik. Request yang memanggil 20 service berurutan menghabiskan 10 ms hanya untuk jaringan.'
+      - text: 'Sekitar 10 milidetik'
         correct: false
-        why: 'Itu orde HDD seek atau round trip antar kota berdekatan, terlalu lambat untuk intra-datacenter.'
-      - text: '~150 ms'
+        why: 'Itu waktu seek harddisk atau bolak-balik antar kota berdekatan. Terlalu lambat untuk dalam datacenter.'
+      - text: 'Sekitar 150 milidetik'
         correct: false
-        why: 'Itu round trip antar benua. Angka ini yang membuat CDN dan edge computing bernilai.'
-  - q: 'Sistem menyimpan 10 juta objek baru per hari, masing-masing ~1 KB. Berapa storage yang dibutuhkan untuk 5 tahun?'
+        why: 'Itu bolak-balik antar benua. Angka inilah yang membuat CDN bernilai.'
+  - q: 'Sistem menyimpan 10 juta objek baru per hari, masing-masing 1 KB. Berapa storage untuk 5 tahun?'
     options:
-      - text: '~18 TB'
+      - text: 'Sekitar 18 TB'
         correct: true
-        why: '10 juta × 1 KB = 10 GB/hari. × 365 × 5 ≈ 1.825 hari ≈ 18 TB. Rule of thumb: 5 tahun ≈ 2.000 hari.'
-      - text: '~1.8 TB'
+        why: '10 juta kali 1 KB adalah 10 GB per hari. Dikali 1.825 hari hasilnya sekitar 18 TB.'
+      - text: 'Sekitar 1.8 TB'
         correct: false
-        why: 'Kurang satu orde; mungkin salah mengalikan 10 GB/hari dengan ~180 hari saja.'
-      - text: '~180 TB'
+        why: 'Kurang satu tingkat. Mungkin kamu mengalikan 10 GB per hari dengan 180 hari saja.'
+      - text: 'Sekitar 180 TB'
         correct: false
-        why: 'Kelebihan satu orde. Cek ulang: 10 GB × 1.825 ≈ 18.250 GB ≈ 18 TB.'
-      - text: '~18 GB'
+        why: 'Kelebihan satu tingkat. 10 GB dikali 1.825 hari adalah 18.250 GB.'
+      - text: 'Sekitar 18 GB'
         correct: false
-        why: 'Itu baru kebutuhan dua hari, bukan lima tahun.'
+        why: 'Itu kebutuhan dua hari, bukan lima tahun.'
   - q: 'Kenapa interviewer meminta estimasi padahal angkanya pasti tidak akurat?'
     options:
-      - text: 'Untuk menguji kemampuan aritmetika kandidat'
+      - text: 'Untuk menguji kemampuan berhitung kandidat'
         correct: false
-        why: 'Aritmetika hanya alat. Yang dinilai adalah apakah angka dipakai untuk mengambil keputusan, bukan ketepatan hitungannya.'
+        why: 'Berhitung hanya alat. Yang dinilai adalah apakah angka dipakai untuk mengambil keputusan.'
       - text: 'Supaya kandidat tahu apakah desainnya butuh sharding, cache, atau cukup satu server'
         correct: true
-        why: 'Inilah tujuannya: estimasi menentukan apakah satu DB cukup, apakah cache wajib, berapa shard, dan berapa bandwidth. Tanpa angka, desain cuma tebakan.'
+        why: 'Estimasi menentukan apakah satu database cukup, apakah cache wajib, dan berapa bandwidth yang dibutuhkan.'
       - text: 'Karena semua perusahaan besar punya trafik yang sama'
         correct: false
-        why: 'Justru sebaliknya; skala sangat bervariasi, maka estimasi harus dilakukan per kasus.'
+        why: 'Justru sebaliknya. Skala sangat bervariasi, jadi estimasi harus dilakukan per kasus.'
       - text: 'Untuk mengisi waktu sebelum menggambar diagram'
         correct: false
-        why: 'Estimasi sebaiknya singkat (3-5 menit) tapi bukan pengisi waktu; hasilnya dirujuk lagi saat memilih komponen.'
+        why: 'Estimasi sebaiknya singkat, tetapi hasilnya dirujuk lagi saat memilih komponen.'
 ---
 
 ## Tujuan belajar
 
 Setelah pelajaran ini kamu bisa:
 
-- Menghitung **QPS** (baca & tulis), **storage**, **bandwidth**, dan **ukuran cache** sebuah sistem dalam 3-5 menit.
-- Menghafal orde besaran _latency numbers_ dan memakainya untuk menolak desain yang tidak masuk akal.
-- Menjelaskan ke interviewer _kenapa_ sebuah angka mengubah keputusan desain.
+- Menghitung QPS baca dan tulis, storage, bandwidth, dan ukuran cache sebuah sistem dalam 3 sampai 5 menit.
+- Menghafal orde besaran latency dan memakainya untuk menolak desain yang tidak masuk akal.
+- Menjelaskan ke interviewer kenapa sebuah angka mengubah keputusan desain.
 
 ## Kenapa estimasi penting
 
-Interviewer tidak peduli apakah jawabannya 578 QPS atau 600 QPS. Mereka peduli apakah kamu tahu bahwa 600 QPS **bisa dilayani satu database**, sedangkan 60.000 QPS **tidak**. Estimasi adalah jembatan antara requirements dan arsitektur: tanpa angka, setiap kotak di diagram hanyalah tebakan.
+Interviewer tidak peduli apakah jawabannya 578 atau 600 QPS. QPS adalah jumlah query per detik. Mereka peduli apakah kamu tahu bahwa 600 QPS bisa dilayani satu database, sedangkan 60.000 QPS tidak. Estimasi adalah jembatan antara requirements dan arsitektur. Tanpa angka, setiap kotak di diagram hanyalah tebakan.
 
 Prinsipnya tiga:
 
-1. **Bulatkan agresif.** 86.400 detik/hari ≈ 10^5. 1 juta ≈ 2^20. Dua digit signifikan sudah cukup.
-2. **Tulis asumsinya.** "Saya asumsikan 100 juta DAU, tiap user 10 request/hari" lebih berharga daripada angka ajaib.
-3. **Pakai hasilnya.** Setiap angka harus berujung pada keputusan: perlu cache? perlu shard? perlu CDN?
+1. Bulatkan dengan berani. Satu hari adalah 86.400 detik, bulatkan menjadi 100 ribu. Satu juta kira-kira sama dengan 2 pangkat 20. Dua digit sudah cukup.
+2. Tulis asumsinya. "Saya asumsikan 100 juta pengguna aktif harian, tiap pengguna 10 request per hari" lebih berharga daripada angka ajaib.
+3. Pakai hasilnya. Setiap angka harus berujung pada keputusan. Perlu cache? Perlu shard? Perlu CDN?
 
-## Angka yang harus hafal
+## Angka yang harus kamu hafal
 
 ### Pangkat dua
 
-| Pangkat | Nilai      | Nama |
-| ------- | ---------- | ---- |
-| 2^10    | ~1 ribu    | KB   |
-| 2^20    | ~1 juta    | MB   |
-| 2^30    | ~1 miliar  | GB   |
-| 2^40    | ~1 triliun | TB   |
+| Pangkat      | Nilai             | Nama |
+| ------------ | ----------------- | ---- |
+| 2 pangkat 10 | sekitar 1 ribu    | KB   |
+| 2 pangkat 20 | sekitar 1 juta    | MB   |
+| 2 pangkat 30 | sekitar 1 miliar  | GB   |
+| 2 pangkat 40 | sekitar 1 triliun | TB   |
 
-### Latency numbers (orde besaran)
+### Berapa lama tiap operasi
 
-| Operasi                     | Waktu   | Implikasi desain                                  |
-| --------------------------- | ------- | ------------------------------------------------- |
-| L1 cache                    | ~1 ns   | —                                                 |
-| Main memory                 | ~100 ns | In-memory cache sangat murah                      |
-| SSD random read             | ~100 µs | 1.000x lebih lambat dari RAM                      |
-| Round trip dalam datacenter | ~0.5 ms | Setiap hop service menambah 0.5 ms                |
-| HDD seek                    | ~10 ms  | Hindari random I/O di disk                        |
-| Round trip antar benua      | ~150 ms | Tidak bisa dipercepat, hanya dihindari (CDN/edge) |
+| Operasi                         | Waktu          | Akibatnya untuk desain                            |
+| ------------------------------- | -------------- | ------------------------------------------------- |
+| Cache L1 di prosesor            | sekitar 1 ns   | Hampir gratis                                     |
+| Memori utama                    | sekitar 100 ns | Cache di memori sangat murah                      |
+| Baca acak dari SSD              | sekitar 100 µs | 1.000 kali lebih lambat dari memori               |
+| Bolak-balik di dalam datacenter | sekitar 0.5 ms | Setiap hop antar service menambah 0.5 ms          |
+| Seek harddisk                   | sekitar 10 ms  | Hindari akses acak ke disk                        |
+| Bolak-balik antar benua         | sekitar 150 ms | Tidak bisa dipercepat, hanya dihindari dengan CDN |
 
-Cara mengingat: tiap turun satu "tingkat" (RAM → SSD → HDD → network lintas benua) kira-kira **100-1.000x lebih lambat**.
+Cara mengingatnya: setiap turun satu tingkat, dari memori ke SSD, ke harddisk, ke jaringan lintas benua, waktunya naik 100 sampai 1.000 kali.
 
 ### Waktu dan konversi
 
-- 1 hari ≈ 86.400 s ≈ **10^5 s**
-- 1 juta request/hari ≈ **12 QPS**; 100 juta/hari ≈ 1.200 QPS
-- Peak ≈ **2-3x** rata-rata
-- 5 tahun ≈ **2.000 hari**
+- Satu hari sekitar 100 ribu detik.
+- Satu juta request per hari berarti sekitar 12 QPS. Seratus juta per hari berarti sekitar 1.200 QPS.
+- Puncak biasanya 2 sampai 3 kali rata-rata.
+- Lima tahun sekitar 2.000 hari.
 
 ## Alur estimasi
 
 ```mermaid
 flowchart LR
-  A[Asumsi: DAU, aksi per user, ukuran objek] --> B[QPS baca & tulis]
-  B --> C[Peak = 2-3x rata-rata]
-  A --> D[Storage per hari → per 5 tahun]
-  B --> E[Bandwidth = QPS × ukuran]
-  D --> F[Cache = 20% data harian aturan 80/20]
+  A[Asumsi: pengguna aktif,\naksi per pengguna, ukuran objek] --> B[QPS baca dan tulis]
+  B --> C[Puncak = 2 sampai 3 kali rata-rata]
+  A --> D[Storage per hari,\nlalu per 5 tahun]
+  B --> E[Bandwidth = QPS x ukuran]
+  D --> F[Cache = 20% data harian,\naturan 80/20]
   C --> G{Keputusan desain}
   E --> G
   F --> G
@@ -142,50 +142,52 @@ flowchart LR
 
 Asumsi yang kita tulis di papan:
 
-- 10 juta **DAU**
-- Tiap user melihat 20 foto/hari, mengunggah 0.2 foto/hari (rasio baca:tulis = 100:1)
-- Ukuran foto rata-rata 500 KB, metadata 1 KB
+- 10 juta pengguna aktif harian.
+- Setiap pengguna melihat 20 foto per hari dan mengunggah 0.2 foto per hari. Rasio baca dan tulis 100 banding 1.
+- Ukuran foto rata-rata 500 KB, metadata 1 KB.
 
-**QPS**
+QPS:
 
-- Baca: 10M × 20 = 200M/hari ÷ 10^5 ≈ **2.000 QPS**, peak ≈ 6.000 QPS
-- Tulis: 10M × 0.2 = 2M/hari ÷ 10^5 ≈ **20 QPS**, peak ≈ 60 QPS
+- Baca: 10 juta kali 20 adalah 200 juta per hari. Dibagi 100 ribu detik, hasilnya 2.000 QPS. Puncak sekitar 6.000 QPS.
+- Tulis: 10 juta kali 0.2 adalah 2 juta per hari, atau 20 QPS. Puncak sekitar 60 QPS.
 
-**Storage**
+Storage:
 
-- Foto: 2M × 500 KB = 1 TB/hari → 5 tahun ≈ **2 PB**
-- Metadata: 2M × 1 KB = 2 GB/hari → 5 tahun ≈ 4 TB
+- Foto: 2 juta kali 500 KB adalah 1 TB per hari. Lima tahun berarti sekitar 2 PB.
+- Metadata: 2 juta kali 1 KB adalah 2 GB per hari. Lima tahun berarti sekitar 4 TB.
 
-**Bandwidth**
+Bandwidth:
 
-- Keluar: 2.000 QPS × 500 KB ≈ **1 GB/s** (8 Gbps). Ini angka yang langsung memaksa CDN masuk ke desain.
-- Masuk: 20 QPS × 500 KB ≈ 10 MB/s, kecil.
+- Keluar: 2.000 QPS kali 500 KB adalah sekitar 1 GB per detik. Angka ini langsung memaksa CDN masuk ke desain.
+- Masuk: 20 QPS kali 500 KB adalah 10 MB per detik. Kecil.
 
-**Cache**
+Cache:
 
-- Aturan 80/20: 20% foto yang diakses hari ini menghasilkan 80% trafik. Data yang dibaca per hari = 200M × 500 KB = 100 TB; 20%-nya = 20 TB. Terlalu besar untuk RAM, jadi cache foto ditaruh di **CDN**, sedangkan cache metadata (20% × 2 GB × beberapa hari) cukup di Redis.
+- Aturan 80/20 mengatakan 20% foto yang diakses hari ini menghasilkan 80% trafik.
+- Data yang dibaca per hari adalah 200 juta kali 500 KB, yaitu 100 TB. Dua puluh persennya 20 TB.
+- Itu terlalu besar untuk memori, jadi cache foto ditaruh di CDN. Cache metadata cukup di Redis, karena 20% dari beberapa GB masih kecil.
 
-Perhatikan bagaimana tiap angka menghasilkan keputusan: bandwidth → CDN; storage PB → blob store, bukan database; write 20 QPS → satu database primary cukup; read metadata 2.000 QPS → cache + read replica.
+Perhatikan bagaimana setiap angka menghasilkan keputusan. Bandwidth membawa kita ke CDN. Storage dalam PB membawa kita ke blob store, bukan database. Tulis 20 QPS berarti satu database primary cukup. Baca metadata 2.000 QPS berarti cache dan read replica.
 
 ## Trade-off saat mengestimasi
 
-| Pilihan                      | Kelebihan                        | Kekurangan            | Kapan dipakai                                       |
-| ---------------------------- | -------------------------------- | --------------------- | --------------------------------------------------- |
-| Asumsi dari interviewer      | Akurat untuk konteks mereka      | Butuh waktu bertanya  | Selalu tanya dulu; kalau tidak diberi, buat sendiri |
-| Bulatkan ke pangkat 10       | Cepat, mudah dicek               | Bisa meleset 2-3x     | Hampir selalu; cukup untuk memilih komponen         |
-| Hitung peak secara eksplisit | Desain lebih aman                | Bisa over-provision   | Saat ada pola trafik jelas (jam makan siang, event) |
-| Estimasi detail per komponen | Menemukan bottleneck tersembunyi | Makan waktu interview | Hanya untuk 1-2 komponen kritis di deep dive        |
+| Pilihan                        | Kelebihan                        | Kekurangan                          | Kapan dipakai                                         |
+| ------------------------------ | -------------------------------- | ----------------------------------- | ----------------------------------------------------- |
+| Asumsi dari interviewer        | Akurat untuk konteks mereka      | Butuh waktu bertanya                | Selalu tanya dulu. Kalau tidak diberi, buat sendiri   |
+| Bulatkan ke pangkat 10         | Cepat dan mudah dicek            | Bisa meleset 2 sampai 3 kali        | Hampir selalu. Cukup untuk memilih komponen           |
+| Hitung puncak secara eksplisit | Desain lebih aman                | Bisa menyediakan kapasitas berlebih | Saat ada pola trafik jelas, misalnya jam makan siang  |
+| Estimasi detail per komponen   | Menemukan bottleneck tersembunyi | Memakan waktu interview             | Hanya untuk 1 sampai 2 komponen kritis saat deep dive |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Berapa QPS-nya? Apakah satu database cukup?" → Hitung, lalu bandingkan dengan kapasitas kasar: satu primary SQL ~ribuan write/s; read puluhan ribu/s dengan cache.
-- "Berapa storage untuk 5 tahun, dan di mana disimpan?" → Objek besar ke blob store, metadata ke DB.
-- "Berapa besar cache yang kamu butuhkan?" → 20% dari data harian; sebut apakah muat di RAM satu node atau perlu cluster.
-- "Kalau user naik 10x, bagian mana yang pecah duluan?" → Ulangi hitungan untuk komponen dengan margin paling tipis.
-- "Angka kamu meleset 5x, apa yang berubah di desain?" → Jawab jujur: sebagian besar keputusan bertahan sampai meleset satu orde.
+- "Berapa QPS-nya? Apakah satu database cukup?" Hitung, lalu bandingkan dengan kapasitas kasar. Satu primary SQL sanggup ribuan tulis per detik dan puluhan ribu baca per detik dengan cache.
+- "Berapa storage untuk 5 tahun, dan di mana disimpan?" Objek besar ke blob store, metadata ke database.
+- "Berapa besar cache yang kamu butuhkan?" Dua puluh persen dari data harian. Sebut apakah muat di memori satu node atau perlu cluster.
+- "Kalau pengguna naik 10 kali, bagian mana yang pecah duluan?" Ulangi hitungan untuk komponen dengan margin paling tipis.
+- "Angkamu meleset 5 kali, apa yang berubah di desain?" Jawab jujur. Sebagian besar keputusan bertahan sampai meleset satu tingkat.
 
 ## Ringkasan
 
-1. Estimasi adalah alat pengambil keputusan, bukan ujian aritmetika: setiap angka harus berujung pada "jadi kita butuh X".
-2. Hafal orde besaran: 1 hari ≈ 10^5 detik, RAM 100 ns, SSD 100 µs, RTT datacenter 0.5 ms, lintas benua 150 ms.
-3. Urutan tetap: asumsi → QPS (baca/tulis, peak) → storage → bandwidth → cache (80/20), lalu rujuk angkanya lagi di high-level design.
+1. Estimasi adalah alat pengambil keputusan, bukan ujian berhitung. Setiap angka harus berujung pada "jadi kita butuh X".
+2. Hafal orde besarannya: satu hari sekitar 100 ribu detik, memori 100 ns, SSD 100 µs, bolak-balik datacenter 0.5 ms, lintas benua 150 ms.
+3. Urutannya tetap: asumsi, lalu QPS baca dan tulis beserta puncaknya, lalu storage, lalu bandwidth, lalu cache. Rujuk angkanya lagi saat menggambar desain.

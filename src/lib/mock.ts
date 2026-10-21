@@ -10,14 +10,14 @@ export interface Stage {
 
 /** Tahapan wajib, sama dengan urutan studi kasus. Total 45 menit. */
 export const STAGES: Stage[] = [
-  { id: 'requirements', label: 'Requirements (functional & non-functional)', minutes: 5 },
-  { id: 'estimation', label: 'Estimasi kapasitas', minutes: 4 },
-  { id: 'api', label: 'API design', minutes: 4 },
-  { id: 'data', label: 'Skema data', minutes: 4 },
-  { id: 'hld', label: 'High-level design', minutes: 10 },
-  { id: 'detail', label: 'Detailed design per komponen', minutes: 12 },
-  { id: 'evaluation', label: 'Evaluasi terhadap NFR & bottleneck', minutes: 4 },
-  { id: 'followup', label: 'Pertanyaan lanjutan / wrap-up', minutes: 2 },
+  { id: 'requirements', label: 'Tentukan requirements: fungsi inti dan target non-fungsional', minutes: 5 },
+  { id: 'estimation', label: 'Hitung estimasi kapasitas', minutes: 4 },
+  { id: 'api', label: 'Rancang API', minutes: 4 },
+  { id: 'data', label: 'Rancang skema data', minutes: 4 },
+  { id: 'hld', label: 'Gambar high-level design', minutes: 10 },
+  { id: 'detail', label: 'Dalami 2–3 komponen kritis', minutes: 12 },
+  { id: 'evaluation', label: 'Cek ulang target non-fungsional dan bottleneck', minutes: 4 },
+  { id: 'followup', label: 'Tutup: rangkuman dan pertanyaan lanjutan', minutes: 2 },
 ];
 
 export interface Criterion {
@@ -30,32 +30,32 @@ export const RUBRIC: Criterion[] = [
   {
     id: 'requirements',
     label: 'Klarifikasi requirements',
-    hint: '4 = menanyakan scope, skala, dan prioritas NFR sebelum menggambar.',
+    hint: 'Nilai 4: kamu menanyakan cakupan, skala, dan prioritas sebelum menggambar apa pun.',
   },
   {
     id: 'estimation',
-    label: 'Estimasi kapasitas',
-    hint: '4 = QPS, storage, bandwidth dihitung dan dipakai untuk keputusan desain.',
+    label: 'Hitung estimasi kapasitas',
+    hint: 'Nilai 4: kamu menghitung QPS, storage, dan bandwidth, lalu memakainya untuk memilih komponen.',
   },
   {
     id: 'hld',
-    label: 'High-level design',
-    hint: '4 = komponen lengkap, alur data jelas, bisa dijelaskan end-to-end.',
+    label: 'Gambar high-level design',
+    hint: 'Nilai 4: semua komponen ada, alur data jelas, dan kamu bisa menjelaskannya dari awal sampai akhir.',
   },
   {
     id: 'deep-dive',
     label: 'Deep dive komponen',
-    hint: '4 = memilih 2-3 komponen kritis dan membahas internal + failure mode.',
+    hint: 'Nilai 4: kamu memilih 2–3 komponen kritis dan membahas cara kerja dalam serta cara gagalnya.',
   },
   {
     id: 'tradeoffs',
     label: 'Trade-off & alternatif',
-    hint: '4 = tiap keputusan disertai alternatif dan alasan memilih.',
+    hint: 'Nilai 4: setiap keputusan disertai alternatif yang ditolak dan alasannya.',
   },
   {
     id: 'communication',
     label: 'Komunikasi & manajemen waktu',
-    hint: '4 = terstruktur, tidak tersesat di detail, selesai dalam waktu.',
+    hint: 'Nilai 4: penjelasan runtut, tidak tenggelam di detail, dan selesai tepat waktu.',
   },
 ];
 

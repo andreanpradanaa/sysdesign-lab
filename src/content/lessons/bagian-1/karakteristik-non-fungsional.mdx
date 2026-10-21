@@ -5,7 +5,7 @@ order: 4
 minutes: 40
 type: lesson
 prerequisites: ['bagian-1/abstraksi-distributed-system']
-summary: 'Availability, reliability, scalability, maintainability, fault tolerance: definisi yang bisa diukur, cara menargetkannya, dan harga yang dibayar untuk tiap "nine".'
+summary: 'Availability, reliability, scalability, maintainability, dan fault tolerance: definisi yang bisa diukur, cara menargetkannya, dan harga yang dibayar untuk setiap tambahan angka sembilan.'
 sources:
   - title: 'Google SRE Book — Embracing Risk & Service Level Objectives (gratis online)'
     url: 'https://sre.google/sre-book/embracing-risk/'
@@ -18,59 +18,59 @@ sources:
   - title: 'The Tail at Scale (Dean & Barroso, CACM 2013, akses terbuka)'
     url: 'https://research.google/pubs/the-tail-at-scale/'
 quiz:
-  - q: 'Sebuah API melewati tiga service secara seri, masing-masing availability 99.9%. Availability end-to-end kira-kira?'
+  - q: 'Sebuah API melewati tiga service berurutan, masing-masing availability 99.9%. Berapa kira-kira availability totalnya?'
     options:
       - text: '99.9%'
         correct: false
-        why: 'Komponen seri saling mengalikan, bukan mengambil nilai terendah saja.'
+        why: 'Komponen yang saling bergantung dikalikan, bukan diambil nilai terendahnya.'
       - text: '99.7%'
         correct: true
-        why: '0.999 × 0.999 × 0.999 ≈ 0.997. Tiap hop seri menurunkan availability; itulah sebabnya dependency harus sedikit atau punya fallback.'
+        why: '0.999 dikali 0.999 dikali 0.999 hasilnya sekitar 0.997. Setiap dependency menurunkan availability.'
       - text: '99.99%'
         correct: false
-        why: 'Lebih tinggi dari komponen tunggalnya; mustahil untuk rangkaian seri tanpa redundansi.'
+        why: 'Lebih tinggi dari komponen tunggalnya. Itu mustahil untuk rangkaian yang saling bergantung.'
       - text: '97%'
         correct: false
-        why: 'Terlalu rendah; itu kira-kira sepuluh komponen 99.7% seri, bukan tiga.'
-  - q: 'Latency rata-rata 20 ms, tetapi p99 800 ms. Mana kesimpulan yang paling tepat?'
+        why: 'Terlalu rendah. Itu kira-kira sepuluh komponen 99.7% yang dirangkai, bukan tiga.'
+  - q: 'Latency rata-rata 20 ms, tetapi p99 mencapai 800 ms. Kesimpulan mana yang paling tepat?'
     options:
-      - text: 'Sistem cepat; rata-rata yang penting'
+      - text: 'Sistem cepat, karena rata-ratanya yang penting'
         correct: false
-        why: 'Rata-rata menyembunyikan ekor. Satu dari seratus request (atau satu dari seratus user yang memuat halaman berisi 100 panggilan) merasakan 800 ms.'
-      - text: '1% request sangat lambat, dan pada halaman yang memanggil banyak backend, hampir semua user akan terkena ekor itu'
+        why: 'Rata-rata menyembunyikan ekor. Satu dari seratus request merasakan 800 ms.'
+      - text: 'Satu persen request sangat lambat, dan halaman dengan banyak panggilan hampir pasti terkena'
         correct: true
-        why: 'Efek "tail at scale": bila satu halaman memanggil 100 service, peluang minimal satu panggilan kena p99 ≈ 63%. Target harus dinyatakan sebagai persentil, bukan rata-rata.'
+        why: 'Kalau satu halaman memanggil 100 service, peluang minimal satu panggilan kena p99 sekitar 63%. Target harus berupa persentil.'
       - text: 'p99 tidak relevan untuk aplikasi web'
         correct: false
-        why: 'Justru sangat relevan; user paling aktif biasanya yang paling sering terkena ekor.'
-      - text: 'Tambah server akan otomatis menurunkan p99'
+        why: 'Justru sangat relevan. Pengguna paling aktif biasanya paling sering terkena ekor.'
+      - text: 'Menambah server otomatis menurunkan p99'
         correct: false
-        why: 'Belum tentu; ekor sering berasal dari GC pause, lock, atau query lambat, bukan kekurangan CPU.'
+        why: 'Belum tentu. Ekor sering berasal dari jeda garbage collector, lock, atau query lambat.'
   - q: 'Apa perbedaan paling tepat antara availability dan reliability?'
     options:
-      - text: 'Keduanya sama'
+      - text: 'Keduanya sama saja'
         correct: false
-        why: 'Berbeda: sistem bisa selalu "hidup" (available) tapi sering mengembalikan jawaban salah (tidak reliable).'
-      - text: 'Availability = fraksi waktu sistem bisa melayani; reliability = sistem melakukan fungsinya dengan benar, diukur mis. dengan MTBF atau tingkat error'
+        why: 'Berbeda. Sistem bisa selalu hidup tetapi sering memberi jawaban salah.'
+      - text: 'Availability adalah bisa diakses, reliability adalah melakukan fungsinya dengan benar'
         correct: true
-        why: 'Availability tentang "bisa diakses"; reliability tentang "benar dan konsisten". Keduanya ditarget terpisah di SLO.'
+        why: 'Availability diukur dari waktu sistem bisa melayani. Reliability diukur dari tingkat error atau jarak antar kegagalan.'
       - text: 'Reliability hanya berlaku untuk hardware'
         correct: false
-        why: 'Software pun punya reliability: bug, data korup, respons salah.'
-      - text: 'Availability diukur dalam ms, reliability dalam persen'
+        why: 'Software pun punya reliability: bug, data rusak, respons salah.'
+      - text: 'Availability diukur dalam milidetik'
         correct: false
-        why: 'Availability diukur persen waktu (atau persen request sukses); latency yang diukur ms.'
-  - q: 'Naik dari 99.9% ke 99.99% availability biasanya butuh apa?'
+        why: 'Availability diukur dalam persen waktu atau persen request sukses. Latency yang diukur dalam milidetik.'
+  - q: 'Apa yang biasanya dibutuhkan untuk naik dari 99.9% ke 99.99% availability?'
     options:
-      - text: 'Hanya menambah satu server lagi'
+      - text: 'Cukup menambah satu server lagi'
         correct: false
-        why: 'Satu server tambahan menghilangkan satu SPOF, tapi 99.99% (≈ 52 menit/tahun) butuh deteksi otomatis, failover cepat, dan deploy yang aman.'
-      - text: 'Redundansi di setiap lapisan, failover otomatis dalam hitungan detik, deploy bertahap dengan rollback, dan menghilangkan dependency seri yang tidak perlu'
+        why: 'Satu server tambahan menghilangkan satu titik lemah. Tetapi 99.99% berarti hanya 52 menit downtime setahun.'
+      - text: 'Redundansi di tiap lapisan, failover otomatis, dan deploy bertahap yang bisa dibatalkan'
         correct: true
-        why: 'Tiap nine tambahan memperkecil anggaran downtime 10x, sehingga manusia tidak sempat bereaksi; semuanya harus otomatis dan teruji.'
+        why: 'Setiap tambahan angka sembilan memperkecil jatah downtime 10 kali, sehingga manusia tidak sempat bereaksi. Semua harus otomatis.'
       - text: 'Memindahkan semua ke cloud'
         correct: false
-        why: 'Cloud menyediakan bahan (multi-AZ), bukan jaminan; arsitektur dan operasi tetap harus mendukung.'
+        why: 'Cloud menyediakan bahan seperti beberapa zona. Arsitektur dan operasinya tetap harus mendukung.'
       - text: 'Menurunkan trafik'
         correct: false
         why: 'Availability tidak bergantung langsung pada jumlah trafik.'
@@ -80,36 +80,36 @@ quiz:
 
 Setelah pelajaran ini kamu bisa:
 
-- Mendefinisikan availability, reliability, scalability, maintainability, dan fault tolerance dengan **ukuran yang bisa ditulis sebagai target**.
-- Menghitung availability gabungan komponen seri dan paralel, serta menerjemahkan "nines" ke menit downtime.
-- Menjelaskan kenapa latency harus ditarget sebagai persentil, dan apa harga tiap peningkatan target.
+- Mendefinisikan availability, reliability, scalability, maintainability, dan fault tolerance dengan ukuran yang bisa ditulis sebagai target.
+- Menghitung availability gabungan untuk komponen yang saling bergantung dan komponen cadangan, lalu menerjemahkan angka sembilan ke menit downtime.
+- Menjelaskan kenapa latency harus ditarget sebagai persentil, dan apa harga setiap kenaikan target.
 
-## Kenapa NFR menentukan arsitektur
+## Kenapa target non-fungsional menentukan arsitektur
 
-Dua sistem dengan fitur identik bisa punya arsitektur sangat berbeda hanya karena satu menargetkan 99.9% dan yang lain 99.99%. Functional requirements menentukan **apa** yang dibangun; non-functional requirements menentukan **bagaimana** dan **seberapa mahal**. Di interview, NFR yang kamu tulis di awal adalah alat ukur yang dipakai lagi di tahap evaluasi.
+Dua sistem dengan fitur identik bisa punya arsitektur sangat berbeda hanya karena satu menargetkan 99.9% dan yang lain 99.99%. Functional requirement menentukan apa yang dibangun. Non-functional requirement, sering disingkat NFR, menentukan bagaimana membangunnya dan seberapa mahal. Di interview, NFR yang kamu tulis di awal menjadi alat ukur yang dipakai lagi di tahap evaluasi.
 
 ## Availability: bisa diakses
 
-Fraksi waktu (atau fraksi request) di mana sistem melayani dengan sukses.
+Availability adalah bagian waktu, atau bagian request, saat sistem melayani dengan sukses.
 
-| Target  | Downtime / tahun | Downtime / bulan | Yang biasanya dibutuhkan                                      |
-| ------- | ---------------- | ---------------- | ------------------------------------------------------------- |
-| 99%     | 3.65 hari        | 7.3 jam          | Satu server, restart manual                                   |
-| 99.9%   | 8.8 jam          | 44 menit         | Redundansi + failover semi-otomatis, on-call                  |
-| 99.99%  | 53 menit         | 4.4 menit        | Failover otomatis detik, multi-AZ, deploy bertahap            |
-| 99.999% | 5.3 menit        | 26 detik         | Multi-region aktif-aktif, hampir tidak ada perubahan berisiko |
+| Target  | Downtime per tahun | Downtime per bulan | Yang biasanya dibutuhkan                                         |
+| ------- | ------------------ | ------------------ | ---------------------------------------------------------------- |
+| 99%     | 3.65 hari          | 7.3 jam            | Satu server dan restart manual                                   |
+| 99.9%   | 8.8 jam            | 44 menit           | Redundansi, failover setengah otomatis, tim on-call              |
+| 99.99%  | 53 menit           | 4.4 menit          | Failover otomatis dalam detik, beberapa zona, deploy bertahap    |
+| 99.999% | 5.3 menit          | 26 detik           | Beberapa region aktif bersamaan, hampir tanpa perubahan berisiko |
 
-Menghitung gabungan:
+Cara menghitung gabungannya:
 
-- **Seri** (A bergantung pada B): A × B. Tiga service 99.9% seri ≈ 99.7%. Setiap dependency menurunkan availability, maka kurangi hop atau beri fallback (cache, nilai default, degradasi).
-- **Paralel / redundan** (cukup satu yang hidup): 1 − (1−a)(1−b). Dua node 99% paralel ≈ 99.99%.
+- Komponen yang saling bergantung dikalikan. Tiga service 99.9% yang dirangkai menghasilkan sekitar 99.7%. Setiap dependency menurunkan availability, jadi kurangi jumlah hop atau beri cadangan seperti cache dan nilai default.
+- Komponen cadangan yang cukup salah satunya hidup dihitung dengan rumus 1 dikurangi hasil kali peluang gagalnya. Dua node 99% yang saling mencadangkan menghasilkan sekitar 99.99%.
 
 ```mermaid
 flowchart LR
-  subgraph seri[Seri: 99.9% x 99.9% = 99.8%]
+  subgraph seri[Saling bergantung: 99.9% x 99.9% = 99.8%]
     A[API] --> B[DB]
   end
-  subgraph paralel[Paralel: 1 - 0.001 x 0.001 = 99.9999%]
+  subgraph paralel[Saling mencadangkan: 1 - 0.001 x 0.001 = 99.9999%]
     C[Node 1]
     D[Node 2]
   end
@@ -117,63 +117,69 @@ flowchart LR
   LB --> D
 ```
 
-Availability juga diukur dari sisi **request**: "99.9% request sukses dalam 30 hari" lebih bermakna daripada "server up 99.9%" karena server yang hidup pun bisa mengembalikan error.
+Availability juga bisa diukur dari sisi request. Target "99.9% request sukses dalam 30 hari" lebih bermakna daripada "server hidup 99.9%", karena server yang hidup pun bisa mengembalikan error.
 
 ## Reliability: melakukan hal yang benar
 
-Sistem yang hidup tapi salah tidak reliable: mengembalikan data basi melewati batas, kehilangan tulisan, menghitung ganda. Ukuran yang lazim: **error rate** (fraksi respons salah/5xx), **MTBF** (rata-rata waktu antar kegagalan), **MTTR** (rata-rata waktu pemulihan), dan **durability** (peluang data hilang, mis. "11 nines" untuk object storage).
+Sistem yang hidup tetapi salah tidak reliable. Contohnya mengembalikan data basi melewati batas, kehilangan tulisan, atau menghitung dua kali. Ukuran yang lazim adalah tingkat error, rata-rata waktu antar kegagalan, rata-rata waktu pemulihan, dan durability. Durability adalah peluang data tidak hilang. Object storage besar mengklaim durability sebelas angka sembilan.
 
-Reliability dibangun dari: validasi input, idempotency, transaksi di batas yang tepat, test, dan observability yang membuat kesalahan terlihat cepat.
+Reliability dibangun dari validasi input, operasi yang aman diulang, transaksi di batas yang tepat, pengujian, dan pemantauan yang membuat kesalahan cepat terlihat.
 
-## Scalability: bertambah beban tanpa bertambah sakit
+## Scalability: beban bertambah tanpa sakit bertambah
 
-Kemampuan menangani pertumbuhan **beban** (QPS, data, user) dengan menambah sumber daya secara **proporsional**. Dua arah:
+Scalability adalah kemampuan menangani pertumbuhan beban dengan menambah sumber daya secara sebanding. Beban bisa berupa jumlah request, ukuran data, atau jumlah pengguna.
 
-| Arah                   | Cara               | Batas                                                                     |
-| ---------------------- | ------------------ | ------------------------------------------------------------------------- |
-| Vertikal (scale up)    | Mesin lebih besar  | Harga naik lebih cepat dari kapasitas; ada plafon; tetap satu titik gagal |
-| Horizontal (scale out) | Lebih banyak mesin | Butuh stateless service, partisi data, koordinasi; kompleksitas naik      |
+| Arah                       | Caranya                   | Batasnya                                                                         |
+| -------------------------- | ------------------------- | -------------------------------------------------------------------------------- |
+| Vertikal, atau scale up    | Memakai mesin lebih besar | Harga naik lebih cepat dari kapasitas, ada plafon, dan tetap satu titik gagal    |
+| Horizontal, atau scale out | Menambah jumlah mesin     | Service harus stateless, data harus dipartisi, dan koordinasi menambah kerumitan |
 
-Pertanyaan yang membedakan kandidat: "**komponen mana yang pecah duluan kalau trafik naik 10x?**" Jawabannya biasanya database (write) atau sesuatu yang stateful. Jalur scale yang lazim: stateless service di belakang load balancer → cache → read replica → partisi/sharding → pemisahan beban async lewat queue.
+Pertanyaan yang membedakan kandidat: komponen mana yang pecah duluan kalau trafik naik 10 kali? Jawabannya biasanya database untuk tulis, atau komponen lain yang menyimpan state. Jalur scaling yang lazim: service stateless di belakang load balancer, lalu cache, lalu read replica, lalu partisi data, lalu memindahkan pekerjaan berat ke queue.
 
 ## Latency: ukur ekornya
 
-Target latency selalu dinyatakan sebagai **persentil** (p50, p95, p99), bukan rata-rata. Alasannya: satu halaman memanggil puluhan backend, sehingga user hampir pasti merasakan request terlambat dari salah satunya. Ekor biasanya berasal dari GC pause, lock contention, query lambat, atau node yang setengah sakit; obatnya antara lain hedged request, timeout per hop, dan membatasi fan-out.
+Target latency selalu dinyatakan sebagai persentil seperti p50, p95, atau p99, bukan rata-rata. Alasannya, satu halaman memanggil puluhan backend. Pengguna hampir pasti merasakan request yang terlambat dari salah satunya. Ekor biasanya berasal dari jeda garbage collector, perebutan lock, query lambat, atau node yang setengah sakit. Obatnya antara lain mengirim request cadangan bila yang pertama lambat, timeout per hop, dan membatasi jumlah panggilan paralel.
 
 ## Maintainability: murah diubah
 
-Tiga sisi yang sering dipakai: **operability** (mudah dijalankan: observability, deploy, runbook), **simplicity** (abstraksi yang menyembunyikan kerumitan, bukan menambahnya), **evolvability** (mudah diubah saat requirement berubah: skema yang bisa berevolusi, API berversi). Di interview ini muncul sebagai: "bagaimana kamu men-deploy perubahan tanpa downtime?" dan "bagaimana mengubah skema data ini nanti?".
+Tiga sisinya yang sering dipakai:
+
+- Operability: mudah dijalankan, dengan pemantauan, deploy, dan panduan penanganan insiden.
+- Simplicity: abstraksi yang menyembunyikan kerumitan, bukan menambahnya.
+- Evolvability: mudah diubah saat kebutuhan berubah, lewat skema yang bisa berevolusi dan API berversi.
+
+Di interview, ini muncul sebagai pertanyaan "bagaimana kamu mengubah skema data ini nanti?" dan "bagaimana kamu men-deploy tanpa downtime?".
 
 ## Fault tolerance: tetap berjalan saat sebagian rusak
 
-Berbeda dari "tidak pernah gagal": sistem **mengantisipasi** kegagalan komponen dan terus melayani, mungkin dengan degradasi. Alatnya:
+Fault tolerance berbeda dari "tidak pernah gagal". Sistem mengantisipasi kegagalan komponen dan terus melayani, mungkin dengan kemampuan berkurang. Alatnya:
 
-- **Redundansi** (N+1 node, multi-AZ) dan **failover** otomatis.
-- **Isolasi** (bulkhead): kegagalan satu fitur tidak menjatuhkan fitur lain.
-- **Degradasi anggun**: tampilkan feed dari cache saat ranking service mati.
-- **Load shedding & rate limiting**: menolak sebagian request lebih baik daripada mati semua.
-- **Static stability**: sistem tetap jalan saat control plane (mis. autoscaler) tidak tersedia, karena kapasitas sudah ada sebelumnya.
+- Redundansi, misalnya satu node cadangan dan beberapa zona, ditambah failover otomatis.
+- Isolasi, supaya kegagalan satu fitur tidak menjatuhkan fitur lain.
+- Degradasi yang anggun, misalnya menampilkan feed dari cache saat service ranking mati.
+- Menolak sebagian request saat kewalahan, karena itu lebih baik daripada mati semua.
+- Static stability: sistem tetap berjalan saat komponen pengendali seperti autoscaler tidak tersedia, karena kapasitasnya sudah ada sebelumnya.
 
-## Trade-off antar NFR
+## Trade-off antar target
 
-| Dorongan                  | Yang dikorbankan                                         | Contoh                                                 |
-| ------------------------- | -------------------------------------------------------- | ------------------------------------------------------ |
-| Availability lebih tinggi | Konsistensi (saat partition), biaya, kecepatan perubahan | Multi-region aktif-aktif memaksa eventual consistency  |
-| Konsistensi kuat          | Latency, availability                                    | Tulis menunggu quorum lintas AZ                        |
-| Latency rendah            | Biaya (cache, edge), kesegaran data                      | CDN menyajikan konten yang mungkin basi beberapa menit |
-| Scalability horizontal    | Simplicity, transaksi lintas partisi                     | Sharding membuat join dan transaksi global sulit       |
-| Maintainability           | Performa micro-optimization                              | Memilih abstraksi jelas daripada trik cepat            |
+| Yang didorong             | Yang dikorbankan                                       | Contoh                                                       |
+| ------------------------- | ------------------------------------------------------ | ------------------------------------------------------------ |
+| Availability lebih tinggi | Konsistensi saat partition, biaya, kecepatan perubahan | Beberapa region aktif bersamaan memaksa konsistensi eventual |
+| Konsistensi kuat          | Latency, availability                                  | Tulis menunggu konfirmasi dari zona lain                     |
+| Latency rendah            | Biaya, kesegaran data                                  | CDN menyajikan konten yang mungkin basi beberapa menit       |
+| Scalability horizontal    | Kesederhanaan, transaksi lintas partisi                | Sharding membuat join dan transaksi global sulit             |
+| Maintainability           | Optimasi kecil-kecilan                                 | Memilih abstraksi jelas daripada trik cepat                  |
 
 ## Pertanyaan yang sering ditanya interviewer
 
-- "Berapa target availability-nya, dan apa artinya dalam menit per bulan?" → Pakai tabel nines, sebut konsekuensi operasional.
-- "Komponen mana yang menjadi single point of failure?" → Tunjuk, lalu beri redundansi atau alasan menerimanya.
-- "Apa yang didegradasi saat X mati?" → Siapkan jawaban per dependency penting.
-- "Kenapa p99, bukan rata-rata?" → Jelaskan efek fan-out.
-- "Sistem ini CP atau AP?" → Jawab per fitur; kaitkan dengan NFR yang ditulis di awal.
+- "Berapa target availability-nya, dan apa artinya dalam menit per bulan?" Pakai tabel angka sembilan, lalu sebut akibat operasionalnya.
+- "Komponen mana yang menjadi single point of failure?" Tunjuk komponennya, lalu beri cadangan atau alasan menerimanya.
+- "Apa yang dikurangi saat komponen X mati?" Siapkan jawaban untuk setiap dependency penting.
+- "Kenapa p99, bukan rata-rata?" Jelaskan efek banyak panggilan paralel.
+- "Sistem ini CP atau AP?" Jawab per fitur, dan kaitkan dengan target yang kamu tulis di awal.
 
 ## Ringkasan
 
-1. NFR harus bisa diukur: availability dalam nines/persen request, latency dalam persentil, reliability dalam error rate dan durability, scalability sebagai "apa yang pecah pada 10x".
-2. Komponen seri mengalikan availability ke bawah; redundansi paralel menaikkannya. Kurangi dependency seri, beri fallback.
-3. Tiap nine tambahan memperkecil anggaran downtime 10x dan memaksa otomatisasi; sebutkan harganya saat menargetkan.
+1. Target non-fungsional harus bisa diukur: availability dalam angka sembilan atau persen request, latency dalam persentil, reliability dalam tingkat error, dan scalability sebagai "apa yang pecah pada 10 kali beban".
+2. Komponen yang saling bergantung mengalikan availability ke bawah, sedangkan komponen cadangan menaikkannya. Kurangi dependency dan beri cadangan.
+3. Setiap tambahan angka sembilan memperkecil jatah downtime 10 kali dan memaksa otomatisasi. Sebutkan harganya saat menargetkan.
