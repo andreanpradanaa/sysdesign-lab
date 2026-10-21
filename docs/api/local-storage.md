@@ -22,6 +22,11 @@ interface MockStore {
   version: 1;
   sessions: Record<mockId, MockSession[]>;
 }
+interface QuestionStore {
+  version: 1;
+  reports: UserReport[]; // soal yang dilaporkan pengguna sendiri
+  attempted: Record<questionId, isoDate>; // tanda sudah dicoba
+}
 interface MockSession {
   at: isoDate;
   elapsedSec: number;

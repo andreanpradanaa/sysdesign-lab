@@ -4,16 +4,17 @@ Platform belajar System Design pribadi (statis, gratis, open source). Tidak ada 
 
 ## Peta halaman
 
-| Route                      | File                              | Fungsi                                                                                           |
-| -------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `/`                        | `src/pages/index.astro`           | Beranda: progress, tombol lanjutkan, daftar kurikulum                                            |
-| `/belajar/<bagian>/<slug>` | `src/pages/belajar/[...id].astro` | Pelajaran / studi kasus / postmortem + kuis + tandai selesai + prev/next                         |
-| `/mock`                    | `src/pages/mock/index.astro`      | Daftar soal mock, tahap & rubrik                                                                 |
-| `/mock/<slug>`             | `src/pages/mock/[id].astro`       | Mode mock interview (timer, checklist, rubrik, riwayat)                                          |
-| `/kuis`                    | `src/pages/kuis/index.astro`      | Daftar kuis dan skor terakhir                                                                    |
-| `/cheatsheet`              | `src/pages/cheatsheet.astro`      | Latency numbers, pola umum, tabel pilih DB, urutan 45 menit                                      |
-| `/dashboard`               | `src/pages/dashboard.astro`       | Sapaan, streak, progress per bagian, area lemah dari kuis, sesi mock terakhir, bookmark, catatan |
-| `/search.json`             | `src/pages/search.json.ts`        | Indeks pencarian statis untuk modal Ctrl+K                                                       |
+| Route                      | File                              | Fungsi                                                                                                                                                 |
+| -------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                        | `src/pages/index.astro`           | Beranda: progress, tombol lanjutkan, daftar kurikulum                                                                                                  |
+| `/belajar/<bagian>/<slug>` | `src/pages/belajar/[...id].astro` | Pelajaran / studi kasus / postmortem + kuis + tandai selesai + prev/next                                                                               |
+| `/mock`                    | `src/pages/mock/index.astro`      | Daftar soal mock, tahap & rubrik                                                                                                                       |
+| `/mock/<slug>`             | `src/pages/mock/[id].astro`       | Mode mock interview (timer, checklist, rubrik, riwayat)                                                                                                |
+| `/kuis`                    | `src/pages/kuis/index.astro`      | Daftar kuis dan skor terakhir                                                                                                                          |
+| `/cheatsheet`              | `src/pages/cheatsheet.astro`      | Latency numbers, pola umum, tabel pilih DB, urutan 45 menit                                                                                            |
+| `/dashboard`               | `src/pages/dashboard.astro`       | Sapaan, streak, progress per bagian, area lemah dari kuis, sesi mock terakhir, bookmark, catatan                                                       |
+| `/soal`                    | `src/pages/soal.astro`            | Bank soal: 0 soal orisinal dengan tipe, level, kesulitan, tag, tautan ke pembahasan dan mock, pencarian, tanda sudah dicoba, dan laporan soal pribadi |
+| `/search.json`             | `src/pages/search.json.ts`        | Indeks pencarian statis untuk modal Ctrl+K                                                                                                             |
 
 ## Komponen
 

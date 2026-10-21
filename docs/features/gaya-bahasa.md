@@ -47,6 +47,10 @@ Pedoman ini dipaksakan sebagian oleh `src/test/content.test.ts` (lihat bagian "P
 - Jujur tentang batas: "angka kasar", "bergantung pada model", "belum tentu".
 - Tidak ada kalimat basa-basi pembuka seperti "Pada pelajaran ini kita akan membahas".
 
+## Data soal
+
+Entri di `src/data/questions.ts` mengikuti aturan yang sama: judul berupa perintah "Rancang …", ringkasan satu kalimat ≤30 kata yang menyebut apa yang diuji, tanpa klaim perusahaan tempat soal ditanyakan.
+
 ## Pemeriksaan otomatis
 
 Untuk file di `STYLE_CHECKED`, test konten menolak:

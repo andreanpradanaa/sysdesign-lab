@@ -31,6 +31,7 @@ const navLinks = [
     match: (p: string) => p === href('/') || p.startsWith(href('/belajar')),
   },
   { label: 'Mock Interview', to: href('/mock'), match: (p: string) => p.startsWith(href('/mock')) },
+  { label: 'Bank Soal', to: href('/soal'), match: (p: string) => p.startsWith(href('/soal')) },
   { label: 'Kuis', to: href('/kuis'), match: (p: string) => p.startsWith(href('/kuis')) },
   { label: 'Cheat Sheet', to: href('/cheatsheet'), match: (p: string) => p.startsWith(href('/cheatsheet')) },
   { label: 'Dashboard', to: href('/dashboard'), match: (p: string) => p.startsWith(href('/dashboard')) },

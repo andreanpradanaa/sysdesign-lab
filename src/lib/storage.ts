@@ -3,9 +3,11 @@
  */
 import { coerceState, emptyState, type ProgressState } from './progress';
 import { coerceMockStore, emptyMockStore, type MockStore } from './mock';
+import { coerceQuestionStore, emptyQuestionStore, type QuestionStore } from './questions';
 
 export const PROGRESS_KEY = 'sdl:progress:v1';
 export const MOCK_KEY = 'sdl:mock:v1';
+export const QUESTIONS_KEY = 'sdl:questions:v1';
 export const THEME_KEY = 'sdl:theme';
 
 export interface KV {
@@ -46,6 +48,15 @@ export function loadMocks(kv: KV): MockStore {
 
 export function saveMocks(kv: KV, store: MockStore): void {
   writeJson(kv, MOCK_KEY, store);
+}
+
+export function loadQuestions(kv: KV): QuestionStore {
+  const raw = readJson(kv, QUESTIONS_KEY);
+  return raw === undefined ? emptyQuestionStore() : coerceQuestionStore(raw);
+}
+
+export function saveQuestions(kv: KV, store: QuestionStore): void {
+  writeJson(kv, QUESTIONS_KEY, store);
 }
 
 /** Dipakai di browser; di SSR/test kembalikan adapter memori. */

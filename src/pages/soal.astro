@@ -1,0 +1,297 @@
+---
+import Base from '../layouts/Base.astro';
+import { QUESTIONS, TYPE_LABEL, LEVEL_LABEL } from '../data/questions';
+import { allTags } from '../lib/questions';
+import { publishedLessons } from '../lib/content';
+import { getCollection } from 'astro:content';
+import { lessonHref, mockHref } from '../lib/url';
+
+const lessons = await publishedLessons();
+const mocks = await getCollection('mocks');
+const lessonTitles = Object.fromEntries(lessons.map((l) => [l.id, l.data.title]));
+const mockIds = new Set(mocks.map((m) => m.id));
+const tags = allTags(QUESTIONS);
+const data = QUESTIONS.map((q) => ({
+  ...q,
+  lessonTitle: q.lesson ? lessonTitles[q.lesson] : undefined,
+  lessonUrl: q.lesson ? lessonHref(q.lesson) : undefined,
+  mockUrl: q.mock && mockIds.has(q.mock) ? mockHref(q.mock) : undefined,
+}));
+const withLesson = data.filter((q) => q.lessonUrl).length;
+---
+
+<Base title="Bank Soal" width="wide">
+  <div
+    id="bank"
+    data-questions={JSON.stringify(data)}
+    data-type-label={JSON.stringify(TYPE_LABEL)}
+    data-level-label={JSON.stringify(LEVEL_LABEL)}
+  >
+    <div class="section-head" style="margin-top:0">
+      <div>
+        <span class="eyebrow">Bank soal</span>
+        <h1 style="font-size:1.9rem">Soal interview system design</h1>
+      </div>
+      <span class="badge badge-accent" id="bank-count">
+        {QUESTIONS.length} soal
+      </span>
+    </div>
+    <p class="muted" style="margin-top:-0.4rem">
+      Soal yang sering muncul di interview, ditulis ulang dengan kata-kata sendiri. {withLesson} di antaranya
+      punya pembahasan di kurikulum ini. Tambahkan soal yang kamu temui sendiri lewat formulir di bawah,
+      tersimpan di browser ini.
+    </p>
+
+    <div class="card" style="padding:1rem 1.1rem">
+      <input id="bank-q" type="text" placeholder="Cari judul, tag, atau kata kunci…" autocomplete="off" />
+      <div class="bank-filters">
+        <label>
+          Tipe
+          <select id="f-type">
+            <option value="semua">Semua tipe</option>
+            <option value="product">{TYPE_LABEL.product}</option>
+            <option value="infra">{TYPE_LABEL.infra}</option>
+          </select>
+        </label>
+        <label>
+          Level
+          <select id="f-level">
+            <option value="semua">Semua level</option>
+            <option value="mid">{LEVEL_LABEL.mid}</option>
+            <option value="senior">{LEVEL_LABEL.senior}</option>
+            <option value="staff">{LEVEL_LABEL.staff}</option>
+          </select>
+        </label>
+        <label>
+          Kesulitan
+          <select id="f-difficulty">
+            <option value="semua">Semua</option>
+            <option value="mudah">Mudah</option>
+            <option value="sedang">Sedang</option>
+            <option value="sulit">Sulit</option>
+          </select>
+        </label>
+        <label>
+          Sumber
+          <select id="f-source">
+            <option value="semua">Kurikulum + laporanku</option>
+            <option value="kurikulum">Kurikulum</option>
+            <option value="laporan">Laporanku</option>
+          </select>
+        </label>
+        <label>
+          Urutkan
+          <select id="f-sort">
+            <option value="terbaru">Terbaru</option>
+            <option value="judul">Judul A–Z</option>
+            <option value="kesulitan">Kesulitan</option>
+          </select>
+        </label>
+      </div>
+      <div class="btn-row filter-chips" id="bank-tags" style="margin-top:0.8rem">
+        <button type="button" class="badge" data-tag="" aria-pressed="true">
+          Semua tag
+        </button>
+        {tags.slice(0, 14).map((t) => (
+          <button type="button" class="badge" data-tag={t.tag} aria-pressed="false">
+            {t.tag} · {t.count}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <ul id="bank-list" class="bank-list" aria-live="polite"></ul>
+
+    <details class="card" id="report" style="margin-top:1.6rem">
+      <summary>Laporkan soal yang kamu temui di interview</summary>
+      <p class="small muted" style="margin:0.4rem 0 0.8rem">
+        Catat soal, perusahaan, dan konteksnya. Hanya tersimpan di browser ini; muncul di daftar dengan label
+        "laporanku".
+      </p>
+      <form id="report-form" class="report-form">
+        <label>
+          Judul soal
+          <input type="text" name="title" required placeholder="Rancang sistem antrian klinik" />
+        </label>
+        <label>
+          Perusahaan (opsional)
+          <input type="text" name="company" placeholder="Nama perusahaan" />
+        </label>
+        <label>
+          Tanggal
+          <input type="date" name="date" />
+        </label>
+        <label>
+          Level
+          <select name="level">
+            <option value="mid">Mid</option>
+            <option value="senior" selected>
+              Senior
+            </option>
+            <option value="staff">Staff+</option>
+          </select>
+        </label>
+        <label>
+          Tipe
+          <select name="type">
+            <option value="product">Desain produk</option>
+            <option value="infra">Desain infrastruktur</option>
+          </select>
+        </label>
+        <label>
+          Kesulitan
+          <select name="difficulty">
+            <option value="mudah">Mudah</option>
+            <option value="sedang" selected>
+              Sedang
+            </option>
+            <option value="sulit">Sulit</option>
+          </select>
+        </label>
+        <label style="grid-column:1 / -1">
+          Catatan
+          <textarea
+            name="notes"
+            rows="3"
+            placeholder="Apa yang ditanyakan, ke arah mana interviewer mendorong, apa yang terlewat…"
+          ></textarea>
+        </label>
+        <div class="btn-row" style="grid-column:1 / -1">
+          <button type="submit" class="btn-primary">
+            Simpan laporan
+          </button>
+          <span class="small muted" id="report-status" aria-live="polite"></span>
+        </div>
+      </form>
+    </details>
+  </div>
+
+  <script>
+    import {
+      filterQuestions,
+      reportToQuestion,
+      addReport,
+      removeReport,
+      markAttempted,
+      unmarkAttempted,
+      type QuestionFilter,
+    } from '../lib/questions';
+    import { browserStorage, loadQuestions, saveQuestions } from '../lib/storage';
+    import { dayKey } from '../lib/progress';
+
+    const root = document.getElementById('bank')!;
+    type Row = ReturnType<typeof reportToQuestion> & {
+      lessonTitle?: string;
+      lessonUrl?: string;
+      mockUrl?: string;
+    };
+    const base: Row[] = JSON.parse(root.dataset.questions!);
+    const typeLabel: Record<string, string> = JSON.parse(root.dataset.typeLabel!);
+    const levelLabel: Record<string, string> = JSON.parse(root.dataset.levelLabel!);
+    const kv = browserStorage();
+    const esc = (s: string) =>
+      s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const sel = (id: string) => document.getElementById(id) as HTMLSelectElement;
+    const q = document.getElementById('bank-q') as HTMLInputElement;
+    const list = document.getElementById('bank-list')!;
+    let tag = '';
+
+    const render = () => {
+      const store = loadQuestions(kv);
+      const all: Row[] = [...base, ...store.reports.map((r) => reportToQuestion(r) as Row)];
+      const f: QuestionFilter = {
+        q: q.value,
+        type: sel('f-type').value as QuestionFilter['type'],
+        level: sel('f-level').value as QuestionFilter['level'],
+        difficulty: sel('f-difficulty').value as QuestionFilter['difficulty'],
+        source: sel('f-source').value as QuestionFilter['source'],
+        sort: sel('f-sort').value as QuestionFilter['sort'],
+        tag: tag || undefined,
+      };
+      const rows = filterQuestions(all, f);
+      document.getElementById('bank-count')!.textContent = `${rows.length} dari ${all.length} soal`;
+      list.innerHTML = rows.length
+        ? rows
+            .map((r) => {
+              const tried = store.attempted[r.id];
+              return `<li class="bank-row ${tried ? 'tried' : ''}" data-id="${esc(r.id)}">
+                <div class="bank-main">
+                  <div class="bank-title">${esc(r.title)} ${r.isReport ? '<span class="badge badge-accent">laporanku</span>' : ''}</div>
+                  <p class="small muted bank-summary">${esc(r.summary || '')}</p>
+                  <div class="btn-row bank-badges">
+                    <span class="badge">${esc(typeLabel[r.type] ?? r.type)}</span>
+                    <span class="badge">${esc(levelLabel[r.level] ?? r.level)}</span>
+                    <span class="badge ${r.difficulty === 'sulit' ? 'badge-accent' : ''}">${esc(r.difficulty)}</span>
+                    ${r.tags.map((t) => `<span class="badge">${esc(t)}</span>`).join('')}
+                  </div>
+                </div>
+                <div class="bank-actions">
+                  ${r.lessonUrl ? `<a class="btn small" href="${r.lessonUrl}">Pembahasan</a>` : ''}
+                  ${r.mockUrl ? `<a class="btn btn-primary small" href="${r.mockUrl}">Mock 45 menit</a>` : ''}
+                  <button type="button" class="btn btn-ghost small" data-try="${esc(r.id)}" aria-pressed="${Boolean(tried)}">${tried ? `✓ Dicoba ${new Date(tried).toLocaleDateString('id-ID')}` : 'Tandai sudah dicoba'}</button>
+                  ${r.isReport ? `<button type="button" class="btn btn-ghost small" data-del="${esc(r.id)}">Hapus</button>` : ''}
+                </div>
+              </li>`;
+            })
+            .join('')
+        : '<li class="muted small">Tidak ada soal yang cocok. Longgarkan filter atau tambahkan laporanmu sendiri.</li>';
+    };
+
+    list.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      const tryId = t.dataset.try;
+      const delId = t.dataset.del;
+      if (tryId) {
+        const store = loadQuestions(kv);
+        saveQuestions(
+          kv,
+          store.attempted[tryId] ? unmarkAttempted(store, tryId) : markAttempted(store, tryId),
+        );
+        render();
+      }
+      if (delId && confirm('Hapus laporan ini?')) {
+        saveQuestions(kv, removeReport(loadQuestions(kv), delId));
+        render();
+      }
+    });
+    document.getElementById('bank-tags')!.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-tag]');
+      if (!btn) return;
+      tag = btn.dataset.tag ?? '';
+      document
+        .querySelectorAll('#bank-tags button')
+        .forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      render();
+    });
+    [q, sel('f-type'), sel('f-level'), sel('f-difficulty'), sel('f-source'), sel('f-sort')].forEach((el) =>
+      el.addEventListener('input', render),
+    );
+
+    const form = document.getElementById('report-form') as HTMLFormElement;
+    (form.elements.namedItem('date') as HTMLInputElement).value = dayKey(new Date());
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const title = String(fd.get('title') ?? '').trim();
+      if (!title) return;
+      saveQuestions(
+        kv,
+        addReport(loadQuestions(kv), {
+          title,
+          company: String(fd.get('company') ?? '').trim() || undefined,
+          level: fd.get('level') as 'mid' | 'senior' | 'staff',
+          type: fd.get('type') as 'product' | 'infra',
+          difficulty: fd.get('difficulty') as 'mudah' | 'sedang' | 'sulit',
+          notes: String(fd.get('notes') ?? '').trim(),
+          date: String(fd.get('date') || dayKey(new Date())),
+        }),
+      );
+      form.reset();
+      (form.elements.namedItem('date') as HTMLInputElement).value = dayKey(new Date());
+      document.getElementById('report-status')!.textContent = 'Laporan tersimpan dan muncul di daftar.';
+      sel('f-source').value = 'semua';
+      render();
+    });
+    render();
+  </script>
+</Base>

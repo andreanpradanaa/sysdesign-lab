@@ -1234,6 +1234,92 @@ details.stage[open] > summary label {
   border-radius: 10px;
 }
 
+/* ---------- bank soal ---------- */
+.bank-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+}
+.bank-filters label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.bank-filters select {
+  font-size: 0.92rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.bank-list {
+  list-style: none;
+  margin: 1.2rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.bank-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem 1.2rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.bank-row.tried {
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--border));
+}
+.bank-title {
+  font-weight: 600;
+  font-size: 1.02rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.bank-summary {
+  margin: 0.25rem 0 0.5rem;
+}
+.bank-badges {
+  gap: 0.35rem;
+}
+.bank-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: stretch;
+  min-width: 160px;
+}
+.bank-actions .btn,
+.bank-actions button {
+  font-size: 0.82rem;
+  padding: 0.4em 0.7em;
+  justify-content: center;
+}
+.bank-actions button[aria-pressed='true'] {
+  color: var(--ok);
+}
+.report-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.report-form label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+
 /* ---------- motion & responsive ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -1254,6 +1340,16 @@ details.stage[open] > summary label {
 }
 @media (max-width: 900px) {
   .dash-grid {
+    grid-template-columns: 1fr;
+  }
+  .bank-row {
+    grid-template-columns: 1fr;
+  }
+  .bank-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .report-form {
     grid-template-columns: 1fr;
   }
   .app {
