@@ -37,6 +37,8 @@ Legenda: Belum mulai · Berjalan · Selesai · Terblokir. Bar = 10 blok, tiap bl
 - [x] Redesign "premium": Inter + JetBrains Mono, token warna + gradasi aksen, header kaca dengan progress, hero + statistik + kartu kurikulum, TOC di halaman pelajaran, kartu navigasi prev/next, kuis & mock bergaya kartu
 - [x] Enhancement ala HelloInterview: dashboard (streak, progress per bagian, area lemah, sesi mock, bookmark, catatan), pencarian global (Ctrl+K), catatan dan bookmark per pelajaran, kesulitan + tag pola di studi kasus dengan filter, sisipan "coba dulu" ke mock terkait, pertanyaan pemandu per tahap dan laporan sesi mock
 - [x] Bank soal /soal ala "reported questions": 50 soal orisinal (src/data/questions.ts), filter tipe/level/kesulitan/sumber/tag, pencarian, urutan, tanda sudah dicoba, formulir laporan soal pribadi (localStorage)
+- [x] Studi kasus Ticketmaster / pemesanan tiket (bagian-3/ticket-booking) + mock + tautan di bank soal
+- [x] Perbaikan tampilan: tombol sisipan "coba dulu" tidak lagi melebarkan halaman di ponsel, menu header tidak melipat, eyebrow tidak menggandakan "Studi kasus"
 - [ ] (opsional) Ekspor/impor progress JSON
 
 ## Bagian 1 — Fondasi

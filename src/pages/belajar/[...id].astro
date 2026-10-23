@@ -31,7 +31,8 @@ const relatedMock = (await getCollection('mocks')).find((m) => m.data.relatedCas
 <Base title={data.title} description={data.summary} currentId={entry.id} width="lesson">
   <article>
     <span class="eyebrow">
-      Bagian {modIndex} · {mod?.title} · {typeLabel}
+      Bagian {modIndex} · {mod?.title}
+      {typeLabel.toLowerCase() !== mod?.title.toLowerCase() && ` · ${typeLabel}`}
     </span>
     <h1>{data.title}</h1>
     <div class="lesson-meta">

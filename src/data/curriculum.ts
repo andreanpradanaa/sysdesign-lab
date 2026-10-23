@@ -73,6 +73,7 @@ export const CURRICULUM: CurriculumModule[] = [
       { slug: 'typeahead', title: 'Typeahead' },
       { slug: 'google-docs', title: 'Google Docs' },
       { slug: 'payment-system', title: 'Payment system' },
+      { slug: 'ticket-booking', title: 'Ticketmaster / pemesanan tiket' },
       { slug: 'deployment-system', title: 'Deployment system' },
       { slug: 'online-judge', title: 'Online judge (LeetCode)' },
       { slug: 'chatgpt-like', title: 'ChatGPT-like system' },

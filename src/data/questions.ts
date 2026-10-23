@@ -354,7 +354,9 @@ export const QUESTIONS: Question[] = [
     tags: ['Reservation', 'Consistency', 'Flash sale'],
     summary:
       'Menguji reservasi kursi tanpa double booking, antrian virtual saat lonjakan, dan pembayaran dengan tenggat.',
-    added: '2026-10-21',
+    lesson: 'bagian-3/ticket-booking',
+    mock: 'ticket-booking',
+    added: '2026-10-23',
   },
   {
     id: 'file-sync',

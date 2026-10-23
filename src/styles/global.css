@@ -429,6 +429,9 @@ select:focus {
   display: flex;
   gap: 0.15rem;
   margin-left: 1rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 .header nav a {
   padding: 0.45em 0.8em;
@@ -439,6 +442,7 @@ select:focus {
   transition:
     background 0.15s,
     color 0.15s;
+  white-space: nowrap;
 }
 .header nav a:hover {
   background: var(--bg-soft);
@@ -1173,6 +1177,9 @@ details.card[open] > summary {
 }
 .try-first .btn {
   justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
 }
 .dash-grid {
   display: grid;
@@ -1327,6 +1334,11 @@ details.stage[open] > summary label {
   *::after {
     transition: none !important;
     animation: none !important;
+  }
+}
+@media (max-width: 1200px) {
+  .header-progress {
+    display: none;
   }
 }
 @media (max-width: 1100px) {
